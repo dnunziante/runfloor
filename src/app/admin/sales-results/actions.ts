@@ -21,3 +21,11 @@ export async function saveSalesResult(input: SalesResultInput) {
   if (!error) { revalidatePath("/admin/sales-results"); revalidatePath("/executive"); }
   return { error: error?.message ?? "" };
 }
+
+export async function resetBgcDemoPerformance() {
+  const viewer = await getViewer();
+  if (!viewer || viewer.organizationId !== "10000000-0000-0000-0000-000000000001" || !canManageExecutiveTargets(viewer.role)) return { error: "Only BGC Demo tenant administrators can reset demo performance data." };
+  const { error } = await (await createClient()).rpc("reset_bgc_demo_performance");
+  if (!error) { revalidatePath("/admin/sales-results"); revalidatePath("/executive"); revalidatePath("/executive/trends"); }
+  return { error: error?.message ?? "" };
+}
