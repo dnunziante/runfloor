@@ -17,6 +17,37 @@ async function requireTenantAdmin() {
   return viewer;
 }
 
+async function requirePersonaManager() {
+  const viewer = await getViewer();
+  if (!viewer?.organizationId || !["tenant_admin", "platform_owner", "manager"].includes(viewer.role)) throw new Error("Unauthorized");
+  return viewer;
+}
+
+export async function saveCoachPersonaTemplate(formData: FormData) {
+  if (isLocalDemoMode()) throw new Error("Persona editing is disabled in local demo mode.");
+  const viewer = await requirePersonaManager();
+  const id = String(formData.get("personaId") || ""); const name = String(formData.get("name") || "").trim(); const archetype = String(formData.get("archetype") || "").trim(); const difficulty = String(formData.get("difficulty") || "Intermediate"); const notes = String(formData.get("notes") || "").trim();
+  if (name.length < 2 || archetype.length < 2 || !["Beginner", "Intermediate", "Advanced", "Expert"].includes(difficulty)) throw new Error("Enter a name, archetype, and valid difficulty.");
+  const supabase = await createClient(); const values = { organization_id: viewer.organizationId, name, archetype, industry: String(formData.get("industry") || "General sales").trim() || "General sales", difficulty, notes, configuration: { primaryUse: String(formData.get("primaryUse") || "").trim(), primaryConcern: String(formData.get("primaryConcern") || "").trim(), personality: String(formData.get("personality") || "").trim() }, updated_at: new Date().toISOString() };
+  const result = id ? await supabase.from("coach_persona_templates").update(values).eq("id", id).eq("organization_id", viewer.organizationId) : await supabase.from("coach_persona_templates").insert({ ...values, created_by: viewer.id });
+  if (result.error) throw new Error("The persona template could not be saved."); revalidatePath("/admin/coach"); revalidatePath("/coach/session");
+}
+
+export async function setCoachPersonaTemplateStatus(formData: FormData) {
+  const viewer = await requirePersonaManager(); const id = String(formData.get("personaId") || ""); const active = formData.get("active") === "true";
+  if (!/^[0-9a-f-]{36}$/i.test(id)) throw new Error("Invalid persona template."); const supabase = await createClient(); const { error } = await supabase.from("coach_persona_templates").update({ is_active: active, updated_at: new Date().toISOString() }).eq("id", id).eq("organization_id", viewer.organizationId); if (error) throw new Error("The persona template could not be updated."); revalidatePath("/admin/coach"); revalidatePath("/coach/session");
+}
+
+export async function duplicateCoachPersonaTemplate(formData: FormData) {
+  const viewer = await requirePersonaManager(); const id = String(formData.get("personaId") || ""); if (!/^[0-9a-f-]{36}$/i.test(id)) throw new Error("Invalid persona template.");
+  const supabase = await createClient(); const { data: source, error } = await supabase.from("coach_persona_templates").select("name,archetype,industry,difficulty,configuration,notes,location_id,applicable_product_ids,applicable_competitor_ids").eq("id", id).eq("organization_id", viewer.organizationId).single(); if (error || !source) throw new Error("The persona template could not be copied.");
+  const result = await supabase.from("coach_persona_templates").insert({ ...source, organization_id: viewer.organizationId, name: `${source.name} copy`.slice(0, 120), created_by: viewer.id, is_active: false }); if (result.error) throw new Error("The persona template could not be copied."); revalidatePath("/admin/coach");
+}
+
+export async function deleteCoachPersonaTemplate(formData: FormData) {
+  const viewer = await requirePersonaManager(); const id = String(formData.get("personaId") || ""); if (!/^[0-9a-f-]{36}$/i.test(id)) throw new Error("Invalid persona template."); const supabase = await createClient(); const { error } = await supabase.from("coach_persona_templates").delete().eq("id", id).eq("organization_id", viewer.organizationId); if (error) throw new Error("The persona template could not be deleted."); revalidatePath("/admin/coach"); revalidatePath("/coach/session");
+}
+
 export async function createCoachScenario(_previousState: CoachScenarioActionState, formData: FormData): Promise<CoachScenarioActionState> {
   if (isLocalDemoMode()) return { error: "Scenario editing is disabled in local demo mode. Sign in to the connected workspace to save changes.", success: "" };
   const viewer = await requireTenantAdmin();

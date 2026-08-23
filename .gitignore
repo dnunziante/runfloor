@@ -13,3 +13,6 @@ out
 .DS_Store
 .env.local.txt
 env.local.txt
+.env.local
+.env.*.local
+supabase/.temp/

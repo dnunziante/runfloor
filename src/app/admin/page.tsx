@@ -25,6 +25,7 @@ export default async function Admin() {
   const readinessHref = `/executive/readiness?period=${readiness.reportingPeriod}`;
   const items = [
     [Boxes, "Products & pricing", "Manage models, positioning, prices, and visibility.", "/admin/products"],
+    [Boxes, "Competitor sources", "Check public competitor product pages and review updates before importing them.", "/admin/competitor-sources"],
     [BarChart3, "Sales results", "Review and approve monthly results used by the Executive Advisor.", "/admin/sales-results"],
     [GraduationCap, "Coach scenarios", "Create and publish tenant-specific practice conversations.", "/admin/coach"],
     [GraduationCap, "Training modules", "Combine knowledge lessons into ordered learning paths.", "/admin/training"],
