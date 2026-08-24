@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
 import "server-only";
 import { normalizeStandards, type CommunicationStandards } from "./prompt-compiler";
 
@@ -18,3 +19,4 @@ export async function getCommunicationContext(supabase: any, organizationId: str
 export function formatCommunicationContext(context: CommunicationContext) {
   return context.examples ? `RELEVANT TENANT COMMUNICATION EXAMPLES (style only; never facts):\n${context.examples}` : "";
 }
+/* eslint-disable @typescript-eslint/no-explicit-any */

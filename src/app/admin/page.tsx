@@ -8,6 +8,7 @@ import {
   CheckCircle2,
   ChevronRight,
   Circle,
+  Crown,
   GraduationCap,
   Settings,
   Users,
@@ -16,28 +17,31 @@ import { AppShell } from "@/components/app-shell";
 import { PageHeader } from "@/components/page-header";
 import { getExecutiveReadiness } from "@/lib/executive/readiness-repository";
 import { buildExecutiveSetupSequence } from "@/lib/executive/setup-sequence";
+import { getViewer } from "@/lib/auth/viewer";
 
 export default async function Admin() {
-  const readiness = await getExecutiveReadiness();
+  const [readiness, viewer] = await Promise.all([getExecutiveReadiness(), getViewer()]);
+  const workspaceName = viewer?.organizationName || "workspace";
   const setupSteps = buildExecutiveSetupSequence(readiness.checks);
   const currentStep = setupSteps.find((step) => step.state === "current");
   const setupHref = `/admin/executive/setup?period=${readiness.reportingPeriod}`;
   const readinessHref = `/executive/readiness?period=${readiness.reportingPeriod}`;
   const items = [
+    ...(viewer?.role === "platform_owner" ? [[Crown, "Platform Admin", "Manage tenants, demos, and industry templates across Refyntra.", "/admin/platform"] as const] : []),
     [Boxes, "Products & pricing", "Manage models, positioning, prices, and visibility.", "/admin/products"],
     [Boxes, "Competitor sources", "Check public competitor product pages and review updates before importing them.", "/admin/competitor-sources"],
     [BarChart3, "Sales results", "Review and approve monthly results used by the Executive Advisor.", "/admin/sales-results"],
     [GraduationCap, "Coach scenarios", "Create and publish tenant-specific practice conversations.", "/admin/coach"],
     [GraduationCap, "Training modules", "Combine knowledge lessons into ordered learning paths.", "/admin/training"],
     [BookOpen, "Sales content", "Manage scripts, objections, templates, and training.", "/admin/content"],
-    [Building2, "Locations", "Manage BGC storefront details and local information.", "/admin/settings"],
-    [Users, "Team members", "Invite users and assign BGC roles and locations.", "/admin/users"],
+    [Building2, "Locations", `Manage ${workspaceName} locations and local information.`, "/admin/settings"],
+    [Users, "Team members", `Invite users and assign ${workspaceName} roles and locations.`, "/admin/users"],
     [Settings, "Workspace settings", "Control branding and assistant behavior.", "/admin/settings"],
   ] as const;
 
   return (
     <AppShell title="Admin">
-      <PageHeader eyebrow="Workspace administration" title="Manage the BGC experience" description="A simple control center for approved content, users, and workspace settings." />
+      <PageHeader eyebrow="Workspace administration" title={`Manage ${workspaceName}`} description="A simple control center for approved content, users, and workspace settings." />
 
       {readiness.canManageSetup ? (
         <section className="card admin-launch-card" aria-labelledby="executive-launch-title">

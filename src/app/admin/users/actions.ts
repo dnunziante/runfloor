@@ -10,6 +10,7 @@ export type InviteUserState = { error: string; success: string };
 export type ChangeRoleState = { error: string; success: string };
 export type ChangeLocationState = { error: string; success: string };
 export type UpdateCredentialsState = { error: string; success: string };
+export type RemoveUserState = { error: string; success: string };
 
 const validRoles = new Set(["manager", "salesperson"]);
 const uuidPattern = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
@@ -186,4 +187,22 @@ export async function updateUserCredentials(_previousState: UpdateCredentialsSta
   } catch (error) {
     return { error: error instanceof Error ? error.message : "The user credentials could not be updated.", success: "" };
   }
+}
+
+export async function removeUserFromWorkspace(_previousState: RemoveUserState, formData: FormData): Promise<RemoveUserState> {
+  const viewer = await getViewer();
+  const membershipId = String(formData.get("membershipId") || "");
+  if (viewer?.demo || !viewer || !["tenant_admin", "platform_owner"].includes(viewer.role) || !uuidPattern.test(membershipId)) return { error: "Only an Admin can remove users.", success: "" };
+  const supabase = await createClient();
+  const { data: membership } = await supabase.from("organization_memberships").select("user_id, organization_id, role, status").eq("id", membershipId).maybeSingle();
+  if (!membership || (viewer.role !== "platform_owner" && membership.organization_id !== viewer.organizationId)) return { error: "That user is outside your workspace.", success: "" };
+  if (membership.user_id === viewer.id) return { error: "You cannot remove your own access.", success: "" };
+  if (membership.role === "tenant_admin" && membership.status === "active") {
+    const { count } = await supabase.from("organization_memberships").select("id", { count: "exact", head: true }).eq("organization_id", membership.organization_id).eq("role", "tenant_admin").eq("status", "active");
+    if ((count || 0) < 2) return { error: "Keep at least one active Admin in this workspace.", success: "" };
+  }
+  const { error } = await supabase.from("organization_memberships").update({ status: "suspended", location_id: null }).eq("id", membershipId).eq("organization_id", membership.organization_id);
+  if (error) return { error: "The user could not be removed from this workspace.", success: "" };
+  revalidatePath("/admin/users");
+  return { error: "", success: "User removed from this workspace. Their account was not deleted." };
 }

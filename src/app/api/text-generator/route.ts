@@ -29,7 +29,7 @@ export async function POST(request: Request) {
     const [embedding] = await createEmbeddings([retrievalText]);
     const [{ data: chunks, error: chunkError }, { data: productRows, error: productError }, communication] = await Promise.all([
       supabase.rpc("match_knowledge_chunks", { query_embedding: `[${embedding.join(",")}]`, match_tenant_id: viewer.organizationId, match_location_id: membership?.location_id || null, match_product_id: null, match_count: 6 }),
-      supabase.from("products").select("id, name, model, description, base_price_cents, range_text, seats_text, powertrain_text, dimensions, running_distance, turning_radius, max_load_capacity, highlights, sales_guide").eq("organization_id", viewer.organizationId).eq("status", "published").order("sort_order").limit(250),
+      supabase.from("products").select("id, name, model, description, base_price_cents, range_text, seats_text, powertrain_text, dimensions, running_distance, turning_radius, max_load_capacity, highlights, sales_guide, product_type").eq("organization_id", viewer.organizationId).eq("status", "published").eq("review_status", "approved").neq("product_type", "competitor_product").order("sort_order").limit(250),
       getCommunicationContext(supabase, viewer.organizationId, embedding),
     ]);
     if (chunkError) throw chunkError;

@@ -50,9 +50,11 @@ export function AppShell({ children, title }: { children: React.ReactNode; title
   const pathname = usePathname();
   const router = useRouter();
   const [open, setOpen] = useState(false);
-  const [viewer, setViewer] = useState<Pick<Viewer, "fullName" | "initials" | "organizationName" | "role" | "demo">>({
+  const [workspaces, setWorkspaces] = useState<{ id: string; name: string }[]>([]);
+  const [viewer, setViewer] = useState<Pick<Viewer, "fullName" | "initials" | "organizationId" | "organizationName" | "role" | "demo">>({
     fullName: "User",
     initials: "U",
+    organizationId: "",
     organizationName: "Workspace",
     role: "salesperson",
     demo: false,
@@ -61,9 +63,19 @@ export function AppShell({ children, title }: { children: React.ReactNode; title
   useEffect(() => {
     fetch("/api/auth/context")
       .then((response) => response.ok ? response.json() : null)
-      .then((data) => data && setViewer(data))
+      .then((data) => {
+        if (!data) return;
+        setViewer(data);
+        if (data.role === "platform_owner") fetch("/api/auth/workspaces").then((response) => response.ok ? response.json() : null).then((workspaceData) => workspaceData && setWorkspaces(workspaceData.workspaces || [])).catch(() => undefined);
+      })
       .catch(() => undefined);
   }, []);
+
+  async function changeWorkspace(organizationId: string) {
+    if (!organizationId || organizationId === viewer.organizationId) return;
+    const response = await fetch("/api/auth/workspaces", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ organizationId }) });
+    if (response.ok) router.push("/dashboard");
+  }
 
   const roleLabel = viewer.role === "platform_owner" ? "Platform Owner" : viewer.role === "tenant_admin" ? "Tenant Admin" : viewer.role === "manager" ? "Manager" : "Salesperson";
   const coachSectionActive = pathname.startsWith("/coach") || pathname === "/objections";
@@ -81,7 +93,7 @@ export function AppShell({ children, title }: { children: React.ReactNode; title
       <Link className="sidebar-logo" href="/dashboard" aria-label="Refyntra dashboard" onClick={() => setOpen(false)}>
         <Image src="/refyntra-logo-transparent.png" alt="Refyntra — Refine. Transform. Perform." width={1536} height={1024} priority />
       </Link>
-      <div className="workspace"><span className="avatar avatar-square">{viewer.organizationName.charAt(0)}</span><span><small>{viewer.demo ? "Demo workspace" : "Workspace"}</small><strong>{viewer.organizationName}</strong></span><ChevronDown size={16}/></div>
+      <div className="workspace"><span className="avatar avatar-square">{viewer.organizationName.charAt(0)}</span><span><small>{viewer.demo ? "Demo workspace" : viewer.role === "platform_owner" ? "Viewing workspace" : "Workspace"}</small>{viewer.role === "platform_owner" && workspaces.length > 0 ? <select className="workspace-select" value={viewer.organizationId} onChange={(event) => changeWorkspace(event.target.value)} aria-label="Switch workspace">{workspaces.map((workspace) => <option key={workspace.id} value={workspace.id}>{workspace.name}</option>)}</select> : <strong>{viewer.organizationName}</strong>}</span>{viewer.role === "platform_owner" && workspaces.length > 0 ? null : <ChevronDown size={16}/>}</div>
       <nav className="nav module-nav" aria-label="Main navigation">
         <details className="module-group" key={`sales-${pathname}`} open={salesSectionActive}>
           <summary><span className="module-icon"><BriefcaseBusiness size={18}/></span><span>Sales Assistant</span><ChevronDown className="module-chevron" size={16}/></summary>
@@ -110,7 +122,7 @@ export function AppShell({ children, title }: { children: React.ReactNode; title
           <div className="module-links"><Link className={pathname === "/executive" ? "active" : ""} href="/executive" onClick={() => setOpen(false)}><LayoutDashboard size={18}/><span>Command Center</span></Link><Link className={pathname === "/executive/readiness" ? "active" : ""} href="/executive/readiness" onClick={() => setOpen(false)}><ListChecks size={18}/><span>Data Readiness</span></Link><Link className={pathname === "/executive/trends" ? "active" : ""} href="/executive/trends" onClick={() => setOpen(false)}><TrendingUp size={18}/><span>Historical Trends</span></Link><Link className={pathname === "/executive/review" ? "active" : ""} href="/executive/review" onClick={() => setOpen(false)}><FileText size={18}/><span>Monthly Review</span></Link><Link className={pathname === "/executive/accountability" ? "active" : ""} href="/executive/accountability" onClick={() => setOpen(false)}><History size={18}/><span>Accountability</span></Link><Link className={pathname === "/executive/decisions" ? "active" : ""} href="/executive/decisions" onClick={() => setOpen(false)}><Scale size={18}/><span>Decision Log</span></Link>{executiveSettingsVisible && <><Link className={pathname === "/admin/executive/setup" ? "active" : ""} href="/admin/executive/setup" onClick={() => setOpen(false)}><ListChecks size={18}/><span>Setup Guide</span></Link><Link className={pathname === "/admin/sales-results" ? "active" : ""} href="/admin/sales-results" onClick={() => setOpen(false)}><BarChart3 size={18}/><span>Sales Results</span></Link><Link className={pathname === "/admin/sales-results/quality" ? "active" : ""} href="/admin/sales-results/quality" onClick={() => setOpen(false)}><Search size={18}/><span>Data Quality</span></Link><Link className={pathname === "/admin/executive" ? "active" : ""} href="/admin/executive" onClick={() => setOpen(false)}><Settings size={18}/><span>Executive Targets</span></Link></>}</div>
         </details>}
       </nav>
-      <div className="sidebar-footer">{administratorVisible && <Link href="/admin/settings"><Settings size={18}/> Settings</Link>}<div className="profile"><span className="avatar">{viewer.initials}</span><span><strong>{viewer.fullName}</strong><small>{roleLabel}</small></span><form action={logout}><button className="logout-button" type="submit">{viewer.demo ? "Exit demo" : "Sign out"}</button></form></div></div>
+      <div className="sidebar-footer">{viewer.role === "platform_owner" && <Link href="/admin/platform"><Crown size={18}/> Platform Admin</Link>}{administratorVisible && <Link href="/admin/settings"><Settings size={18}/> Settings</Link>}<div className="profile"><span className="avatar">{viewer.initials}</span><span><strong>{viewer.fullName}</strong><small>{roleLabel}</small></span><form action={logout}><button className="logout-button" type="submit">{viewer.demo ? "Exit demo" : "Sign out"}</button></form></div></div>
     </aside>
     <main className="main">
       <header className="topbar"><div className="topbar-title"><button className="icon-btn menu-btn" aria-label="Open menu" onClick={() => setOpen(true)}><Menu size={21}/></button><button className="btn btn-ghost" type="button" onClick={() => router.back()} aria-label="Go back to the previous page"><ArrowLeft size={16}/> Back</button><strong>{title}</strong></div><div className="top-actions"><button className="search-btn"><Search size={17}/><span>Search anything</span><kbd>⌘ K</kbd></button><span className="status-dot" title={viewer.demo ? "Demo environment" : "Connected"}/><span className="avatar">{viewer.initials}</span></div></header>

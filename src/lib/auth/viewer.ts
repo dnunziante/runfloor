@@ -79,17 +79,24 @@ export async function getViewer(): Promise<Viewer | null> {
     .eq("id", user.id)
     .maybeSingle();
 
+  const isPlatformOwner = Boolean(profile?.is_platform_owner);
+  const { data: workspaceContext } = isPlatformOwner
+    ? await supabase.from("platform_workspace_contexts").select("active_organization_id, organizations(name)").eq("user_id", user.id).maybeSingle()
+    : { data: null };
   const fullName = profile?.full_name || user.email?.split("@")[0] || "User";
-  const organization = membership?.organizations as unknown as { name: string } | null;
+  const membershipOrganization = membership?.organizations as unknown as { name: string } | null;
+  const contextOrganization = workspaceContext?.organizations as unknown as { name: string } | null;
+  const organizationId = isPlatformOwner && workspaceContext?.active_organization_id ? workspaceContext.active_organization_id : membership?.organization_id || "";
+  const organizationName = isPlatformOwner && contextOrganization?.name ? contextOrganization.name : membershipOrganization?.name || "No organization";
 
   return {
     id: user.id,
     email: user.email || "",
     fullName,
     initials: initials(fullName) || "U",
-    organizationId: membership?.organization_id || "",
-    organizationName: organization?.name || "No organization",
-    role: profile?.is_platform_owner
+    organizationId,
+    organizationName,
+    role: isPlatformOwner
       ? "platform_owner"
       : ((membership?.role as AppRole | undefined) || "salesperson"),
     demo: false,

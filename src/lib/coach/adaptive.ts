@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
 import "server-only";
 
 export const coachSkills = ["Discovery", "Communication", "Product knowledge", "Value building", "Objection handling", "Closing", "NLP / language", "C.L.O.S.E.R.", "Organization / process"] as const;
@@ -17,3 +18,4 @@ export function nextDifficulty(score: number, current: AdaptiveProfile["difficul
   if (score < 58 && current === "Advanced") return "Intermediate";
   return current;
 }
+/* eslint-disable @typescript-eslint/no-explicit-any */

@@ -273,3 +273,4 @@
 /* Sales email generator */
 .email-generator-layout{align-items:start}.email-draft-output{min-height:620px;background:#fff;border-style:solid;position:sticky;top:90px}.email-draft-output h2{margin:8px 0 0}.email-draft-body{white-space:pre-wrap!important;color:var(--ink);font-size:14px;line-height:1.7;margin:28px 0}.email-primary-cta{display:grid;gap:4px}.email-primary-cta .label{margin:0;color:var(--blue)}
 .operations-creation-methods{display:flex;gap:8px;flex-wrap:wrap;margin:18px 0}.operations-creation-methods .btn{flex:1;justify-content:center}@media(max-width:520px){.operations-creation-methods{display:grid}.operations-creation-methods .btn{width:100%}}
+.workspace-select{width:100%;border:0;background:transparent;color:#fff;font-size:13px;font-weight:700;outline:none;cursor:pointer}.workspace-select option{color:#172743;background:#fff}

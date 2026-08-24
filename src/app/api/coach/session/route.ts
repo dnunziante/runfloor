@@ -50,7 +50,7 @@ async function approvedContext(supabase: CoachSupabaseClient, organizationId: st
   const [embedding] = await createEmbeddings([query]);
   const [{ data: chunks }, { data: products }, communication] = await Promise.all([
     supabase.rpc("match_knowledge_chunks", { query_embedding: `[${embedding.join(",")}]`, match_tenant_id: organizationId, match_location_id: null, match_product_id: null, match_count: 6 }),
-    supabase.from("products").select("name,model,description,sales_guide,highlights").eq("organization_id", organizationId).eq("status", "published").limit(30), getCommunicationContext(supabase, organizationId, embedding),
+    supabase.from("products").select("name,model,description,sales_guide,highlights").eq("organization_id", organizationId).eq("status", "published").eq("review_status", "approved").neq("product_type", "competitor_product").limit(30), getCommunicationContext(supabase, organizationId, embedding),
   ]);
   const knowledge = [...((products || []) as KnowledgeProduct[]).map((product) => `PRODUCT: ${product.name} ${product.model || ""}\n${product.description || ""}\n${product.sales_guide || ""}`), ...((chunks || []) as KnowledgeChunk[]).map((chunk) => `KNOWLEDGE: ${chunk.document_name}\n${chunk.content}`)].join("\n\n");
   return { knowledge, communication };

@@ -16,6 +16,10 @@ function classifyQuestion(question: string, productNames: string[]) {
   return { products, competitorNames, objection, topic };
 }
 
+function isComparisonQuestion(question: string) {
+  return /\b(compare|comparison|competitor|versus|vs\.?|better than|difference between|stack up)\b/i.test(question);
+}
+
 export async function POST(request: Request) {
   const viewer = await getViewer();
   if (!viewer || !viewer.organizationId) return NextResponse.json({ error: "Sign in to use the Sales Assistant." }, { status: 401 });
@@ -35,8 +39,8 @@ export async function POST(request: Request) {
         match_location_id: membership?.location_id || null, match_product_id: null, match_count: 8,
       }),
       supabase.from("products")
-        .select("id, name, model, description, base_price_cents, range_text, seats_text, powertrain_text, dimensions, running_distance, turning_radius, max_load_capacity, highlights, sales_guide")
-        .eq("organization_id", viewer.organizationId).eq("status", "published")
+        .select("id, name, model, description, base_price_cents, range_text, seats_text, powertrain_text, dimensions, running_distance, turning_radius, max_load_capacity, highlights, sales_guide, product_type")
+        .eq("organization_id", viewer.organizationId).eq("status", "published").eq("review_status", "approved")
         .order("sort_order", { ascending: true }).limit(250),
       getCommunicationContext(supabase, viewer.organizationId, embedding),
     ]);
@@ -44,7 +48,12 @@ export async function POST(request: Request) {
     if (productError) throw productError;
 
     const results = ((chunks || []) as SearchChunk[]).filter((chunk) => chunk.similarity >= MINIMUM_SIMILARITY);
-    const products = selectRelevantProducts(question, (productRows || []) as ApprovedProduct[]);
+    const catalogRows = (productRows || []) as ApprovedProduct[];
+    const ownedProducts = catalogRows.filter((product) => product.product_type !== "competitor_product");
+    const comparisonProducts = isComparisonQuestion(question)
+      ? selectRelevantProducts(question, catalogRows.filter((product) => product.product_type === "competitor_product"), 6)
+      : [];
+    const products = [...selectRelevantProducts(question, ownedProducts), ...comparisonProducts];
     const classification = classifyQuestion(question, (productRows || []).map((product) => product.name));
     if (!results.length && !products.length) {
       await supabase.from("assistant_interactions").insert({ organization_id: viewer.organizationId, user_id: viewer.id, location_id: membership?.location_id || null, question, topic: classification.topic, product_references: classification.products, competitor_references: classification.competitorNames, objection_category: classification.objection, grounded: false, unresolved: true });

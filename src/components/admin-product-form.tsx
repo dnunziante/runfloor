@@ -1,8 +1,9 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
+import { useRouter } from "next/navigation";
 import { FileText, ImagePlus, LoaderCircle, Plus, X } from "lucide-react";
-import { createProduct, deleteProduct, saveProductImagePaths, saveWarrantyDocumentPaths, type ProductActionState } from "@/app/admin/products/actions";
+import { createProduct, createProductFamily, deleteProduct, saveProductImagePaths, saveWarrantyDocumentPaths, type ProductActionState } from "@/app/admin/products/actions";
 import { createClient } from "@/lib/supabase/client";
 import type { ProductFamilyDTO } from "@/lib/products/types";
 
@@ -16,15 +17,18 @@ const warrantyTypes = new Set(["application/pdf", "application/msword", "applica
 
 type SelectedImage = { file: File; previewUrl: string };
 
-export function AdminProductForm({ families }: { families: ProductFamilyDTO[] }) {
+export function AdminProductForm({ families, initialFamilyId = "" }: { families: ProductFamilyDTO[]; initialFamilyId?: string }) {
   const formRef = useRef<HTMLFormElement>(null);
   const imagesRef = useRef<SelectedImage[]>([]);
   const [state, setState] = useState(initialState);
   const [images, setImages] = useState<SelectedImage[]>([]);
   const [saving, setSaving] = useState(false);
   const [warrantyFiles, setWarrantyFiles] = useState<File[]>([]);
-  const [selectedFamilyId, setSelectedFamilyId] = useState("");
+  const [selectedFamilyId, setSelectedFamilyId] = useState(initialFamilyId);
+  const [newFamilyName, setNewFamilyName] = useState("");
+  const [creatingFamily, setCreatingFamily] = useState(false);
   const [productType, setProductType] = useState<"our_product" | "competitor_product">("our_product");
+  const router = useRouter();
   const selectedFamily = families.find((family) => family.id === selectedFamilyId);
   const isAddOn = selectedFamily?.slug === "accessories" || selectedFamily?.slug === "warranties";
   const isAccessory = selectedFamily?.slug === "accessories";
@@ -55,6 +59,22 @@ export function AdminProductForm({ families }: { families: ProductFamilyDTO[] })
       URL.revokeObjectURL(current[index].previewUrl);
       return current.filter((_, imageIndex) => imageIndex !== index);
     });
+  }
+
+  async function addFamily() {
+    setCreatingFamily(true);
+    setState(initialState);
+    const result = await createProductFamily(newFamilyName);
+    if (result.error || !result.familyId) {
+      setState({ error: result.error || "The product category could not be created.", success: "" });
+      setCreatingFamily(false);
+      return;
+    }
+    setSelectedFamilyId(result.familyId);
+    setNewFamilyName("");
+    setState({ error: "", success: result.success });
+    setCreatingFamily(false);
+    router.refresh();
   }
 
   function selectWarrantyFiles(files: FileList | null) {
@@ -124,7 +144,7 @@ export function AdminProductForm({ families }: { families: ProductFamilyDTO[] })
   return <form ref={formRef} className="card form-stack" onSubmit={handleSubmit}>
     <div><h2>Add product</h2><p style={{fontSize:12,marginBottom:0}}>New products and images belong only to the active organization.</p></div>
     <div className="grid grid-2"><label><span className="label">Product Type</span><select className="input" name="productType" value={productType} onChange={(event) => setProductType(event.target.value as "our_product" | "competitor_product")}><option value="our_product">Our Product</option><option value="competitor_product">Competitor Product</option></select></label><label><span className="label">Product category</span><select className="input" name="productCategory" defaultValue={productType === "competitor_product" ? "Competitor Vehicles" : "Golf Cart / LSV"}><option>Golf Cart / LSV</option><option>Accessories</option><option>Warranty</option><option>Competitor Vehicles</option></select></label></div>
-    {productType === "our_product" ? <div><label className="label" htmlFor="familyId">Catalog family</label><select className="input" id="familyId" name="familyId" required value={selectedFamilyId} onChange={(event) => setSelectedFamilyId(event.target.value)}><option value="" disabled>Choose a product category</option>{families.map((family) => <option value={family.id} key={family.id}>{family.name}</option>)}</select><small className="field-help">Choose Accessories or Warranties for the simplified add-on setup.</small></div> : <input type="hidden" name="familyId" value=""/>}
+    {productType === "our_product" ? <div><label className="label" htmlFor="familyId">Catalog family</label><select className="input" id="familyId" name="familyId" required value={selectedFamilyId} onChange={(event) => setSelectedFamilyId(event.target.value)}><option value="" disabled>Choose a product category</option>{families.map((family) => <option value={family.id} key={family.id}>{family.name}</option>)}</select><div style={{display:"flex",gap:8,marginTop:8}}><input className="input" value={newFamilyName} onChange={(event) => setNewFamilyName(event.target.value)} placeholder="New product category" maxLength={120}/><button className="btn btn-ghost" type="button" disabled={creatingFamily || newFamilyName.trim().length < 2} onClick={() => void addFamily()}>{creatingFamily ? "Creating…" : "Create category"}</button></div><small className="field-help">Create a category here, or choose Accessories or Warranties for the simplified add-on setup.</small></div> : <input type="hidden" name="familyId" value=""/>}
     <div className={isAddOn ? "" : "grid grid-2"}><div><label className="label" htmlFor="name">{itemLabel} name</label><input className="input" id="name" name="name" required placeholder={isAddOn ? `${itemLabel} name` : "Nexus"}/></div>{!isAddOn && <div><label className="label" htmlFor="model">Configuration</label><input className="input" id="model" name="model" placeholder="4 Passenger Forward"/></div>}</div>
     <div><label className="label" htmlFor="description">Description</label><textarea className="input" id="description" name="description" rows={3} required={isAddOn} placeholder={isAddOn ? `Describe this ${itemLabel.toLowerCase()}` : "Customer-ready positioning statement"}/></div>
     <div className={isAddOn ? "" : "grid grid-2"}><div><label className="label" htmlFor="price">{isAddOn ? "Price" : "Starting price"}</label><input className="input" id="price" name="price" type="number" min="0" step="0.01" required placeholder={isAddOn ? "0.00" : "15995"}/></div>{!isAddOn && <div><label className="label" htmlFor="status">Status</label><select className="input" id="status" name="status"><option value="draft">Draft</option><option value="published">Published</option></select></div>}</div>

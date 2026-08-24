@@ -1,5 +1,6 @@
 export type ApprovedProduct = {
   id: string; name: string; model: string; description: string; base_price_cents: number;
+  product_type?: "our_product" | "competitor_product";
   range_text: string; seats_text: string; powertrain_text: string; dimensions: string | null;
   running_distance: string | null; turning_radius: string | null; max_load_capacity: string | null;
   highlights: string[]; sales_guide: Record<string, unknown>;
@@ -47,5 +48,6 @@ export function formatProductContext(product: ApprovedProduct, priceOverrideCent
     product.max_load_capacity && `Maximum load: ${product.max_load_capacity}`, product.highlights.length && `Highlights: ${product.highlights.join("; ")}`,
     ...guideLines(product.sales_guide),
   ].filter(Boolean);
-  return `Product catalog — ${product.name}${product.model ? ` — ${product.model}` : ""}\n${details.join("\n")}`;
+  const sourceLabel = product.product_type === "competitor_product" ? "Competitor reference" : "Product catalog";
+  return `${sourceLabel} — ${product.name}${product.model ? ` — ${product.model}` : ""}\n${details.join("\n")}`;
 }

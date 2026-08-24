@@ -41,7 +41,7 @@ export async function createEmbeddings(inputs: string[]) {
 }
 
 export async function createGroundedAnswer(question: string, sourceContext: string, standards?: Partial<CommunicationStandards> | null, conversationContext?: string) {
-  const system = compileRefyntraPrompt({ standards, approvedKnowledge: sourceContext, conversationContext, userRequest: question, featureInstructions: "You are the Refyntra Sales Assistant. Help a salesperson answer customer questions and recommend an appropriate approved product only when enough relevant information is available. Product-specific excerpts take priority over general excerpts. When possible, identify the source used." });
+  const system = compileRefyntraPrompt({ standards, approvedKnowledge: sourceContext, conversationContext, userRequest: question, featureInstructions: "You are the Refyntra Sales Assistant. Help a salesperson answer customer questions and recommend an appropriate approved product only when enough relevant information is available. Product-specific excerpts take priority over general excerpts. Records labeled ‘Competitor reference’ are for factual comparison only: never recommend, present for sale, or describe them as the organization's offering. When possible, identify the source used." });
   const data = await requestOpenAI("chat/completions", {
     model: CHAT_MODEL,
     messages: [{ role: "system", content: system }, { role: "user", content: question }],

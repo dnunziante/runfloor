@@ -15,6 +15,7 @@ export type SalesGuideActionState = { error: string; success: string };
 export type FamilyImageActionState = { error: string; success: string };
 export type ProductEditActionState = { error: string; success: string };
 export type ProductOrderActionState = { error: string; success: string };
+export type ProductFamilyActionState = { error: string; success: string; familyId?: string };
 
 function slugify(value: string) {
   return value.toLowerCase().trim().replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "");
@@ -34,6 +35,24 @@ async function requireTenantAdmin() {
     throw new Error("Unauthorized");
   }
   return viewer;
+}
+
+export async function createProductFamily(name: string): Promise<ProductFamilyActionState> {
+  const viewer = await requireTenantAdmin();
+  const familyName = name.trim().slice(0, 120);
+  const slug = slugify(familyName);
+  if (familyName.length < 2 || !slug) return { error: "Enter a category name with at least two characters.", success: "" };
+
+  const supabase = await createClient();
+  const { data: existing } = await supabase.from("product_families").select("id").eq("organization_id", viewer.organizationId).eq("slug", slug).maybeSingle();
+  if (existing) return { error: "That product category already exists.", success: "" };
+  const { data: lastFamily } = await supabase.from("product_families").select("sort_order").eq("organization_id", viewer.organizationId).order("sort_order", { ascending: false }).limit(1).maybeSingle();
+  const { data, error } = await supabase.from("product_families").insert({ organization_id: viewer.organizationId, name: familyName, slug, description: `Explore ${familyName} models and configurations.`, sort_order: (lastFamily?.sort_order ?? 0) + 10 }).select("id, name").single();
+  if (error || !data) return { error: error?.code === "23505" ? "That product category already exists." : "The product category could not be created.", success: "" };
+  revalidatePath("/products");
+  revalidatePath("/products/families");
+  revalidatePath("/admin/products");
+  return { error: "", success: `${data.name} was created.`, familyId: data.id };
 }
 
 export async function createProduct(
