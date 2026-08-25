@@ -4,6 +4,7 @@ import { getViewer } from "@/lib/auth/viewer";
 import { demoProductFamilies as demoFamilies, demoProducts } from "@/lib/demo/catalog";
 import { isLocalDemoMode, isSupabaseConfigured } from "@/lib/supabase/config";
 import { createClient } from "@/lib/supabase/server";
+import { normalizeGolfCartSpecifications } from "./golf-cart-specifications";
 import type { ProductDTO, ProductFamilyResult, ProductResult, ProductStatus, ProductType, SalesGuideDTO } from "./types";
 
 type ProductRow = {
@@ -78,7 +79,7 @@ function toDTO(row: ProductRow, imageUrls: string[] = [], imagePaths: string[] =
     productType: row.product_type || "our_product",
     productCategory: row.product_category || "",
     salePrice: row.sale_price_cents === null ? null : row.sale_price_cents / 100,
-    specifications: Object.fromEntries(Object.entries(row.specifications || {}).filter(([, value]) => typeof value === "string").map(([key, value]) => [key, value as string])),
+    specifications: normalizeGolfCartSpecifications(Object.fromEntries(Object.entries(row.specifications || {}).filter(([, value]) => typeof value === "string").map(([key, value]) => [key, value as string]))),
     description: row.description,
     price: row.base_price_cents / 100,
     range: row.range_text,

@@ -39,7 +39,7 @@ export async function POST(request: Request) {
         match_location_id: membership?.location_id || null, match_product_id: null, match_count: 8,
       }),
       supabase.from("products")
-        .select("id, name, model, description, base_price_cents, range_text, seats_text, powertrain_text, dimensions, running_distance, turning_radius, max_load_capacity, highlights, sales_guide, product_type")
+        .select("id, name, model, description, base_price_cents, range_text, seats_text, powertrain_text, dimensions, running_distance, turning_radius, max_load_capacity, highlights, specifications, sales_guide, product_type")
         .eq("organization_id", viewer.organizationId).eq("status", "published").eq("review_status", "approved")
         .order("sort_order", { ascending: true }).limit(250),
       getCommunicationContext(supabase, viewer.organizationId, embedding),
