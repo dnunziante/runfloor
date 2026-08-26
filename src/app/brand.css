@@ -1,0 +1,16 @@
+.rf-brand img {
+  width: auto;
+  height: 44px;
+  object-fit: contain;
+}
+
+.rf-cta > img {
+  position: absolute;
+  z-index: -1;
+  right: -15px;
+  bottom: -75px;
+  width: 240px;
+  height: 240px;
+  object-fit: contain;
+  opacity: 0.15;
+}

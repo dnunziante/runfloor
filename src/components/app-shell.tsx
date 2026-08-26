@@ -5,6 +5,7 @@ import { usePathname, useRouter } from "next/navigation";
 import { Activity, AlertTriangle, ArrowLeft, ArrowRightLeft, BarChart3, BookOpen, BookOpenCheck, Bot, Boxes, BriefcaseBusiness, Calculator, CalendarClock, CalendarDays, ChevronDown, ClipboardCheck, Crown, FileText, GitCompareArrows, GraduationCap, History, LayoutDashboard, Lightbulb, ListChecks, Mail, Menu, MessageSquareQuote, MessagesSquare, Scale, Search, Settings, ShieldAlert, ShieldCheck, Sparkles, Target, TrendingUp, X } from "lucide-react";
 import { useEffect, useState } from "react";
 import { logout } from "@/app/auth/actions";
+import { BrandLogo } from "@/components/brand-logo";
 import type { Viewer } from "@/lib/auth/viewer";
 
 const links = [
@@ -93,7 +94,7 @@ export function AppShell({ children, title }: { children: React.ReactNode; title
     {open && <button className="scrim" aria-label="Close menu" onClick={() => setOpen(false)} />}
     <aside className={`sidebar ${open ? "sidebar-open" : ""}`}>
       <div className="brand-row sidebar-controls"><button className="icon-btn close-nav" aria-label="Close menu" onClick={() => setOpen(false)}><X size={20}/></button></div>
-      <Link className="sidebar-logo" href="/dashboard" aria-label="RunFloor dashboard" onClick={() => setOpen(false)}><strong>RunFloor</strong><small>Run your sales floor.</small></Link>
+      <Link className="sidebar-logo" href="/dashboard" aria-label="RunFloor dashboard" onClick={() => setOpen(false)}><BrandLogo priority/></Link>
       <div className="workspace"><span className="avatar avatar-square">{viewer.organizationName.charAt(0)}</span><span><small>{viewer.demo ? "Demo workspace" : viewer.role === "platform_owner" ? "Viewing workspace" : "Workspace"}</small>{viewer.role === "platform_owner" && workspaces.length > 0 ? <select className="workspace-select" value={viewer.organizationId} onChange={(event) => changeWorkspace(event.target.value)} aria-label="Switch workspace">{workspaces.map((workspace) => <option key={workspace.id} value={workspace.id}>{workspace.name}</option>)}</select> : <strong>{viewer.organizationName}</strong>}</span>{viewer.role === "platform_owner" && workspaces.length > 0 ? null : <ChevronDown size={16}/>}</div>
       <nav className="nav module-nav" aria-label="Main navigation">
         <details className="module-group" key={`sales-${pathname}`} open={salesSectionActive}>
