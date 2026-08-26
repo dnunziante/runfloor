@@ -18,6 +18,6 @@ export default async function EditProductPage({ params }: { params: Promise<{ id
 
   return <AppShell title="Edit Product">
     <PageHeader eyebrow="Tenant catalog" title={`Edit ${product.name}`} description={`${product.model || "Standard configuration"} · Update the product details and image gallery.`} action={<Link className="btn btn-ghost" href="/admin/products"><ArrowLeft size={16}/> Products</Link>}/>
-    <ProductEditor product={product} families={familyResult.families} organizationId={viewer.organizationId} isGolfCart={template?.template_key === "golf-cart"}/>
+    <ProductEditor product={product} families={familyResult.families} organizationId={viewer.organizationId} isGolfCart={template?.template_key === "golf-cart"} isRv={template?.template_key === "rv"}/>
   </AppShell>;
 }

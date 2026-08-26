@@ -1,0 +1,17 @@
+:global(.table-wrap > .table) {
+  min-width: 1320px;
+}
+
+:global(.table td > form[style*="flex"]) {
+  min-width: 800px;
+}
+
+:global(.table td > form[style*="flex"] .input) {
+  flex: 1 1 145px;
+  min-width: 145px;
+}
+
+:global(.table td > form[style*="flex"] .btn) {
+  flex: 0 0 auto;
+  white-space: nowrap;
+}

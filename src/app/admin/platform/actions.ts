@@ -79,7 +79,7 @@ export async function updateTenant(formData: FormData) {
   const status = String(formData.get("status") || "");
   const templateId = String(formData.get("templateId") || "");
   const permittedSubscriptionStatuses = ["trial", "active", "past_due", "suspended", "cancelled"];
-  const permittedTenantStatuses = ["active", "inactive"];
+  const permittedTenantStatuses = ["active", "suspended"];
 
   if (
     viewer?.role !== "platform_owner" ||

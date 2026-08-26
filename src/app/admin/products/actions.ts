@@ -5,6 +5,7 @@ import { redirect } from "next/navigation";
 import { getViewer } from "@/lib/auth/viewer";
 import { createClient } from "@/lib/supabase/server";
 import { normalizeGolfCartSpecifications } from "@/lib/products/golf-cart-specifications";
+import { normalizeRvSpecifications } from "@/lib/products/rv-specifications";
 
 export type ProductActionState = {
   error: string;
@@ -85,11 +86,13 @@ export async function createProduct(
   if (name.length < 2 || !Number.isFinite(price) || price < 0 || (productType === "our_product" && !/^[0-9a-f-]{36}$/i.test(familyId))) {
     return { error: "Choose a catalog family for an Our Product, enter a product name, and use a valid non-negative price.", success: "" };
   }
-  if (!allowedFrames.has(rangeText) || !allowedCapacities.has(seatsText) || !allowedPowertrains.has(powertrainText)) {
+  const supabase = await createClient();
+  const { data: organization } = await supabase.from("organizations").select("industry_template_id").eq("id", viewer.organizationId).maybeSingle();
+  const { data: template } = organization?.industry_template_id ? await supabase.from("industry_templates").select("template_key").eq("id", organization.industry_template_id).maybeSingle() : { data: null };
+  const isRv = template?.template_key === "rv";
+  if (!isRv && (!allowedFrames.has(rangeText) || !allowedCapacities.has(seatsText) || !allowedPowertrains.has(powertrainText))) {
     return { error: "Choose a valid frame, capacity, and powertrain.", success: "" };
   }
-
-  const supabase = await createClient();
   const { data: family } = familyId ? await supabase.from("product_families").select("id").eq("id", familyId).eq("organization_id", viewer.organizationId).maybeSingle() : { data: null };
   if (productType === "our_product" && !family) return { error: "Choose a product family from this workspace.", success: "" };
   const productId = crypto.randomUUID();
@@ -222,16 +225,19 @@ export async function updateProduct(
   if (!/^[0-9a-f-]{36}$/i.test(productId) || (productType === "our_product" && !/^[0-9a-f-]{36}$/i.test(familyId)) || name.length < 2 || !Number.isFinite(price) || price < 0) {
     return { error: "Choose a catalog family for an Our Product, enter a product name, and use a valid non-negative price.", success: "" };
   }
-  if (!allowedFrames.has(rangeText) || !allowedCapacities.has(seatsText) || !allowedPowertrains.has(powertrainText)) {
+  const supabase = await createClient();
+  const { data: organization } = await supabase.from("organizations").select("industry_template_id").eq("id", viewer.organizationId).maybeSingle();
+  const { data: template } = organization?.industry_template_id ? await supabase.from("industry_templates").select("template_key").eq("id", organization.industry_template_id).maybeSingle() : { data: null };
+  const isRv = template?.template_key === "rv";
+  if (!isRv && (!allowedFrames.has(rangeText) || !allowedCapacities.has(seatsText) || !allowedPowertrains.has(powertrainText))) {
     return { error: "Choose a valid frame, capacity, and powertrain.", success: "" };
   }
-
-  const supabase = await createClient();
   const { data: family } = familyId ? await supabase.from("product_families").select("id, slug").eq("id", familyId).eq("organization_id", viewer.organizationId).maybeSingle() : { data: null };
   if (productType === "our_product" && !family) return { error: "Choose a product family from this workspace.", success: "" };
 
   const { data: existing } = await supabase.from("products").select("specifications").eq("id", productId).eq("organization_id", viewer.organizationId).maybeSingle();
-  const specifications = normalizeGolfCartSpecifications({ ...((existing?.specifications || {}) as Record<string, string>) });
+  const existingSpecifications = { ...((existing?.specifications || {}) as Record<string, string>) };
+  const specifications = isRv ? normalizeRvSpecifications(existingSpecifications) : normalizeGolfCartSpecifications(existingSpecifications);
   for (const [key, value] of formData.entries()) {
     if (!key.startsWith("spec.")) continue;
     const specificationKey = key.slice(5);
@@ -239,7 +245,7 @@ export async function updateProduct(
     if (specificationValue) specifications[specificationKey] = specificationValue;
     else delete specifications[specificationKey];
   }
-  const combinedDimensions = [specifications.overallLength, specifications.overallWidth, specifications.overallHeight].filter(Boolean).join(" × ");
+  const combinedDimensions = [isRv ? specifications.overallLength : specifications.overallLength, isRv ? specifications.exteriorWidth : specifications.overallWidth, isRv ? specifications.exteriorHeight : specifications.overallHeight].filter(Boolean).join(" × ");
 
   const highlights = String(formData.get("highlights") || "").split(",").map((item) => item.trim()).filter(Boolean).slice(0, 8);
   const { data, error } = await supabase.from("products").update({
