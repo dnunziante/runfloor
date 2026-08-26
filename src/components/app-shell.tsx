@@ -74,7 +74,11 @@ export function AppShell({ children, title }: { children: React.ReactNode; title
   async function changeWorkspace(organizationId: string) {
     if (!organizationId || organizationId === viewer.organizationId) return;
     const response = await fetch("/api/auth/workspaces", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ organizationId }) });
-    if (response.ok) router.push("/dashboard");
+    if (!response.ok) return;
+    const workspace = workspaces.find((item) => item.id === organizationId);
+    setViewer((current) => ({ ...current, organizationId, organizationName: workspace?.name || current.organizationName }));
+    router.refresh();
+    if (pathname !== "/dashboard") router.push("/dashboard");
   }
 
   const roleLabel = viewer.role === "platform_owner" ? "Platform Owner" : viewer.role === "tenant_admin" ? "Tenant Admin" : viewer.role === "manager" ? "Manager" : "Salesperson";
