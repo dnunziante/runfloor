@@ -49,9 +49,15 @@ export async function saveTemplateProduct(formData: FormData) {
   const modelYear = rawModelYear ? Number(rawModelYear) : null;
   if (rawModelYear && (!Number.isInteger(Number(rawModelYear)) || Number(rawModelYear) < 1900 || Number(rawModelYear) > 2200)) throw new Error("Enter a valid model year.");
   const rvSpecificationFields = ["shippingWeight", "carryingCapacity", "hitchWeight", "length", "height", "tireSize", "freshWater", "grayWater", "wasteWater", "sleepingCapacity", "numberOfPropaneTanks", "lpgCapacity", "refrigeratorSize"] as const;
-  const submittedSpecifications = Object.fromEntries(rvSpecificationFields.map((field) => [field, String(formData.get(field) || "").trim().slice(0, 120)]).filter(([, value]) => value));
+  const submittedSpecificationValues = Object.fromEntries(rvSpecificationFields.map((field) => [field, String(formData.get(field) || "").trim().slice(0, 120)]));
   const existingSpecifications = productId && /^[0-9a-f-]{36}$/i.test(productId) ? (await (await createClient()).from("industry_template_products").select("specifications").eq("id", productId).eq("industry_template_id", templateId).maybeSingle()).data?.specifications as Record<string, string> | null : null;
-  const specifications = { ...(existingSpecifications || {}), ...submittedSpecifications };
+  const specifications = { ...(existingSpecifications || {}) };
+  if (rvSpecificationFields.some((field) => formData.has(field))) {
+    for (const field of rvSpecificationFields) {
+      delete specifications[field];
+      if (submittedSpecificationValues[field]) specifications[field] = submittedSpecificationValues[field];
+    }
+  }
   const values = { industry_template_id: templateId, family_name: String(formData.get("familyName") || "Starter Products").trim().slice(0, 120), name, model: String(formData.get("model") || "").trim().slice(0, 120), model_year: modelYear, model_variant: String(formData.get("modelVariant") || "").trim().slice(0, 120), specifications, description: String(formData.get("description") || "").trim().slice(0, 2000), base_price_cents: Math.max(0, Number(formData.get("basePriceCents") || 0)), range_text: String(formData.get("rangeText") || "").trim().slice(0, 120), seats_text: String(formData.get("seatsText") || "").trim().slice(0, 120), powertrain_text: String(formData.get("powertrainText") || "").trim().slice(0, 120), product_type: formData.get("productType") === "competitor_product" ? "competitor_product" : "our_product", manufacturer: String(formData.get("manufacturer") || "").trim().slice(0, 120), product_category: String(formData.get("productCategory") || "").trim().slice(0, 120), updated_at: new Date().toISOString() };
   const supabase = await createClient();
   const query = productId && /^[0-9a-f-]{36}$/i.test(productId) ? supabase.from("industry_template_products").update(values).eq("id", productId).eq("industry_template_id", templateId) : supabase.from("industry_template_products").insert(values);
