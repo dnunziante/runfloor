@@ -49,12 +49,24 @@ export async function saveTemplateProduct(formData: FormData) {
   const modelYear = rawModelYear ? Number(rawModelYear) : null;
   if (rawModelYear && (!Number.isInteger(Number(rawModelYear)) || Number(rawModelYear) < 1900 || Number(rawModelYear) > 2200)) throw new Error("Enter a valid model year.");
   const rvSpecificationFields = ["shippingWeight", "carryingCapacity", "hitchWeight", "length", "height", "tireSize", "freshWater", "grayWater", "wasteWater", "sleepingCapacity", "numberOfPropaneTanks", "lpgCapacity", "refrigeratorSize"] as const;
-  const specifications = Object.fromEntries(rvSpecificationFields.map((field) => [field, String(formData.get(field) || "").trim().slice(0, 120)]).filter(([, value]) => value));
+  const submittedSpecifications = Object.fromEntries(rvSpecificationFields.map((field) => [field, String(formData.get(field) || "").trim().slice(0, 120)]).filter(([, value]) => value));
+  const existingSpecifications = productId && /^[0-9a-f-]{36}$/i.test(productId) ? (await (await createClient()).from("industry_template_products").select("specifications").eq("id", productId).eq("industry_template_id", templateId).maybeSingle()).data?.specifications as Record<string, string> | null : null;
+  const specifications = { ...(existingSpecifications || {}), ...submittedSpecifications };
   const values = { industry_template_id: templateId, family_name: String(formData.get("familyName") || "Starter Products").trim().slice(0, 120), name, model: String(formData.get("model") || "").trim().slice(0, 120), model_year: modelYear, model_variant: String(formData.get("modelVariant") || "").trim().slice(0, 120), specifications, description: String(formData.get("description") || "").trim().slice(0, 2000), base_price_cents: Math.max(0, Number(formData.get("basePriceCents") || 0)), range_text: String(formData.get("rangeText") || "").trim().slice(0, 120), seats_text: String(formData.get("seatsText") || "").trim().slice(0, 120), powertrain_text: String(formData.get("powertrainText") || "").trim().slice(0, 120), product_type: formData.get("productType") === "competitor_product" ? "competitor_product" : "our_product", manufacturer: String(formData.get("manufacturer") || "").trim().slice(0, 120), product_category: String(formData.get("productCategory") || "").trim().slice(0, 120), updated_at: new Date().toISOString() };
   const supabase = await createClient();
   const query = productId && /^[0-9a-f-]{36}$/i.test(productId) ? supabase.from("industry_template_products").update(values).eq("id", productId).eq("industry_template_id", templateId) : supabase.from("industry_template_products").insert(values);
   const { error } = await query;
   if (error) throw new Error("The starter product could not be saved.");
+  revalidatePath(`/admin/platform/templates/${templateId}`);
+}
+
+export async function deleteTemplateProduct(formData: FormData) {
+  const viewer = await getViewer();
+  const templateId = String(formData.get("templateId") || "");
+  const productId = String(formData.get("productId") || "");
+  if (viewer?.role !== "platform_owner" || !/^[0-9a-f-]{36}$/i.test(templateId) || !/^[0-9a-f-]{36}$/i.test(productId)) throw new Error("Platform administrator access is required.");
+  const { error } = await (await createClient()).from("industry_template_products").delete().eq("id", productId).eq("industry_template_id", templateId);
+  if (error) throw new Error("The starter product could not be deleted.");
   revalidatePath(`/admin/platform/templates/${templateId}`);
 }
 
