@@ -3,7 +3,7 @@ import type { TrainingLessonDTO, TrainingModuleDTO } from "@/lib/training/types"
 
 const createdAt="2026-08-01T12:00:00.000Z";
 const lessonSpecs=[
- ["10000000-0000-4000-8000-000000000001","Welcome to Refyntra","General","Refyntra Demo Orientation.pdf",8],
+ ["10000000-0000-4000-8000-000000000001","Welcome to RunFloor","General","RunFloor Demo Orientation.pdf",8],
  ["10000000-0000-4000-8000-000000000002","Customer discovery fundamentals","Sales process","Customer Discovery Guide.pdf",12],
  ["10000000-0000-4000-8000-000000000003","Presenting value confidently","Sales process","Value Presentation Guide.pdf",10],
  ["10000000-0000-4000-8000-000000000004","ActivEV Pulse overview","Product knowledge","ActivEV Pulse Product Guide.pdf",10],
@@ -23,4 +23,4 @@ const modules=[
  ["20000000-0000-4000-8000-000000000004","Customer and Dealership Policies","Policies",[7]],
  ["20000000-0000-4000-8000-000000000005","Daily Operations","Operations",[8,9]],
 ] as const;
-export const demoTrainingModules:TrainingModuleDTO[]=modules.map(([id,title,category,indexes])=>({id,title,category,description:`A complete ${category.toLowerCase()} module for the Refyntra demo.`,isPublished:true,createdAt,lessons:indexes.map((index)=>demoTrainingLessons[index])}));
+export const demoTrainingModules:TrainingModuleDTO[]=modules.map(([id,title,category,indexes])=>({id,title,category,description:`A complete ${category.toLowerCase()} module for the RunFloor demo.`,isPublished:true,createdAt,lessons:indexes.map((index)=>demoTrainingLessons[index])}));

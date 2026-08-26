@@ -27,7 +27,7 @@ export default async function Admin() {
   const setupHref = `/admin/executive/setup?period=${readiness.reportingPeriod}`;
   const readinessHref = `/executive/readiness?period=${readiness.reportingPeriod}`;
   const items = [
-    ...(viewer?.role === "platform_owner" ? [[Crown, "Platform Admin", "Manage tenants, demos, and industry templates across Refyntra.", "/admin/platform"] as const] : []),
+    ...(viewer?.role === "platform_owner" ? [[Crown, "Platform Admin", "Manage tenants, demos, and industry templates across RunFloor.", "/admin/platform"] as const] : []),
     [Boxes, "Products & pricing", "Manage models, positioning, prices, and visibility.", "/admin/products"],
     [Boxes, "Competitor sources", "Check public competitor product pages and review updates before importing them.", "/admin/competitor-sources"],
     [BarChart3, "Sales results", "Review and approve monthly results used by the Executive Advisor.", "/admin/sales-results"],

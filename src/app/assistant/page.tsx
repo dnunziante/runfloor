@@ -11,7 +11,7 @@ export default function AssistantPage() {
   const [input, setInput] = useState("");
   const [sending, setSending] = useState(false);
   const [workspaceName, setWorkspaceName] = useState("Your workspace");
-  const [messages, setMessages] = useState<Message[]>([{ role: "ai", text: "Ask a product or sales question and I’ll answer from your approved Refyntra knowledge." }]);
+  const [messages, setMessages] = useState<Message[]>([{ role: "ai", text: "Ask a product or sales question and I’ll answer from your approved RunFloor knowledge." }]);
   const prompts = ["Compare two products", "Explain a key feature", "Help respond to a price objection"];
 
   useEffect(() => {

@@ -7,5 +7,5 @@ export default async function AcceptInvitationPage() {
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) redirect("/login?message=sign-in-to-accept-invite");
 
-  return <main className="auth-shell"><section className="auth-card"><p className="eyebrow">You&apos;re invited</p><h1>Create your password</h1><p>Choose a password to finish joining Refyntra. You&apos;ll use it the next time you sign in.</p><SetInvitationPasswordForm/></section></main>;
+  return <main className="auth-shell"><section className="auth-card"><p className="eyebrow">You&apos;re invited</p><h1>Create your password</h1><p>Choose a password to finish joining RunFloor. You&apos;ll use it the next time you sign in.</p><SetInvitationPasswordForm/></section></main>;
 }

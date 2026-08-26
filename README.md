@@ -1,6 +1,6 @@
-# Refyntra
+# RunFloor
 
-Refyntra is a responsive, multi-tenant sales enablement application. The current frontend is configured for BGC Dealerships and uses temporary product data and simulated AI responses.
+RunFloor is the AI-powered sales platform for dealerships. Run your sales floor.
 
 ## Product catalog
 

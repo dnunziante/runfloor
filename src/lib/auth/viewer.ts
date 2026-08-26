@@ -34,11 +34,11 @@ export const demoViewer: Viewer = {
 
 const publicDemoViewer: Viewer = {
   id: "public-demo-user",
-  email: "demo@refyntra.example",
+  email: "demo@runfloor.example",
   fullName: "Demo User",
   initials: "DU",
   organizationId: "00000000-0000-0000-0000-000000000000",
-  organizationName: "Refyntra Demo",
+  organizationName: "RunFloor Demo",
   role: "salesperson",
   demo: true,
 };

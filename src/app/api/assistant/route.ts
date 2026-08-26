@@ -23,7 +23,7 @@ function isComparisonQuestion(question: string) {
 export async function POST(request: Request) {
   const viewer = await getViewer();
   if (!viewer || !viewer.organizationId) return NextResponse.json({ error: "Sign in to use the Sales Assistant." }, { status: 401 });
-  if (viewer.demo) return NextResponse.json({ error: "The Sales Assistant needs a signed-in Refyntra workspace to search approved knowledge." }, { status: 403 });
+  if (viewer.demo) return NextResponse.json({ error: "The Sales Assistant needs a signed-in RunFloor workspace to search approved knowledge." }, { status: 403 });
 
   const body = await request.json().catch(() => null);
   const question = typeof body?.question === "string" ? body.question.trim() : "";
@@ -57,7 +57,7 @@ export async function POST(request: Request) {
     const classification = classifyQuestion(question, (productRows || []).map((product) => product.name));
     if (!results.length && !products.length) {
       await supabase.from("assistant_interactions").insert({ organization_id: viewer.organizationId, user_id: viewer.id, location_id: membership?.location_id || null, question, topic: classification.topic, product_references: classification.products, competitor_references: classification.competitorNames, objection_category: classification.objection, grounded: false, unresolved: true });
-      return NextResponse.json({ answer: "I do not have approved information in the Refyntra knowledge base to answer that question.", sources: [] });
+      return NextResponse.json({ answer: "I do not have approved information in the RunFloor knowledge base to answer that question.", sources: [] });
     }
 
     const productContext = products.map((product, index) => `[P${index + 1}] ${formatProductContext(product)}`);
@@ -74,7 +74,7 @@ export async function POST(request: Request) {
       return true;
     }).map((chunk) => ({ documentName: chunk.document_name, section: chunk.section, pageNumber: chunk.page_number }));
     const productSources = products.map((product) => ({ documentName: `Product catalog — ${product.name}${product.model ? ` — ${product.model}` : ""}`, section: null, pageNumber: null }));
-    const sources = answer.startsWith("I do not have approved information in the Refyntra knowledge base") ? [] : [...productSources, ...documentSources].slice(0, 5);
+    const sources = answer.startsWith("I do not have approved information in the RunFloor knowledge base") ? [] : [...productSources, ...documentSources].slice(0, 5);
     return NextResponse.json({ answer, sources });
   } catch (error) {
     const message = error instanceof Error ? error.message : "The Sales Assistant could not complete the request.";
