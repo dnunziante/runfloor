@@ -40,7 +40,7 @@ export default async function UsersPage() {
   const locationOptions = (locations || []).map((location) => ({ id: location.id, name: location.name, organizationId: location.organization_id }));
   const tenantOptions = (tenants || []).map((tenant) => ({ id: tenant.id, name: tenant.name }));
 
-  return <AppShell title="Admin · Users"><PageHeader eyebrow={isPlatformOwner ? "Platform administration" : "Team access"} title={isPlatformOwner ? "Manage Refyntra users" : "Manage BGC users"} description="User identity, access, and invitations are stored securely in the shared Refyntra workspace." />
+  return <AppShell title="Admin · Users"><PageHeader eyebrow={isPlatformOwner ? "Platform administration" : "Team access"} title={isPlatformOwner ? "Manage RunFloor users" : "Manage BGC users"} description="User identity, access, and invitations are stored securely in the shared RunFloor workspace." />
     <InviteUserForm locations={locationOptions} tenants={tenantOptions} canInvite={canManage} isPlatformOwner={isPlatformOwner} />
     <UsersManagementTable users={users} locations={locationOptions} tenants={tenantOptions} canManage={canManage} isPlatformOwner={isPlatformOwner} />
   </AppShell>;
