@@ -213,7 +213,7 @@ export async function updateProduct(
   const brand = String(formData.get("brand") || "").trim().slice(0, 160);
   const modelYear = Number(formData.get("modelYear") || 0) || null;
   const modelVariant = String(formData.get("modelVariant") || "").trim().slice(0, 160);
-  const productCategory = String(formData.get("productCategory") || "").trim().slice(0, 120);
+  const submittedProductCategory = String(formData.get("productCategory") || "").trim();
   const price = Number(formData.get("price"));
   const rangeText = String(formData.get("range") || "").trim();
   const seatsText = String(formData.get("seats") || "").trim();
@@ -229,6 +229,7 @@ export async function updateProduct(
   const { data: organization } = await supabase.from("organizations").select("industry_template_id").eq("id", viewer.organizationId).maybeSingle();
   const { data: template } = organization?.industry_template_id ? await supabase.from("industry_templates").select("template_key").eq("id", organization.industry_template_id).maybeSingle() : { data: null };
   const isRv = template?.template_key === "rv";
+  const productCategory = (isRv && submittedProductCategory === "Other" ? String(formData.get("productCategoryOther") || "") : submittedProductCategory).trim().slice(0, 120);
   if (!isRv && (!allowedFrames.has(rangeText) || !allowedCapacities.has(seatsText) || !allowedPowertrains.has(powertrainText))) {
     return { error: "Choose a valid frame, capacity, and powertrain.", success: "" };
   }

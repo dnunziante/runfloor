@@ -45,6 +45,8 @@ export async function saveTemplateProduct(formData: FormData) {
   const productId = String(formData.get("productId") || "");
   const name = String(formData.get("name") || "").trim().slice(0, 160);
   if (viewer?.role !== "platform_owner" || !/^[0-9a-f-]{36}$/i.test(templateId) || !name) throw new Error("Platform administrator access is required.");
+  const supabase = await createClient();
+  const { data: template } = await supabase.from("industry_templates").select("template_key").eq("id", templateId).maybeSingle();
   const rawModelYear = String(formData.get("modelYear") || "").trim();
   const modelYear = rawModelYear ? Number(rawModelYear) : null;
   if (rawModelYear && (!Number.isInteger(Number(rawModelYear)) || Number(rawModelYear) < 1900 || Number(rawModelYear) > 2200)) throw new Error("Enter a valid model year.");
@@ -58,8 +60,9 @@ export async function saveTemplateProduct(formData: FormData) {
       if (submittedSpecificationValues[field]) specifications[field] = submittedSpecificationValues[field];
     }
   }
-  const values = { industry_template_id: templateId, family_name: String(formData.get("familyName") || "Starter Products").trim().slice(0, 120), name, model: String(formData.get("model") || "").trim().slice(0, 120), model_year: modelYear, model_variant: String(formData.get("modelVariant") || "").trim().slice(0, 120), specifications, description: String(formData.get("description") || "").trim().slice(0, 2000), base_price_cents: Math.max(0, Number(formData.get("basePriceCents") || 0)), range_text: String(formData.get("rangeText") || "").trim().slice(0, 120), seats_text: String(formData.get("seatsText") || "").trim().slice(0, 120), powertrain_text: String(formData.get("powertrainText") || "").trim().slice(0, 120), product_type: formData.get("productType") === "competitor_product" ? "competitor_product" : "our_product", manufacturer: String(formData.get("manufacturer") || "").trim().slice(0, 120), product_category: String(formData.get("productCategory") || "").trim().slice(0, 120), updated_at: new Date().toISOString() };
-  const supabase = await createClient();
+  const submittedProductCategory = String(formData.get("productCategory") || "").trim();
+  const productCategory = (template?.template_key === "rv" && submittedProductCategory === "Other" ? String(formData.get("productCategoryOther") || "") : submittedProductCategory).trim().slice(0, 120);
+  const values = { industry_template_id: templateId, family_name: String(formData.get("familyName") || "Starter Products").trim().slice(0, 120), name, model: String(formData.get("model") || "").trim().slice(0, 120), model_year: modelYear, model_variant: String(formData.get("modelVariant") || "").trim().slice(0, 120), specifications, description: String(formData.get("description") || "").trim().slice(0, 2000), base_price_cents: Math.max(0, Number(formData.get("basePriceCents") || 0)), range_text: String(formData.get("rangeText") || "").trim().slice(0, 120), seats_text: String(formData.get("seatsText") || "").trim().slice(0, 120), powertrain_text: String(formData.get("powertrainText") || "").trim().slice(0, 120), product_type: formData.get("productType") === "competitor_product" ? "competitor_product" : "our_product", manufacturer: String(formData.get("manufacturer") || "").trim().slice(0, 120), product_category: productCategory, updated_at: new Date().toISOString() };
   const query = productId && /^[0-9a-f-]{36}$/i.test(productId) ? supabase.from("industry_template_products").update(values).eq("id", productId).eq("industry_template_id", templateId) : supabase.from("industry_template_products").insert(values);
   const { error } = await query;
   if (error) throw new Error("The starter product could not be saved.");
