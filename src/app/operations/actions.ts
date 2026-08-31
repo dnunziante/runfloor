@@ -4,6 +4,7 @@ import { revalidatePath } from "next/cache";
 import { getViewer } from "@/lib/auth/viewer";
 import { canManageOperations } from "@/lib/auth/permissions";
 import type { OperationsAlertRecord, OperationsChecklistRecord, OperationsHandoffRecord, OperationsIncidentRecord, OperationsProcedureRecord, OperationsScheduleRecord } from "@/lib/operations/data";
+import type { OperationsProcedureCategory } from "@/lib/operations/data";
 import { getNextScheduleDate } from "@/lib/operations/schedules";
 import { createClient } from "@/lib/supabase/server";
 import { extractDocumentPages } from "@/lib/rag/chunking";
@@ -43,11 +44,29 @@ export async function saveOperationsProcedure(input: OperationsProcedureRecord) 
   const ctx = await managerContext(); if (!ctx) return { error: "Manager access is required to manage procedures." };
   if (input.title.trim().length < 2 || input.owner.trim().length < 2 || input.summary.trim().length < 10 || !input.steps.length) return { error: "Complete the procedure details and steps." };
   const existing = !input.id.startsWith("new-");
-  const query = existing ? ctx.supabase.from("operations_procedures").update({ title: input.title.trim(), category: input.category, owner: input.owner.trim(), summary: input.summary.trim(), status: dbValue(input.status), version: input.version }).eq("id", input.id).eq("organization_id", ctx.viewer.organizationId) : ctx.supabase.from("operations_procedures").insert({ organization_id: ctx.viewer.organizationId, title: input.title.trim(), category: input.category, owner: input.owner.trim(), summary: input.summary.trim(), status: dbValue(input.status), version: 1, created_by: ctx.viewer.id });
-  const { data, error } = await query.select("id,title,category,owner,summary,status,version,updated_at").single(); if (error || !data) return { error: error?.message ?? "Procedure could not be saved." };
+  const { data: category, error: categoryError } = await ctx.supabase.from("operations_procedure_categories").select("id,name").eq("id", input.categoryId).eq("organization_id", ctx.viewer.organizationId).single();
+  if (categoryError || !category) return { error: "Choose a valid procedure category." };
+  const query = existing ? ctx.supabase.from("operations_procedures").update({ title: input.title.trim(), category_id: category.id, category: category.name, owner: input.owner.trim(), summary: input.summary.trim(), status: dbValue(input.status), version: input.version }).eq("id", input.id).eq("organization_id", ctx.viewer.organizationId) : ctx.supabase.from("operations_procedures").insert({ organization_id: ctx.viewer.organizationId, title: input.title.trim(), category_id: category.id, category: category.name, owner: input.owner.trim(), summary: input.summary.trim(), status: dbValue(input.status), version: 1, created_by: ctx.viewer.id });
+  const { data, error } = await query.select("id,title,category_id,category,owner,summary,status,version,updated_at").single(); if (error || !data) return { error: error?.message ?? "Procedure could not be saved." };
   if (existing) await ctx.supabase.from("operations_procedure_steps").delete().eq("procedure_id", data.id).eq("organization_id", ctx.viewer.organizationId);
   const { error: stepError } = await ctx.supabase.from("operations_procedure_steps").insert(input.steps.map((title, position) => ({ organization_id: ctx.viewer.organizationId, procedure_id: data.id, title, position })));
-  if (stepError) return { error: stepError.message }; refreshOperations(); return { record: { ...input, id: data.id, version: data.version, updatedAt: data.updated_at } };
+  if (stepError) return { error: stepError.message }; refreshOperations(); return { record: { ...input, id: data.id, categoryId: data.category_id, category: data.category, version: data.version, updatedAt: data.updated_at } };
+}
+
+export async function saveOperationsProcedureCategory(input: { id?: string; name: string }) {
+  const ctx = await managerContext(); if (!ctx) return { error: "Manager access is required to manage categories." };
+  const name = input.name.trim(); if (name.length < 2 || name.length > 80) return { error: "Category names must be 2–80 characters." };
+  const query = input.id ? ctx.supabase.from("operations_procedure_categories").update({ name }).eq("id", input.id).eq("organization_id", ctx.viewer.organizationId).eq("is_default", false) : ctx.supabase.from("operations_procedure_categories").insert({ organization_id: ctx.viewer.organizationId, name, is_default: false });
+  const { data, error } = await query.select("id,name,is_default").single(); if (error || !data) return { error: error?.code === "23505" ? "This category already exists." : error?.message ?? "Category could not be saved." };
+  refreshOperations(); return { record: { id: data.id, name: data.name, isDefault: data.is_default } as OperationsProcedureCategory };
+}
+
+export async function deleteOperationsProcedureCategory(categoryId: string) {
+  const ctx = await managerContext(); if (!ctx) return { error: "Manager access is required to manage categories." };
+  if (!/^[0-9a-f-]{36}$/i.test(categoryId)) return { error: "Invalid category." };
+  const { error } = await ctx.supabase.from("operations_procedure_categories").delete().eq("id", categoryId).eq("organization_id", ctx.viewer.organizationId).eq("is_default", false);
+  if (error) return { error: error.code === "23503" ? "Move the procedures in this category before deleting it." : error.message };
+  refreshOperations(); return {};
 }
 
 export async function generateChecklistFromDocument(formData: FormData) {
@@ -78,7 +97,10 @@ export async function createRevisedOperationsProcedure(formData: FormData) {
     const pages = await extractDocumentPages(file); const sourceText = pages.map((page) => page.text).join("\n").trim().slice(0, 80_000);
     if (sourceText.length < 80) return { error: "No readable procedure text was found in this document." };
     const draft = await createRevisedProcedure({ sourceName: file.name, sourceText });
-    const created = await saveOperationsProcedure({ id: `new-${crypto.randomUUID()}`, ...draft, status: "Draft", version: 1, updatedAt: new Date().toISOString() });
+    const { data: namedCategory } = await ctx.supabase.from("operations_procedure_categories").select("id").eq("organization_id", ctx.viewer.organizationId).eq("name", draft.category).single();
+    const fallbackCategory = namedCategory ?? (await ctx.supabase.from("operations_procedure_categories").select("id").eq("organization_id", ctx.viewer.organizationId).eq("name", "Uncategorized").single()).data;
+    if (!fallbackCategory) return { error: "Procedure categories are not available for this organization." };
+    const created = await saveOperationsProcedure({ id: `new-${crypto.randomUUID()}`, ...draft, categoryId: fallbackCategory.id, status: "Draft", version: 1, updatedAt: new Date().toISOString() });
     if (created.error || !created.record) return { error: created.error ?? "The revised procedure could not be saved." };
     return { record: created.record };
   } catch (error) { return { error: error instanceof Error ? error.message : "The document could not be revised." }; }

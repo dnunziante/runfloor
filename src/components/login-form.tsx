@@ -26,11 +26,11 @@ export function LoginForm({ configured, demoMode, nextPath, initialError = "" }:
           <label className="label" htmlFor="password">Password</label>
           <input className="input" disabled={!configured && !demoMode} id="password" name="password" type="password" autoComplete="current-password" required={!demoMode} placeholder="••••••••" />
         </div>
-        {!demoMode && <Link className="btn btn-ghost" href="/auth/forgot-password">Forgot password?</Link>}
         {initialError && <p className="form-error" role="alert">{initialError}</p>}
         <button className="btn btn-primary" disabled={!configured && !demoMode} type="submit">
           {demoMode ? "Continue to demo" : "Sign in"} <ArrowRight size={16}/>
         </button>
+        {!demoMode && <Link className="btn btn-ghost" href="/auth/forgot-password">Forgot password?</Link>}
       </form>
       {!demoMode && <div className="form-stack demo-access">
         <div className="login-divider"><span>or</span></div>

@@ -6,7 +6,7 @@
     "dev": "next dev",
     "build": "next build",
     "start": "next start",
-    "test": "node --test src/lib/auth/access.test.ts src/lib/supabase/config.test.ts src/lib/executive/accountability.test.ts src/lib/executive/data.test.ts src/lib/executive/decisions.test.ts src/lib/executive/escalations.test.ts src/lib/executive/location-rollups.test.ts src/lib/executive/monthly-review.test.ts src/lib/executive/readiness.test.ts src/lib/executive/reviews.test.ts src/lib/executive/setup-sequence.test.ts src/lib/executive/trends.test.ts src/lib/pricing-calculator.test.ts src/lib/quote-calculator.test.ts src/lib/products/competitor-sync.test.ts src/lib/rag/product-context.test.ts src/lib/rag/sales-email-quality.test.ts src/lib/sales/quality.test.ts src/lib/training/generated.test.ts",
+    "test": "node --test src/lib/auth/access.test.ts src/lib/supabase/config.test.ts src/lib/executive/accountability.test.ts src/lib/executive/data.test.ts src/lib/executive/decisions.test.ts src/lib/executive/escalations.test.ts src/lib/executive/location-rollups.test.ts src/lib/executive/monthly-review.test.ts src/lib/executive/readiness.test.ts src/lib/executive/reviews.test.ts src/lib/executive/setup-sequence.test.ts src/lib/executive/trends.test.ts src/lib/pricing-calculator.test.ts src/lib/quote-calculator.test.ts src/lib/products/competitor-sync.test.ts src/lib/rag/product-context.test.ts src/lib/rag/prompt-compiler.test.ts src/lib/rag/sales-email-quality.test.ts src/lib/sales/quality.test.ts src/lib/training/generated.test.ts",
     "lint": "eslint .",
     "typecheck": "tsc --noEmit"
   },

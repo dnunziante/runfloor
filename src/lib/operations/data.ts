@@ -52,7 +52,8 @@ export const operationsAlerts = [
 export type OperationsProcedureRecord = {
   id: string;
   title: string;
-  category: "Delivery" | "Sales floor" | "Store operations" | "Service" | "Safety";
+  categoryId: string;
+  category: string;
   owner: string;
   summary: string;
   steps: string[];
@@ -62,10 +63,13 @@ export type OperationsProcedureRecord = {
 };
 
 export const operationsProcedureRecords: OperationsProcedureRecord[] = [
-  { id: "delivery-preparation", title: "New cart delivery preparation", category: "Delivery", owner: "Operations Manager", summary: "Prepare the approved cart, documents, and customer orientation before the scheduled pickup.", status: "Published", version: 1, updatedAt: "2026-08-09T10:00:00.000Z", steps: ["Match the cart serial number to the customer order", "Confirm installed accessories and requested configuration", "Complete the final quality and cleanliness inspection", "Prepare delivery documents and customer orientation topics"] },
-  { id: "test-drive-safety", title: "Customer test-drive safety", category: "Safety", owner: "Store Manager", summary: "Provide a consistent safety briefing and confirm the approved test-drive route.", status: "Published", version: 1, updatedAt: "2026-08-09T10:10:00.000Z", steps: ["Verify the selected cart is approved for demonstration", "Explain controls, seat belts, and safe operating expectations", "Confirm the designated route and expected return time", "Inspect the cart after the drive and report concerns"] },
-  { id: "showroom-opening", title: "Daily showroom opening", category: "Store operations", owner: "Opening Manager", summary: "Prepare the customer-facing showroom and team workspace before opening.", status: "Draft", version: 1, updatedAt: "2026-08-09T10:20:00.000Z", steps: ["Complete the opening safety walk", "Position and inspect showroom carts", "Review appointments, deliveries, and staffing", "Confirm customer areas are clean and ready"] },
+  { id: "delivery-preparation", title: "New cart delivery preparation", categoryId: "delivery-post-sale", category: "Delivery & Post-Sale", owner: "Operations Manager", summary: "Prepare the approved cart, documents, and customer orientation before the scheduled pickup.", status: "Published", version: 1, updatedAt: "2026-08-09T10:00:00.000Z", steps: ["Match the cart serial number to the customer order", "Confirm installed accessories and requested configuration", "Complete the final quality and cleanliness inspection", "Prepare delivery documents and customer orientation topics"] },
+  { id: "test-drive-safety", title: "Customer test-drive safety", categoryId: "sales-procedures", category: "Sales Procedures", owner: "Store Manager", summary: "Provide a consistent safety briefing and confirm the approved test-drive route.", status: "Published", version: 1, updatedAt: "2026-08-09T10:10:00.000Z", steps: ["Verify the selected cart is approved for demonstration", "Explain controls, seat belts, and safe operating expectations", "Confirm the designated route and expected return time", "Inspect the cart after the drive and report concerns"] },
+  { id: "showroom-opening", title: "Daily showroom opening", categoryId: "employee-administrative", category: "Employee & Administrative", owner: "Opening Manager", summary: "Prepare the customer-facing showroom and team workspace before opening.", status: "Draft", version: 1, updatedAt: "2026-08-09T10:20:00.000Z", steps: ["Complete the opening safety walk", "Position and inspect showroom carts", "Review appointments, deliveries, and staffing", "Confirm customer areas are clean and ready"] },
 ];
+
+export type OperationsProcedureCategory = { id: string; name: string; isDefault: boolean };
+export const defaultOperationsProcedureCategories: OperationsProcedureCategory[] = [["sales-procedures", "Sales Procedures"], ["delivery-post-sale", "Delivery & Post-Sale"], ["inventory", "Inventory"], ["service", "Service"], ["parts", "Parts"], ["crm-lead-management", "CRM & Lead Management"], ["customer-experience", "Customer Experience"], ["management", "Management"], ["employee-administrative", "Employee & Administrative"], ["other", "Other"], ["uncategorized", "Uncategorized"]].map(([id, name]) => ({ id, name, isDefault: true }));
 
 export type OperationsAlertRecord = {
   id: string;
