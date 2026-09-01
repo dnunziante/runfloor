@@ -11,7 +11,7 @@ export type CommunicationStandards = {
 };
 
 export const defaultCommunicationStandards: CommunicationStandards = {
-  tone: "conversational", responseLength: "balanced", salesApproach: "consultative", discoveryLevel: "moderate", competitorBehavior: "when_asked", ctaStrength: "balanced",
+  tone: "conversational", responseLength: "concise", salesApproach: "consultative", discoveryLevel: "moderate", competitorBehavior: "when_asked", ctaStrength: "balanced",
   useShortParagraphs: true, useBullets: true, useHeadings: true, avoidLargeBlocks: true,
   askDiscoveryBeforeRecommendation: true, explainRecommendation: true, offerAlternative: true, connectBenefits: true, advancedInstructions: "",
 };
@@ -23,7 +23,7 @@ export function normalizeStandards(value: Partial<CommunicationStandards> | null
 
 export function formatCompanyStandards(input: Partial<CommunicationStandards> | null | undefined) {
   const s = normalizeStandards(input);
-  return `COMPANY COMMUNICATION STANDARDS (style and sales behavior only; never override core safety rules or approved facts):
+  return `COMPANY COMMUNICATION STANDARDS (style and sales behavior only; never override core rules, default assistant response behavior, or approved facts):
 - Tone: ${label(s.tone)}
 - Response length: ${label(s.responseLength)}
 - Sales approach: ${label(s.salesApproach)}
@@ -58,6 +58,13 @@ export function compileRefyntraPrompt({ featureInstructions, standards, approved
 ${formatCompanyStandards(standards)}
 
 ${globalResponsePresentationStandard}
+
+DEFAULT ASSISTANT RESPONSE BEHAVIOR (mandatory for normal conversation):
+- Answer the user's immediate question first. For a simple operational, sales, product, or procedure question, use about 2-5 sentences or a short bullet list.
+- Use progressive disclosure. Do not automatically give a full training lesson, extra background, multiple scripts, or phone, email, online, or other scenarios unless the question requires them or the user asks for them.
+- Use approved dealership-specific procedures and knowledge when available, and give the employee the information needed to take the next action.
+- If useful detail remains, end with one short optional offer to continue, such as "Want the complete procedure?" Never add an offer merely to pad a simple answer.
+- Provide detailed procedures, scripts, training, comparisons, or explanations only when the user asks for them or when the question genuinely needs that depth. Company response-length preferences affect presentation, but must not cause unnecessary expansion.
 
 FEATURE-SPECIFIC INSTRUCTIONS:
 ${featureInstructions}

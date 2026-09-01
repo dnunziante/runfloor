@@ -43,6 +43,6 @@ export default async function AdminProductsPage({ searchParams }: { searchParams
         {result.products.length ? <AdminProductCategoryList key={result.products.map((product) => `${product.id}:${product.status}:${product.sortOrder}`).join("|")} categories={categories.map((family) => ({ ...family, products: result.products.filter((product) => product.familyId === family.id) }))}/> : <div className="output empty"><div><h3>No products yet</h3><p>Add the first product for this organization.</p></div></div>}
       </div>
     </div>}
-    {isRvWorkspace && viewer?.organizationId ? <RvProductModels organizationId={viewer.organizationId} filters={rvFilters}/> : null}
+    {isRvWorkspace && viewer?.organizationId && viewer && ["tenant_admin", "platform_owner", "manager"].includes(viewer.role) ? <section className="admin-product-layout" style={{marginTop:18}}><AdminProductForm families={familyResult.families} initialFamilyId={familyResult.families.some((family) => family.id === requestedFamilyId) ? requestedFamilyId : ""} isRv/><RvProductModels organizationId={viewer.organizationId} filters={rvFilters} catalogs={familyResult.families}/></section> : null}
   </AppShell>;
 }

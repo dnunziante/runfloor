@@ -7,7 +7,7 @@ export type OrganizationSettings = { displayName: string; primaryColor: string; 
 
 export const defaultOrganizationSettings: OrganizationSettings = {
   displayName: "BGC", primaryColor: "#0B5CFF", contactEmail: "", defaultLocationId: "",
-  assistantInstructions: "Use approved product information, ask discovery questions, and never invent pricing or availability.",
+  assistantInstructions: "Use approved product information and never invent pricing or availability. Answer the immediate question first; ask a discovery question only when it is needed to give a useful answer.",
   communicationRules: "Use a confident, helpful tone. Ask a useful discovery question when appropriate and never make unsupported claims.",
 };
 

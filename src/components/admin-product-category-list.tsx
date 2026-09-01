@@ -67,6 +67,7 @@ export function AdminProductCategoryList({ categories }: { categories: Category[
           <form action={duplicateProduct}><input type="hidden" name="productId" value={product.id}/><button className="btn btn-ghost status-button" type="submit"><Copy size={14}/> Duplicate</button></form>
           <Link className="btn btn-ghost status-button" href={`/admin/products/${product.id}/guide`}>Sales guide</Link>
           <form action={setProductStatus}><input type="hidden" name="productId" value={product.id}/><input type="hidden" name="status" value={product.status === "Published" ? "draft" : "published"}/><button className="btn btn-ghost status-button" type="submit">{product.status === "Published" ? <><EyeOff size={14}/> Move to draft</> : <><Eye size={14}/> Publish</>}</button></form>
+          {product.status !== "Archived" && <form action={setProductStatus}><input type="hidden" name="productId" value={product.id}/><input type="hidden" name="status" value="archived"/><button className="btn btn-ghost status-button" type="submit">Archive</button></form>}
           <form action={deleteProduct}><input type="hidden" name="productId" value={product.id}/><button className="btn btn-ghost danger-button" type="submit" aria-label={`Remove ${product.name}`}><Trash2 size={14}/> Remove</button></form>
         </div></td>
       </tr>)}</tbody></table></div> : <div className="admin-product-category-empty">No items have been added to this category yet.</div>}

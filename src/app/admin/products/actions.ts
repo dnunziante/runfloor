@@ -18,6 +18,7 @@ export type FamilyImageActionState = { error: string; success: string };
 export type ProductEditActionState = { error: string; success: string };
 export type ProductOrderActionState = { error: string; success: string };
 export type ProductFamilyActionState = { error: string; success: string; familyId?: string };
+export type CatalogActionState = { error: string; success: string; catalogId?: string };
 
 function slugify(value: string) {
   return value.toLowerCase().trim().replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "");
@@ -31,13 +32,15 @@ const allowedFrames = new Set(["", "Powder Coated Steel", "Aluminum"]);
 const allowedCapacities = new Set(["", "2 Passengers", "4 Passenger", "6 Passengers"]);
 const allowedPowertrains = new Set(["", "48V", "72V"]);
 
-async function requireTenantAdmin() {
+async function requireCatalogManager() {
   const viewer = await getViewer();
-  if (!viewer || !viewer.organizationId || !["tenant_admin", "platform_owner"].includes(viewer.role)) {
+  if (!viewer || !viewer.organizationId || !["tenant_admin", "manager", "platform_owner"].includes(viewer.role)) {
     throw new Error("Unauthorized");
   }
   return viewer;
 }
+
+const requireTenantAdmin = requireCatalogManager;
 
 export async function createProductFamily(name: string): Promise<ProductFamilyActionState> {
   const viewer = await requireTenantAdmin();
@@ -57,6 +60,57 @@ export async function createProductFamily(name: string): Promise<ProductFamilyAc
   return { error: "", success: `${data.name} was created.`, familyId: data.id };
 }
 
+export async function createProductCatalog(name: string, description: string): Promise<CatalogActionState> {
+  const viewer = await requireCatalogManager();
+  const catalogName = name.trim().slice(0, 120);
+  const catalogDescription = description.trim().slice(0, 500);
+  const slug = slugify(catalogName);
+  if (catalogName.length < 2 || !slug) return { error: "Enter a catalog name with at least two characters.", success: "" };
+  const supabase = await createClient();
+  const { data: existing } = await supabase.from("product_families").select("id").eq("organization_id", viewer.organizationId).eq("slug", slug).maybeSingle();
+  if (existing) return { error: "A catalog with that name already exists.", success: "" };
+  const { data: lastCatalog } = await supabase.from("product_families").select("sort_order").eq("organization_id", viewer.organizationId).order("sort_order", { ascending: false }).limit(1).maybeSingle();
+  const { data, error } = await supabase.from("product_families").insert({ organization_id: viewer.organizationId, name: catalogName, slug, description: catalogDescription, sort_order: (lastCatalog?.sort_order ?? 0) + 10 }).select("id, name").single();
+  if (error || !data) return { error: error?.code === "23505" ? "A catalog with that name already exists." : "The catalog could not be created.", success: "" };
+  revalidatePath("/products"); revalidatePath("/admin/products");
+  return { error: "", success: `${data.name} was created.`, catalogId: data.id };
+}
+
+export async function updateProductCatalog(catalogId: string, name: string, description: string): Promise<CatalogActionState> {
+  const viewer = await requireCatalogManager();
+  if (!/^[0-9a-f-]{36}$/i.test(catalogId)) return { error: "Invalid catalog.", success: "" };
+  const catalogName = name.trim().slice(0, 120); const catalogDescription = description.trim().slice(0, 500); const slug = slugify(catalogName);
+  if (catalogName.length < 2 || !slug) return { error: "Enter a catalog name with at least two characters.", success: "" };
+  const supabase = await createClient();
+  const { data, error } = await supabase.from("product_families").update({ name: catalogName, slug, description: catalogDescription, updated_at: new Date().toISOString() }).eq("id", catalogId).eq("organization_id", viewer.organizationId).select("slug").maybeSingle();
+  if (error || !data) return { error: error?.code === "23505" ? "A catalog with that name already exists." : "The catalog could not be updated.", success: "" };
+  revalidatePath("/products"); revalidatePath(`/products/families/${data.slug}`); revalidatePath("/admin/products");
+  return { error: "", success: "Catalog updated.", catalogId };
+}
+
+export async function deleteProductCatalog(catalogId: string, disposition: "uncategorized" | "move" | "archive", targetCatalogId = ""): Promise<CatalogActionState> {
+  const viewer = await requireCatalogManager();
+  if (!/^[0-9a-f-]{36}$/i.test(catalogId) || !["uncategorized", "move", "archive"].includes(disposition)) return { error: "Invalid catalog action.", success: "" };
+  const supabase = await createClient();
+  const { data: catalog } = await supabase.from("product_families").select("id, slug").eq("id", catalogId).eq("organization_id", viewer.organizationId).maybeSingle();
+  if (!catalog) return { error: "That catalog is not available.", success: "" };
+  if (disposition === "move") {
+    if (!/^[0-9a-f-]{36}$/i.test(targetCatalogId) || targetCatalogId === catalogId) return { error: "Choose another catalog for these products.", success: "" };
+    const { data: target } = await supabase.from("product_families").select("id").eq("id", targetCatalogId).eq("organization_id", viewer.organizationId).maybeSingle();
+    if (!target) return { error: "The destination catalog is not available.", success: "" };
+    const { error } = await supabase.from("products").update({ family_id: target.id, updated_at: new Date().toISOString() }).eq("organization_id", viewer.organizationId).eq("family_id", catalogId);
+    if (error) return { error: "Products could not be moved.", success: "" };
+  } else {
+    const update = disposition === "archive" ? { family_id: null, status: "archived" as const, updated_at: new Date().toISOString() } : { family_id: null, updated_at: new Date().toISOString() };
+    const { error } = await supabase.from("products").update(update).eq("organization_id", viewer.organizationId).eq("family_id", catalogId);
+    if (error) return { error: "Products could not be updated.", success: "" };
+  }
+  const { error } = await supabase.from("product_families").delete().eq("id", catalogId).eq("organization_id", viewer.organizationId);
+  if (error) return { error: "The catalog could not be deleted.", success: "" };
+  revalidatePath("/products"); revalidatePath(`/products/families/${catalog.slug}`); revalidatePath("/admin/products"); revalidatePath("/comparisons");
+  return { error: "", success: "Catalog deleted. Products were kept according to your selection." };
+}
+
 export async function createProduct(
   _previousState: ProductActionState,
   formData: FormData,
@@ -65,8 +119,13 @@ export async function createProduct(
   const name = String(formData.get("name") || "").trim();
   const familyId = String(formData.get("familyId") || "");
   const productType = formData.get("productType") === "competitor_product" ? "competitor_product" : "our_product";
-  const productCategory = String(formData.get("productCategory") || "").trim().slice(0, 120);
+  const submittedProductCategory = String(formData.get("productCategory") || "").trim();
   const model = String(formData.get("model") || "").trim();
+  const manufacturer = String(formData.get("manufacturer") || "").trim().slice(0, 160);
+  const brand = String(formData.get("brand") || "").trim().slice(0, 160);
+  const modelYearRaw = String(formData.get("modelYear") || "").trim();
+  const modelYear = modelYearRaw ? Number(modelYearRaw) : null;
+  const modelVariant = String(formData.get("modelVariant") || "").trim().slice(0, 160);
   const description = String(formData.get("description") || "").trim();
   const rangeText = String(formData.get("range") || "").trim();
   const seatsText = String(formData.get("seats") || "").trim();
@@ -90,6 +149,8 @@ export async function createProduct(
   const { data: organization } = await supabase.from("organizations").select("industry_template_id").eq("id", viewer.organizationId).maybeSingle();
   const { data: template } = organization?.industry_template_id ? await supabase.from("industry_templates").select("template_key").eq("id", organization.industry_template_id).maybeSingle() : { data: null };
   const isRv = template?.template_key === "rv";
+  const productCategory = (isRv && submittedProductCategory === "Other" ? String(formData.get("productCategoryOther") || "") : submittedProductCategory).trim().slice(0, 120);
+  if (modelYear !== null && (!Number.isInteger(modelYear) || modelYear < 1900 || modelYear > 2200)) return { error: "Enter a valid model year.", success: "" };
   if (!isRv && (!allowedFrames.has(rangeText) || !allowedCapacities.has(seatsText) || !allowedPowertrains.has(powertrainText))) {
     return { error: "Choose a valid frame, capacity, and powertrain.", success: "" };
   }
@@ -99,6 +160,9 @@ export async function createProduct(
   const lastQuery = supabase.from("products").select("sort_order").eq("organization_id", viewer.organizationId);
   const { data: lastProduct } = familyId ? await lastQuery.eq("family_id", familyId).order("sort_order", { ascending: false }).limit(1).maybeSingle() : await lastQuery.order("sort_order", { ascending: false }).limit(1).maybeSingle();
 
+  const specifications: Record<string, string> = {};
+  for (const [key, value] of formData.entries()) if (key.startsWith("spec.") && String(value).trim()) specifications[key.slice(5)] = String(value).trim().slice(0, 4000);
+  const normalizedSpecifications = isRv ? normalizeRvSpecifications(specifications) : normalizeGolfCartSpecifications(specifications);
   const { error } = await supabase.from("products").insert({
     id: productId,
     organization_id: viewer.organizationId,
@@ -108,6 +172,11 @@ export async function createProduct(
     name,
     slug: `${slugify(name)}-${slugify(model || "standard")}`,
     model,
+    manufacturer,
+    brand: brand || manufacturer,
+    model_year: modelYear,
+    model_variant: modelVariant,
+    specifications: normalizedSpecifications,
     description,
     base_price_cents: Math.round(price * 100),
     range_text: rangeText,
@@ -222,8 +291,8 @@ export async function updateProduct(
   const runningDistance = String(formData.get("runningDistance") || "").trim().slice(0, 160);
   const turningRadius = String(formData.get("turningRadius") || "").trim().slice(0, 160);
   const maxLoadCapacity = String(formData.get("maxLoadCapacity") || "").trim().slice(0, 160);
-  if (!/^[0-9a-f-]{36}$/i.test(productId) || (productType === "our_product" && !/^[0-9a-f-]{36}$/i.test(familyId)) || name.length < 2 || !Number.isFinite(price) || price < 0) {
-    return { error: "Choose a catalog family for an Our Product, enter a product name, and use a valid non-negative price.", success: "" };
+  if (!/^[0-9a-f-]{36}$/i.test(productId) || name.length < 2 || !Number.isFinite(price) || price < 0) {
+    return { error: "Enter a product name and a valid non-negative price.", success: "" };
   }
   const supabase = await createClient();
   const { data: organization } = await supabase.from("organizations").select("industry_template_id").eq("id", viewer.organizationId).maybeSingle();
@@ -234,7 +303,7 @@ export async function updateProduct(
     return { error: "Choose a valid frame, capacity, and powertrain.", success: "" };
   }
   const { data: family } = familyId ? await supabase.from("product_families").select("id, slug").eq("id", familyId).eq("organization_id", viewer.organizationId).maybeSingle() : { data: null };
-  if (productType === "our_product" && !family) return { error: "Choose a product family from this workspace.", success: "" };
+  if (familyId && !family) return { error: "Choose a catalog from this workspace.", success: "" };
 
   const { data: existing } = await supabase.from("products").select("specifications").eq("id", productId).eq("organization_id", viewer.organizationId).maybeSingle();
   const existingSpecifications = { ...((existing?.specifications || {}) as Record<string, string>) };
@@ -360,7 +429,8 @@ export async function saveProductOrder(familyId: string, productIds: string[]): 
 export async function setProductStatus(formData: FormData) {
   const viewer = await requireTenantAdmin();
   const productId = String(formData.get("productId") || "");
-  const status = formData.get("status") === "published" ? "published" : "draft";
+  const statusValue = String(formData.get("status") || "");
+  const status = statusValue === "published" ? "published" : statusValue === "archived" ? "archived" : "draft";
   if (!/^[0-9a-f-]{36}$/i.test(productId)) throw new Error("Invalid product ID");
 
   const supabase = await createClient();
@@ -373,6 +443,38 @@ export async function setProductStatus(formData: FormData) {
     .maybeSingle();
 
   if (error || !data) throw new Error("The product status could not be changed.");
+  revalidatePath("/products");
+  revalidatePath("/comparisons");
+  revalidatePath("/admin/products");
+}
+
+export async function setProductCatalog(formData: FormData) {
+  const viewer = await requireCatalogManager();
+  const productId = String(formData.get("productId") || "");
+  const familyId = String(formData.get("familyId") || "");
+  if (!/^[0-9a-f-]{36}$/i.test(productId)) throw new Error("Invalid product ID");
+
+  const supabase = await createClient();
+  if (familyId) {
+    if (!/^[0-9a-f-]{36}$/i.test(familyId)) throw new Error("Invalid catalog ID");
+    const { data: catalog } = await supabase
+      .from("product_families")
+      .select("id")
+      .eq("id", familyId)
+      .eq("organization_id", viewer.organizationId)
+      .maybeSingle();
+    if (!catalog) throw new Error("That catalog is not available in this workspace.");
+  }
+
+  const { data, error } = await supabase
+    .from("products")
+    .update({ family_id: familyId || null, updated_at: new Date().toISOString() })
+    .eq("id", productId)
+    .eq("organization_id", viewer.organizationId)
+    .select("id")
+    .maybeSingle();
+  if (error || !data) throw new Error("The product catalog could not be updated.");
+
   revalidatePath("/products");
   revalidatePath("/comparisons");
   revalidatePath("/admin/products");

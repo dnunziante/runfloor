@@ -117,12 +117,14 @@ export async function updateTenant(formData: FormData) {
   const { data: template } = await supabase.from("industry_templates").select("id,is_enabled").eq("id", templateId).maybeSingle();
   if (!template?.is_enabled) throw new Error("Choose an enabled industry template.");
 
-  const { error } = await supabase
+  const { data: savedTenant, error } = await supabase
     .from("organizations")
     .update({ name, status, subscription_status: subscriptionStatus, industry_template_id: template.id })
-    .eq("id", tenantId);
+    .eq("id", tenantId)
+    .select("id, industry_template_id")
+    .maybeSingle();
 
-  if (error) throw new Error("The tenant could not be updated.");
+  if (error || !savedTenant || savedTenant.industry_template_id !== template.id) throw new Error("The tenant template assignment could not be confirmed.");
   revalidatePath("/admin/platform");
 }
 
