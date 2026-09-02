@@ -9,6 +9,7 @@ import { getNextScheduleDate } from "@/lib/operations/schedules";
 import { createClient } from "@/lib/supabase/server";
 import { extractDocumentPages } from "@/lib/rag/chunking";
 import { createGeneratedChecklist, createRevisedProcedure } from "@/lib/rag/openai";
+import { extractProcedureImport } from "@/lib/operations/procedure-import";
 
 const dbValue = (value: string) => value.toLowerCase().replaceAll(" ", "_");
 async function context() { const viewer = await getViewer(); if (!viewer || viewer.demo) return null; return { viewer, supabase: await createClient() }; }
@@ -46,11 +47,20 @@ export async function saveOperationsProcedure(input: OperationsProcedureRecord) 
   const existing = !input.id.startsWith("new-");
   const { data: category, error: categoryError } = await ctx.supabase.from("operations_procedure_categories").select("id,name").eq("id", input.categoryId).eq("organization_id", ctx.viewer.organizationId).single();
   if (categoryError || !category) return { error: "Choose a valid procedure category." };
-  const query = existing ? ctx.supabase.from("operations_procedures").update({ title: input.title.trim(), category_id: category.id, category: category.name, owner: input.owner.trim(), summary: input.summary.trim(), status: dbValue(input.status), version: input.version }).eq("id", input.id).eq("organization_id", ctx.viewer.organizationId) : ctx.supabase.from("operations_procedures").insert({ organization_id: ctx.viewer.organizationId, title: input.title.trim(), category_id: category.id, category: category.name, owner: input.owner.trim(), summary: input.summary.trim(), status: dbValue(input.status), version: 1, created_by: ctx.viewer.id });
+  const baseValues = { title: input.title.trim(), category_id: category.id, category: category.name, owner: input.owner.trim(), summary: input.summary.trim(), status: dbValue(input.status), version: existing ? input.version : 1 };
+  const structuredValues = input.content === undefined ? {} : { content: input.content, source_type: input.sourceType ?? "manual" };
+  const query = existing ? ctx.supabase.from("operations_procedures").update({ ...baseValues, ...structuredValues }).eq("id", input.id).eq("organization_id", ctx.viewer.organizationId) : ctx.supabase.from("operations_procedures").insert({ organization_id: ctx.viewer.organizationId, ...baseValues, content: input.content ?? {}, source_type: input.sourceType ?? "manual", created_by: ctx.viewer.id });
   const { data, error } = await query.select("id,title,category_id,category,owner,summary,status,version,updated_at").single(); if (error || !data) return { error: error?.message ?? "Procedure could not be saved." };
   if (existing) await ctx.supabase.from("operations_procedure_steps").delete().eq("procedure_id", data.id).eq("organization_id", ctx.viewer.organizationId);
   const { error: stepError } = await ctx.supabase.from("operations_procedure_steps").insert(input.steps.map((title, position) => ({ organization_id: ctx.viewer.organizationId, procedure_id: data.id, title, position })));
   if (stepError) return { error: stepError.message }; refreshOperations(); return { record: { ...input, id: data.id, categoryId: data.category_id, category: data.category, version: data.version, updatedAt: data.updated_at } };
+}
+
+export async function extractImportedOperationsProcedure(formData: FormData) {
+  const ctx = await managerContext(); if (!ctx) return { error: "Manager access is required to import procedures." };
+  const file = formData.get("file"); if (!(file instanceof File)) return { error: "Choose a procedure file." };
+  try { return { draft: await extractProcedureImport(file, String(formData.get("instruction") || "")) }; }
+  catch (error) { return { error: error instanceof Error ? error.message : "The procedure could not be extracted." }; }
 }
 
 export async function saveOperationsProcedureCategory(input: { id?: string; name: string }) {

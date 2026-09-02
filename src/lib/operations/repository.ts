@@ -53,7 +53,7 @@ export async function getOperationsWorkspace(): Promise<OperationsWorkspace> {
   const organizationId = viewer.organizationId;
   const [checklistsResult, proceduresResult, categoriesResult, alertsResult, schedulesResult, handoffsResult, incidentsResult] = await Promise.all([
     supabase.from("operations_checklists").select("id,title,location_name,owner,due_date,created_at,operations_checklist_steps(id,title,is_complete,position)").eq("organization_id", organizationId).order("created_at", { ascending: false }),
-    supabase.from("operations_procedures").select("id,title,category_id,category,owner,summary,status,version,updated_at,operations_procedure_categories(name),operations_procedure_steps(id,title,position)").eq("organization_id", organizationId).neq("status", "archived").order("updated_at", { ascending: false }),
+    supabase.from("operations_procedures").select("id,title,category_id,category,owner,summary,status,version,updated_at,content,source_type,operations_procedure_categories(name),operations_procedure_steps(id,title,position)").eq("organization_id", organizationId).neq("status", "archived").order("updated_at", { ascending: false }),
     supabase.from("operations_procedure_categories").select("id,name,is_default").eq("organization_id", organizationId).order("is_default", { ascending: false }).order("name"),
     supabase.from("operations_alerts").select("id,title,detail,severity,location_name,owner,due_date,status,created_at,operations_alert_history(id,status,note,created_at)").eq("organization_id", organizationId).order("created_at", { ascending: false }),
     supabase.from("operations_schedules").select("id,procedure_id,frequency,location_name,owner,next_run_date,status,last_generated_at,created_at,operations_procedures(title)").eq("organization_id", organizationId).order("created_at", { ascending: false }),
@@ -66,7 +66,7 @@ export async function getOperationsWorkspace(): Promise<OperationsWorkspace> {
   const procedures = (proceduresResult.data ?? []).map((row) => ({
     id: row.id, title: row.title, categoryId: row.category_id, category: (row.operations_procedure_categories as unknown as { name: string } | null)?.name ?? row.category, owner: row.owner,
     summary: row.summary, status: titleCase(row.status) as OperationsProcedureRecord["status"], version: row.version,
-    updatedAt: row.updated_at, steps: [...((row.operations_procedure_steps ?? []) as ChildStep[])].sort((a, b) => a.position - b.position).map((step) => step.title),
+    updatedAt: row.updated_at, content: (row.content ?? {}) as Record<string, unknown>, sourceType: row.source_type as OperationsProcedureRecord["sourceType"], steps: [...((row.operations_procedure_steps ?? []) as ChildStep[])].sort((a, b) => a.position - b.position).map((step) => step.title),
   }));
   const checklists = (checklistsResult.data ?? []).map((row) => ({
     id: row.id, title: row.title, location: row.location_name, owner: row.owner, dueDate: row.due_date, createdAt: row.created_at,
