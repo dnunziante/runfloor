@@ -4,6 +4,8 @@ import {
   AlertTriangle,
   BookOpenCheck,
   CheckCircle2,
+  ChevronDown,
+  ChevronUp,
   Eye,
   FileEdit,
   Pencil,
@@ -15,6 +17,7 @@ import { useMemo, useState } from "react";
 import {
   deleteOperationsProcedure,
   deleteOperationsProcedureCategory,
+  reorderOperationsProcedures,
   saveOperationsProcedure,
   saveOperationsProcedureCategory,
 } from "@/app/operations/actions";
@@ -24,6 +27,7 @@ import {
   type OperationsProcedureRecord,
 } from "@/lib/operations/data";
 import type { OperationsPersistence } from "@/lib/operations/repository";
+import { ProcedureContent } from "@/components/procedure-content";
 
 export function OperationsProcedureManager({
   initialProcedures = [],
@@ -153,6 +157,14 @@ export function OperationsProcedureManager({
     clear();
     setMessage("Procedure deleted.");
   }
+  async function moveProcedure(id: string, direction: -1 | 1) {
+    if (!selectedCategory) return;
+    const ids = filtered.map((item) => item.id); const index = ids.indexOf(id); const target = index + direction;
+    if (index < 0 || target < 0 || target >= ids.length) return;
+    [ids[index], ids[target]] = [ids[target], ids[index]];
+    if (persistence === "supabase") { const result = await reorderOperationsProcedures(selectedCategory, ids); if (result.error) return setError(result.error); }
+    const order = new Map(ids.map((item, position) => [item, position])); setProcedures((items) => [...items].sort((left, right) => left.categoryId === selectedCategory && right.categoryId === selectedCategory ? (order.get(left.id) ?? 0) - (order.get(right.id) ?? 0) : 0)); setMessage("Procedure order saved.");
+  }
   async function changeCategory(item?: OperationsProcedureCategory) {
     const name = prompt(
       item ? "Rename category" : "New category name",
@@ -224,14 +236,14 @@ export function OperationsProcedureManager({
     selected && !editingId ? (
       <>
         <h2>{selected.title}</h2>
-        <p>{selected.summary}</p>
+        <ProcedureContent content={selected.summary}/>
         <p>
           <strong>Category:</strong> {selected.category} ·{" "}
           <strong>Owner:</strong> {selected.owner}
         </p>
         <ol>
           {selected.steps.map((step, index) => (
-          <li key={index} style={{ whiteSpace: "pre-wrap" }}>{step}</li>
+          <li key={index}><ProcedureContent content={step}/></li>
           ))}
         </ol>
         {canManage && (
@@ -432,15 +444,9 @@ export function OperationsProcedureManager({
         {selectedCategory &&
           (filtered.length ? (
             <div className="operations-procedure-cards">
-              {filtered.map((item) => (
-                <button
-                  className={`card operations-procedure-card ${selectedId === item.id ? "selected" : ""}`}
-                  key={item.id}
-                  onClick={() => {
-                    setSelectedId(item.id);
-                    setEditingId(null);
-                  }}
-                >
+              {filtered.map((item, index) => (
+                <div className={`card operations-procedure-card ${selectedId === item.id ? "selected" : ""}`} key={item.id}>
+                <button onClick={() => { setSelectedId(item.id); setEditingId(null); }}>
                   <BookOpenCheck size={18} />
                   <h2>{item.title}</h2>
                   <p>{item.summary}</p>
@@ -448,7 +454,7 @@ export function OperationsProcedureManager({
                     <span>{item.category}</span>
                     <span>{item.owner}</span>
                   </div>
-                </button>
+                </button>{canManage && <div className="button-row"><button className="icon-button" aria-label={`Move ${item.title} up`} disabled={index === 0} onClick={() => moveProcedure(item.id, -1)}><ChevronUp size={16}/></button><button className="icon-button" aria-label={`Move ${item.title} down`} disabled={index === filtered.length - 1} onClick={() => moveProcedure(item.id, 1)}><ChevronDown size={16}/></button></div>}</div>
               ))}
             </div>
           ) : (

@@ -60,6 +60,7 @@ export type OperationsProcedureRecord = {
   status: "Draft" | "Published";
   version: number;
   updatedAt: string;
+  sortOrder?: number;
   content?: Record<string, unknown>;
   sourceType?: "manual" | "ai_generated" | "imported" | "assistant_generated";
 };

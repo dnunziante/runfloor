@@ -98,6 +98,13 @@ export async function deleteOperationsProcedure(procedureId: string) {
   refreshOperations(); return {};
 }
 
+export async function reorderOperationsProcedures(categoryId: string, ids: string[]) {
+  const ctx = await managerContext(); if (!ctx) return { error: "Manager access is required to reorder procedures." };
+  if (!/^[0-9a-f-]{36}$/i.test(categoryId) || !ids.length || ids.some((id) => !/^[0-9a-f-]{36}$/i.test(id))) return { error: "Invalid procedure order." };
+  for (const [sort_order, id] of ids.entries()) { const { error } = await ctx.supabase.from("operations_procedures").update({ sort_order }).eq("id", id).eq("category_id", categoryId).eq("organization_id", ctx.viewer.organizationId); if (error) return { error: error.message }; }
+  refreshOperations(); return {};
+}
+
 export async function createRevisedOperationsProcedure(formData: FormData) {
   const ctx = await managerContext(); if (!ctx) return { error: "Manager access is required to create procedures." };
   const file = formData.get("file");

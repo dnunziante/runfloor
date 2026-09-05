@@ -412,7 +412,10 @@ export default async function PlatformAdminPage() {
                   <td>v{template.version}</td>
                   <td>
                     <form
-                      action={copyPlatformProcedureTemplate}
+                      action={async (formData) => {
+                        "use server";
+                        await copyPlatformProcedureTemplate(formData);
+                      }}
                       style={{ display: "flex", gap: 8 }}
                     >
                       <input
@@ -439,7 +442,7 @@ export default async function PlatformAdminPage() {
                       </select>
                       <button className="btn btn-ghost">Copy to tenant</button>
                     </form>
-                    <form action={copyPlatformProcedureTemplateToAllTenants} style={{ marginTop: 8 }}><input type="hidden" name="templateId" value={template.id}/><button className="btn btn-secondary">Add to all tenants</button></form>
+                    <form action={async (formData) => { "use server"; await copyPlatformProcedureTemplateToAllTenants(formData); }} style={{ marginTop: 8 }}><input type="hidden" name="templateId" value={template.id}/><button className="btn btn-secondary">Add to all tenants</button></form>
                   </td>
                 </tr>
               ))])}

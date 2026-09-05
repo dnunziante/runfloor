@@ -3,6 +3,7 @@
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { getViewer } from "@/lib/auth/viewer";
+import { createAdminClient } from "@/lib/supabase/admin";
 import { createClient } from "@/lib/supabase/server";
 
 function slugify(value: string) {
@@ -510,16 +511,30 @@ export async function savePlatformProcedureTemplate(formData: FormData) {
 }
 
 export async function copyPlatformProcedureTemplate(formData: FormData) {
-  const viewer = await getViewer(); const templateId = String(formData.get("templateId") || ""); const organizationId = String(formData.get("organizationId") || "");
+  const viewer = await getViewer();
+  const templateId = String(formData.get("templateId") || "");
+  const organizationId = String(formData.get("organizationId") || "");
   if (viewer?.role !== "platform_owner" || !/^[0-9a-f-]{36}$/i.test(templateId) || !/^[0-9a-f-]{36}$/i.test(organizationId)) throw new Error("Platform administrator access is required.");
-  const supabase = await createClient(); const { data: template, error } = await supabase.from("platform_procedure_templates").select("id,title,category,owner,summary,steps,content,version").eq("id", templateId).eq("is_published", true).single();
+
+  // A platform owner can distribute a template across tenants. Use the secure
+  // server client after the role check so tenant RLS does not stop the first copy.
+  const supabase = createAdminClient();
+  const { data: tenant, error: tenantError } = await supabase.from("organizations").select("id,name").eq("id", organizationId).eq("status", "active").maybeSingle();
+  if (tenantError || !tenant) throw new Error("This tenant is not available.");
+  const { data: template, error } = await supabase.from("platform_procedure_templates").select("id,title,category,owner,summary,content,version").eq("id", templateId).eq("is_published", true).single();
   if (error || !template) throw new Error("The procedure template is unavailable.");
+
+  const { count, error: existsError } = await supabase.from("operations_procedures").select("id", { head: true, count: "exact" }).eq("organization_id", organizationId).eq("platform_template_id", template.id);
+  if (existsError) throw new Error(existsError.message);
+  if ((count || 0) > 0) return { copied: false, tenantName: tenant.name, reason: "already_exists" as const };
+
   const { data: category } = await supabase.from("operations_procedure_categories").select("id,name").eq("organization_id", organizationId).eq("name", template.category).maybeSingle();
-  const categoryId = category?.id || (await supabase.from("operations_procedure_categories").select("id,name").eq("organization_id", organizationId).eq("name", "Uncategorized").single()).data?.id;
-  if (!categoryId) throw new Error("The tenant has no procedure categories.");
-  const { error: insertError } = await supabase.from("operations_procedures").insert({ organization_id: organizationId, title: template.title, category_id: categoryId, category: category?.name || "Uncategorized", owner: template.owner, summary: template.summary, status: "draft", version: 1, content: template.content, source_type: "manual", platform_template_id: template.id, platform_template_version: template.version, created_by: viewer.id });
+  const fallback = category || (await supabase.from("operations_procedure_categories").select("id,name").eq("organization_id", organizationId).eq("name", "Uncategorized").maybeSingle()).data;
+  if (!fallback) throw new Error(`${tenant.name} has no procedure categories.`);
+  const { error: insertError } = await supabase.from("operations_procedures").insert({ organization_id: organizationId, title: template.title, category_id: fallback.id, category: fallback.name, owner: template.owner, summary: template.summary, status: "draft", version: 1, content: template.content, source_type: "manual", platform_template_id: template.id, platform_template_version: template.version, created_by: viewer.id });
   if (insertError) throw new Error(insertError.message);
   revalidatePath("/admin/platform");
+  return { copied: true, tenantName: tenant.name };
 }
 
 export async function copyTenantProcedureToPlatformTemplate(formData: FormData) {
@@ -535,17 +550,18 @@ export async function copyTenantProcedureToPlatformTemplate(formData: FormData) 
 export async function copyPlatformProcedureTemplateToAllTenants(formData: FormData) {
   const viewer = await getViewer(); const templateId = String(formData.get("templateId") || "");
   if (viewer?.role !== "platform_owner" || !/^[0-9a-f-]{36}$/i.test(templateId)) throw new Error("Platform administrator access is required.");
-  const supabase = await createClient(); const { data: template, error } = await supabase.from("platform_procedure_templates").select("id,title,category,owner,summary,content,version").eq("id", templateId).eq("is_published", true).single();
-  if (error || !template) throw new Error("The procedure template is unavailable.");
-  const { data: tenants, error: tenantError } = await supabase.from("organizations").select("id").eq("status", "active"); if (tenantError) throw new Error(tenantError.message);
+  const { data: tenants, error: tenantError } = await createAdminClient().from("organizations").select("id").eq("status", "active");
+  if (tenantError) throw new Error(tenantError.message);
+  let added = 0;
+  let alreadyThere = 0;
   for (const tenant of tenants || []) {
-    const { data: category } = await supabase.from("operations_procedure_categories").select("id,name").eq("organization_id", tenant.id).eq("name", template.category).maybeSingle();
-    const fallback = category || (await supabase.from("operations_procedure_categories").select("id,name").eq("organization_id", tenant.id).eq("name", "Uncategorized").single()).data;
-    if (!fallback) continue;
-    const exists = await supabase.from("operations_procedures").select("id", { head:true, count:"exact" }).eq("organization_id", tenant.id).eq("platform_template_id", template.id);
-    if ((exists.count || 0) > 0) continue;
-    const { error: insertError } = await supabase.from("operations_procedures").insert({ organization_id: tenant.id, title: template.title, category_id: fallback.id, category: fallback.name, owner: template.owner, summary: template.summary, status: "draft", version: 1, content: template.content, source_type: "manual", platform_template_id: template.id, platform_template_version: template.version, created_by: viewer.id });
-    if (insertError) throw new Error(insertError.message);
+    const copyForm = new FormData();
+    copyForm.set("templateId", templateId);
+    copyForm.set("organizationId", tenant.id);
+    const result = await copyPlatformProcedureTemplate(copyForm);
+    if (result.copied) added += 1;
+    else alreadyThere += 1;
   }
   revalidatePath("/admin/platform");
+  return { added, alreadyThere };
 }
