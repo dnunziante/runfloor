@@ -86,7 +86,7 @@ export function ProcedureDocument({ initial, backHref }: { initial: ProcedureTem
         {!editing && !hasBody && <div className={styles.empty}>No procedure content has been added yet.</div>}
         <div className={styles.body} data-testid="full-procedure-body"><EditorContent editor={editor} />{!editor && <p>Loading complete procedure…</p>}</div>
         {Object.keys(extra).length > 0 && <section className={styles.additional}><h3>Additional stored information</h3><pre>{JSON.stringify(extra, null, 2)}</pre></section>}
-        <footer className={styles.footer}>Version {record.version} · Updated {new Date(record.updated_at).toLocaleDateString("en-US")} · Platform procedure template</footer>
+        <footer className={styles.footer}>Version {record.version} · Updated {new Date(record.updated_at).toLocaleDateString("en-US", { timeZone: "UTC" })} (UTC) · Platform procedure template</footer>
       </article>
     </div>
   </div>;

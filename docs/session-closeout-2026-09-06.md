@@ -26,3 +26,5 @@ The following remain intentionally unchanged for compatibility or historical acc
 - Supabase project display name `Refyntra`, ref `cqwcagnrgxokbrswhbfj`. This is the existing healthy RunFloor backend; no project rename, auth setting change, storage change or environment mutation was performed.
 
 The production Vercel project is `prj_HKCNaB2PwcqQdzMRQiAlbyPiqjz6`, linked to `dnunziante/runfloor`, production branch `main`. Production environment names include the expected Supabase URL, publishable key and server-only service key. Deployment status and the final commit are reported in the session closeout message after release.
+
+Production full-page verification caught a server/browser timezone mismatch in the new document footer. The follow-up fix formats that date explicitly in UTC, avoiding hydration errors. All validation checks were repeated for the correction.
