@@ -2,7 +2,9 @@
 
 import {
   AlertTriangle,
-  BookOpenCheck,
+  BookOpen,
+  ArrowLeft,
+  FolderOpen,
   CheckCircle2,
   ChevronDown,
   ChevronUp,
@@ -12,8 +14,13 @@ import {
   Plus,
   Search,
   Trash2,
-  X,
+
 } from "lucide-react";
+import Link from "next/link";
+import { ProcedureCategoryCard, ProcedureValueBanner, procedureCategoryStyle } from "./procedure-library-visuals";
+import { ProcedureOverlay } from "./procedure-overlay";
+import library from "./platform-procedure-template-library.module.css";
+import layout from "./procedure-workspace.module.css";
 import { useMemo, useState } from "react";
 import {
   deleteOperationsProcedure,
@@ -51,6 +58,12 @@ export function OperationsProcedureManager({
   const [selectedCategory, setSelectedCategory] = useState<string | null>(null);
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [editingId, setEditingId] = useState<string | null>(null);
+  const [panelOpen, setPanelOpen] = useState(false);
+  const [managingCategories, setManagingCategories] = useState(false);
+  const [saving, setSaving] = useState(false);
+  const [categoryEditor, setCategoryEditor] = useState<OperationsProcedureCategory | "new" | null>(null);
+  const [categoryName, setCategoryName] = useState("");
+  const [deleting, setDeleting] = useState<OperationsProcedureCategory | "procedure" | null>(null);
   const [search, setSearch] = useState("");
   const [error, setError] = useState(initialError);
   const [message, setMessage] = useState("");
@@ -82,14 +95,15 @@ export function OperationsProcedureManager({
     () =>
       procedures.filter(
         (item) =>
-          item.categoryId === selectedCategory &&
-          `${item.title} ${item.summary} ${item.owner}`
+          (!selectedCategory || item.categoryId === selectedCategory) &&
+          `${item.title} ${item.category} ${item.summary} ${item.owner}`
             .toLowerCase()
             .includes(search.toLowerCase()),
       ),
     [procedures, selectedCategory, search],
   );
   const clear = () => {
+    setSelectedId(null); setReadingId(null); setError("");
     setEditingId(null);
     setTitle("");
     setCategoryId(selectedCategory ?? categories[0]?.id ?? "");
@@ -99,13 +113,14 @@ export function OperationsProcedureManager({
     setStatus("Draft");
   };
   const edit = (item: OperationsProcedureRecord) => {
+    setPanelOpen(true); setReadingId(null); setError("");
     setSelectedId(item.id);
     setEditingId(item.id);
     setTitle(item.title);
     setCategoryId(item.categoryId);
     setOwner(item.owner);
     setSummary(item.summary);
-    setSteps(item.steps.join("\n"));
+    setSteps(item.steps.join("\n\n"));
     setRichDocument(item.content?.runfloorDocument ? procedureDocument({ steps: item.steps, content: item.content }) : null);
     setStatus(item.status);
   };
@@ -128,6 +143,7 @@ export function OperationsProcedureManager({
       );
     const old = procedures.find((item) => item.id === editingId);
     let record: OperationsProcedureRecord = {
+      ...old,
       id: old?.id ?? `new-${crypto.randomUUID()}`,
       title: title.trim(),
       categoryId: category.id,
@@ -154,16 +170,17 @@ export function OperationsProcedureManager({
     setEditingId(record.id);
     setError("");
     setMessage("Procedure saved.");
+    setPanelOpen(false); setReadingId(record.id);
   }
   async function removeProcedure() {
-    if (!selected || !confirm(`Delete “${selected.title}”?`)) return;
+    if (!selected) return;
     if (persistence === "supabase") {
       const result = await deleteOperationsProcedure(selected.id);
       if (result.error) return setError(result.error);
     }
     setProcedures((items) => items.filter((item) => item.id !== selected.id));
     setSelectedId(null);
-    clear();
+    clear(); setPanelOpen(false);
     setMessage("Procedure deleted.");
   }
   async function moveProcedure(id: string, direction: -1 | 1) {
@@ -175,10 +192,7 @@ export function OperationsProcedureManager({
     const order = new Map(ids.map((item, position) => [item, position])); setProcedures((items) => [...items].sort((left, right) => left.categoryId === selectedCategory && right.categoryId === selectedCategory ? (order.get(left.id) ?? 0) - (order.get(right.id) ?? 0) : 0)); setMessage("Procedure order saved.");
   }
   async function changeCategory(item?: OperationsProcedureCategory) {
-    const name = prompt(
-      item ? "Rename category" : "New category name",
-      item?.name ?? "",
-    );
+    const name = categoryName;
     if (!name?.trim()) return;
     if (persistence === "supabase") {
       const result = await saveOperationsProcedureCategory({
@@ -225,6 +239,8 @@ export function OperationsProcedureManager({
           : items,
       );
     }
+    if (item) setProcedures(entries => entries.map(entry => entry.categoryId === item.id ? { ...entry, category: name.trim() } : entry));
+    setCategoryEditor(null); setError("");
     setMessage(item ? "Category renamed." : "Category created.");
   }
   async function removeCategory(item: OperationsProcedureCategory) {
@@ -232,7 +248,7 @@ export function OperationsProcedureManager({
       return setError(
         "Move the procedures in this category before deleting it.",
       );
-    if (!confirm(`Delete “${item.name}”?`)) return;
+
     if (persistence === "supabase") {
       const result = await deleteOperationsProcedureCategory(item.id);
       if (result.error) return setError(result.error);
@@ -263,15 +279,15 @@ export function OperationsProcedureManager({
             >
               <FileEdit size={16} /> Edit
             </button>
-            <button className="btn btn-danger" onClick={removeProcedure}>
+            <button className="btn btn-danger" onClick={() => setDeleting("procedure")}>
               <Trash2 size={16} /> Delete
             </button>
           </div>
         )}
       </>
     ) : canManage ? (
-      <form className="form-stack" onSubmit={save}>
-        <h2>{editingId ? "Edit procedure" : "Create procedure"}</h2>
+      <form className="form-stack" onSubmit={async event => { if (saving) { event.preventDefault(); return; } setSaving(true); try { await save(event); } catch { setError("Could not save the procedure. Your edits are still here."); } finally { setSaving(false); } }}>
+        <fieldset disabled={saving} style={{ border: 0, padding: 0, margin: 0, display: "grid", gap: 22 }}>
         <label>
           <span className="label">Procedure title</span>
           <input
@@ -326,7 +342,7 @@ export function OperationsProcedureManager({
             onChange={(e) => setSteps(e.target.value)}
             required
           />
-          <small className="field-help">One step per line.</small>
+          <small className="field-help">Separate steps with a blank line. Existing formatting is preserved.</small>
         </label>)}
         <label>
           <span className="label">Publishing status</span>
@@ -341,10 +357,11 @@ export function OperationsProcedureManager({
             <option>Published</option>
           </select>
         </label>
-        <button className="btn btn-primary">
+        <div className={layout.formActions}><button type="button" className="btn btn-secondary" onClick={() => setPanelOpen(false)}>Cancel</button>
+        <button className="btn btn-primary" disabled={saving}>
           <CheckCircle2 size={16} />{" "}
-          {editingId ? "Save next version" : "Create procedure"}
-        </button>
+          {saving ? "Saving…" : editingId ? "Save next version" : "Create procedure"}
+        </button>{editingId && <button type="button" className="btn btn-danger" onClick={() => setDeleting("procedure")}>Delete procedure</button>}</div></fieldset>
       </form>
     ) : (
       <>
@@ -352,161 +369,22 @@ export function OperationsProcedureManager({
         <h2>Select a procedure</h2>
       </>
     );
-  return (
-    <div className="operations-procedure-workspace">
-      <section>
-        <div className="operations-procedure-toolbar">
-          <label>
-            <span className="label">Search procedures</span>
-            <span className="operations-search-input">
-              <Search size={16} />
-              <input
-                className="input"
-                value={search}
-                onChange={(e) => setSearch(e.target.value)}
-                placeholder="Search procedures"
-              />
-            </span>
-          </label>
-          {canManage && (
-            <button className="btn btn-primary" onClick={clear}>
-              <Plus size={16} /> New procedure
-            </button>
-          )}
-        </div>
-        {error && (
-          <p className="form-error operations-procedure-error">
-            <AlertTriangle size={14} />
-            {error}
-          </p>
-        )}
-        {message && <p className="form-success">{message}</p>}
-        <div className="section-heading">
-          <div>
-            <h2>Procedure Templates</h2>
-            <p>Choose a category, then an individual procedure.</p>
-          </div>
-          {canManage && (
-            <button
-              className="btn btn-secondary"
-              onClick={() => changeCategory()}
-            >
-              <Plus size={16} /> Add category
-            </button>
-          )}
-        </div>
-        <div className="operations-category-list">
-          {orderedCategories.map((item) => {
-            const count = procedures.filter(
-              (procedure) => procedure.categoryId === item.id,
-            ).length;
-            return (
-              <div
-                className={`card operations-category-card ${selectedCategory === item.id ? "selected" : ""}`}
-                key={item.id}
-              >
-                <button
-                  onClick={() => {
-                    setSelectedCategory(item.id);
-                    setSelectedId(null);
-                    clear();
-                  }}
-                >
-                  <strong>{item.name}</strong>
-                  <span>{count} procedures</span>
-                </button>
-                {canManage && !item.isDefault && (
-                  <span>
-                    <button
-                      aria-label={`Rename ${item.name}`}
-                      className="icon-button"
-                      onClick={() => changeCategory(item)}
-                    >
-                      <Pencil size={14} />
-                    </button>
-                    <button
-                      aria-label={`Delete ${item.name}`}
-                      className="icon-button"
-                      onClick={() => removeCategory(item)}
-                    >
-                      <Trash2 size={14} />
-                    </button>
-                  </span>
-                )}
-              </div>
-            );
-          })}
-        </div>
-        {category && (
-          <div className="section-heading operations-list-heading">
-            <div>
-              <h2>{category.name}</h2>
-              <p>{filtered.length} procedures</p>
-            </div>
-            <button
-              className="text-button"
-              onClick={() => setSelectedCategory(null)}
-            >
-              All categories
-            </button>
-          </div>
-        )}
-        {selectedCategory &&
-          (filtered.length ? (
-            <div className="operations-procedure-cards">
-              {filtered.map((item, index) => (
-                <div className={`card operations-procedure-card ${selectedId === item.id ? "selected" : ""}`} key={item.id}>
-                  <button onClick={() => { setSelectedId(item.id); setEditingId(null); }}>
-                    <BookOpenCheck size={18} />
-                    <h2>{item.title}</h2>
-                    <p>{item.summary}</p>
-                    <div className="operations-procedure-card-meta">
-                      <span>{item.category}</span>
-                      <span>{item.owner}</span>
-                    </div>
-                  </button>
-                  <div className="button-row">
-                    <button className="btn btn-secondary" onClick={() => setReadingId(item.id)}>
-                      <Eye size={16} /> Open full procedure
-                    </button>
-                    {canManage && <>
-                      <button className="icon-button" aria-label={`Move ${item.title} up`} disabled={index === 0} onClick={() => moveProcedure(item.id, -1)}><ChevronUp size={16}/></button>
-                      <button className="icon-button" aria-label={`Move ${item.title} down`} disabled={index === filtered.length - 1} onClick={() => moveProcedure(item.id, 1)}><ChevronDown size={16}/></button>
-                    </>}
-                  </div>
-                </div>
-              ))}
-            </div>
-          ) : (
-            <div className="card output empty">
-              <h2>No procedures in this category</h2>
-              <p>Create one or move an existing procedure here.</p>
-            </div>
-          ))}
-      </section>
-      <aside className="card operations-procedure-editor">{editor}</aside>
-      {reading && (
-        <div aria-label={`Full procedure: ${reading.title}`} aria-modal="true" className="credential-modal procedure-reading-modal" role="dialog">
-          <button aria-label="Close procedure" className="credential-modal-backdrop" onClick={() => setReadingId(null)} type="button" />
-          <article className="credential-modal-panel procedure-reading-panel">
-            <div className="procedure-reading-heading">
-              <div>
-                <p className="eyebrow">{reading.category}</p>
-                <h2>{reading.title}</h2>
-                <p>Owner: {reading.owner}</p>
-              </div>
-              <button aria-label="Close procedure" className="credential-close" onClick={() => setReadingId(null)} type="button"><X size={20} /></button>
-            </div>
-            <div className="procedure-reading-content">
-              {reading.summary && <section><h3>Purpose and scope</h3><ProcedureContent content={reading.summary} /></section>}
-              <section>
-                <h3>Procedure steps</h3>
-                {reading.content?.runfloorDocument ? <ProcedureRichBody key={`full-${reading.id}-${reading.version}`} document={procedureDocument({ steps: reading.steps, content: reading.content })} /> : reading.steps.map((step, index) => <div className="procedure-reading-step" key={index}><strong>{index + 1}</strong><ProcedureContent content={step} /></div>)}
-              </section>
-            </div>
-          </article>
-        </div>
-      )}
-    </div>
-  );
+  function openProcedure(item: OperationsProcedureRecord) { setSelectedId(item.id); setReadingId(item.id); setEditingId(null); }
+  function newProcedure() { clear(); setPanelOpen(true); }
+  return <section className={`${library.library} ${layout.workspace}`} aria-label="Organization procedure library">
+    <header className={library.header}><div className={library.heading}><span className={library.book}><BookOpen size={27} /></span><div><h1>Procedure Templates</h1><p>Standardize operations. Train faster. Deliver a better experience.</p></div></div><div className={library.tools}><label className={library.search}><Search size={18} /><input aria-label="Search procedures" placeholder="Search procedures…" value={search} onChange={event => { setSearch(event.target.value); setSelectedCategory(null); }} /></label>{canManage && <button className="btn btn-primary" onClick={newProcedure}><Plus size={17} /> New Procedure</button>}</div></header>
+    <ProcedureValueBanner />
+    <div className={layout.secondary}><Link className="btn btn-ghost" href="/operations"><ArrowLeft size={15} /> Operations dashboard</Link>{canManage && <div className="button-row"><button className="btn btn-ghost" onClick={() => { setCategoryName(""); setCategoryEditor("new"); setError(""); }}><Plus size={16} /> Add Category</button><button className="btn btn-ghost" aria-pressed={managingCategories} onClick={() => setManagingCategories(!managingCategories)}>{managingCategories ? "Done managing" : "Manage Categories"}</button></div>}</div>
+    {persistence === "demo" && <p className="callout">Demo procedures are separate from organization records.</p>}
+    {!panelOpen && error && <p role="alert" className="form-error"><AlertTriangle size={14} /> {error}</p>}
+    {message && <p role="status" className="form-success">{message}</p>}
+    {!selectedCategory && !search.trim() && <div className={library.categories} aria-label="Procedure categories">{orderedCategories.map(item => <div className={layout.categoryGroup} key={item.id}><ProcedureCategoryCard name={item.name} count={procedures.filter(procedure => procedure.categoryId === item.id).length} noun="procedures" selected={false} onClick={() => { setSelectedCategory(item.id); setSelectedId(null); }} />{canManage && managingCategories && <div className={layout.categoryActions}>{item.isDefault ? <small>Default category</small> : <><button className="btn btn-ghost" aria-label={`Rename ${item.name}`} onClick={() => { setCategoryName(item.name); setCategoryEditor(item); setError(""); }}><Pencil size={14}/> Rename</button><button className="btn btn-ghost" aria-label={`Delete ${item.name}`} onClick={() => setDeleting(item)}><Trash2 size={14}/> Delete</button></>}</div>}</div>)}</div>}
+    {(selectedCategory || search.trim()) && <div className={library.results}><div className={library.panelHeading}><div><button className="btn btn-ghost" onClick={() => { setSelectedCategory(null); setSearch(""); }}><ArrowLeft size={16}/> All categories</button><h2>{category?.name ?? "Search results"}</h2><p>{category ? procedureCategoryStyle(category.name).description : `Matching “${search}” across your organization's procedures`}</p><p role="status">{filtered.length} {filtered.length === 1 ? "procedure" : "procedures"}</p></div>{canManage && <button className="btn btn-secondary" onClick={newProcedure}><Plus size={16}/> New Procedure</button>}</div>
+      {filtered.length ? <div className={library.templates}>{filtered.map((item,index) => <article className={library.template} key={item.id}><div className={library.metadata}><span>{item.category}</span><span>{item.status} · v{item.version}</span></div><button className={layout.cardOpen} onClick={() => openProcedure(item)}><strong>{item.title}</strong><p>{item.summary}</p></button><div className={library.metadata}>{item.owner}</div><div className={layout.cardActions}><button className="btn btn-secondary" onClick={() => openProcedure(item)}><Eye size={16}/> Open procedure</button>{canManage && <><button className="btn btn-ghost" aria-label={`Edit ${item.title}`} onClick={() => edit(item)}><FileEdit size={16}/></button>{selectedCategory && !search && <><button className="icon-button" aria-label={`Move ${item.title} up`} disabled={index === 0} onClick={() => moveProcedure(item.id,-1)}><ChevronUp size={16}/></button><button className="icon-button" aria-label={`Move ${item.title} down`} disabled={index === filtered.length-1} onClick={() => moveProcedure(item.id,1)}><ChevronDown size={16}/></button></>}</>}</div></article>)}</div> : <div className={library.empty}><FolderOpen size={30}/><h3>{search ? "No matching procedures" : "Ready for your first procedure"}</h3><p>{search ? "Try another title, category, owner, or keyword." : `Build your team's playbook with a ${category?.name} procedure.`}</p>{canManage && <button className="btn btn-primary" onClick={newProcedure}><Plus size={16}/> New Procedure</button>}</div>}
+    </div>}
+    {panelOpen && canManage && <ProcedureOverlay title={editingId ? "Edit procedure" : "Create procedure"} drawer onClose={() => { if (!saving) setPanelOpen(false); }}><div>{error && <p role="alert" className="form-error">{error}</p>}{editor}</div></ProcedureOverlay>}
+    {reading && !panelOpen && <ProcedureOverlay title={reading.title} onClose={() => setReadingId(null)}><div className={layout.reader}>{error && <p role="alert" className="form-error">{error}</p>}<div className={layout.readerMeta}><span>{reading.category}</span><span>Owner: {reading.owner}</span><span>{reading.status} · Version {reading.version}</span></div>{canManage && <div className="button-row"><button className="btn btn-primary" onClick={() => edit(reading)}><FileEdit size={16}/> Edit procedure</button><button className="btn btn-ghost" onClick={() => setDeleting("procedure")}><Trash2 size={16}/> Delete procedure</button></div>}<h3>Purpose and scope</h3><ProcedureContent content={reading.summary}/><h3>Procedure</h3>{reading.content?.runfloorDocument ? <ProcedureRichBody key={`full-${reading.id}-${reading.version}`} document={procedureDocument({steps:reading.steps,content:reading.content})}/> : reading.steps.length ? reading.steps.map((step,index) => <div className="procedure-reading-step" key={index}><strong>{index+1}</strong><ProcedureContent content={step}/></div>) : <p>No procedure steps have been added yet.</p>}</div></ProcedureOverlay>}
+    {categoryEditor && <ProcedureOverlay title={categoryEditor === "new" ? "Add category" : "Rename category"} onClose={() => setCategoryEditor(null)}><form className="form-stack" onSubmit={async event => { event.preventDefault(); setSaving(true); try { await changeCategory(categoryEditor === "new" ? undefined : categoryEditor); } catch { setError("Could not save the category. Please try again."); } finally { setSaving(false); } }}><label><span className="label">Category name</span><input className="input" value={categoryName} onChange={event => setCategoryName(event.target.value)} minLength={2} maxLength={80} required disabled={saving}/></label>{error && <p role="alert" className="form-error">{error}</p>}<div className={layout.formActions}><button type="button" className="btn btn-secondary" disabled={saving} onClick={() => setCategoryEditor(null)}>Cancel</button><button className="btn btn-primary" disabled={saving}>{saving ? "Saving…" : "Save category"}</button></div></form></ProcedureOverlay>}
+    {deleting && <ProcedureOverlay title="Confirm deletion" onClose={() => setDeleting(null)}><p>Delete “{deleting === "procedure" ? selected?.title : deleting.name}”?</p><div className={layout.formActions}><button className="btn btn-secondary" disabled={saving} onClick={() => setDeleting(null)}>Cancel</button><button className="btn btn-danger" disabled={saving} onClick={async () => { setSaving(true); try { if (deleting === "procedure") await removeProcedure(); else await removeCategory(deleting); } catch { setError("Could not delete this item. Please try again."); } finally { setSaving(false); setDeleting(null); } }}>Delete</button></div></ProcedureOverlay>}
+  </section>;
 }

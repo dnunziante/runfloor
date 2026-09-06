@@ -1,24 +1,12 @@
 "use client";
 
 import Link from "next/link";
-import { useRef, useState, type CSSProperties, type ReactNode } from "react";
-import { ArrowRight, BarChart3, BookOpen, Box, Crown, FilePlus2, FileText, FolderOpen, Heart, MoreHorizontal, Plus, Search, Settings, Truck, Trophy, Users, Wrench, X, Zap } from "lucide-react";
+import { useRef, useState, type ReactNode } from "react";
+import { ArrowRight, BookOpen, FilePlus2, FolderOpen, Plus, Search, X } from "lucide-react";
+import { procedureCategoryStyles as categories, ProcedureCategoryCard, ProcedureValueBanner } from "./procedure-library-visuals";
 import { copyPlatformProcedureTemplate } from "@/app/admin/platform/actions";
 import styles from "./platform-procedure-template-library.module.css";
 
-const categories = [
-  { name: "Sales Procedures", description: "From first contact to close.", icon: BarChart3, color: "#d83e48", tint: "#fff3f4" },
-  { name: "Delivery & Post-Sale", description: "Ensure a smooth handoff and lasting relationships.", icon: Truck, color: "#4b9339", tint: "#f1f9ed" },
-  { name: "Inventory", description: "Manage stock, intake, and inventory processes.", icon: Box, color: "#2682d9", tint: "#eff7ff" },
-  { name: "Service", description: "Keep customers on the road and coming back.", icon: Wrench, color: "#d77a1e", tint: "#fff7ee" },
-  { name: "Parts", description: "Ordering, receiving, and parts management.", icon: Settings, color: "#8a5bcc", tint: "#f7f2ff" },
-  { name: "CRM & Lead Management", description: "Capture, follow up, and convert more leads.", icon: Users, color: "#008c82", tint: "#edf9f7" },
-  { name: "Customer Experience", description: "Create raving fans at every touchpoint.", icon: Heart, color: "#cf5276", tint: "#fff1f6" },
-  { name: "Management", description: "Lead effectively and drive results.", icon: Crown, color: "#a77b16", tint: "#fffae9" },
-  { name: "Employee & Administrative", description: "HR, onboarding, and day-to-day operations.", icon: Users, color: "#4262d2", tint: "#f0f3ff" },
-  { name: "Other", description: "Additional templates and resources.", icon: MoreHorizontal, color: "#64748b", tint: "#f3f5f8" },
-  { name: "Uncategorized", description: "A home for templates awaiting a category.", icon: FolderOpen, color: "#78716c", tint: "#f7f5f2" },
-];
 type Template = { id: string; title: string; category: string; owner: string; summary: string; version: number };
 
 export function PlatformProcedureTemplateLibrary({ templates, tenants, children, initialCategory = null, initialQuery = "" }: { templates: Template[]; tenants: Array<{ id: string; name: string }>; children: ReactNode; initialCategory?: string | null; initialQuery?: string }) {
@@ -79,13 +67,10 @@ export function PlatformProcedureTemplateLibrary({ templates, tenants, children,
       <div className={styles.heading}><span className={styles.book}><BookOpen size={27} aria-hidden="true" /></span><div><span className={styles.eyebrow}>RUNFLOOR PLAYBOOK</span><h2 id="procedure-library-heading">Procedure Templates</h2><p>Standardize operations. Train faster. Deliver a better experience.</p></div></div>
       <div className={styles.tools}><label className={styles.search}><Search size={18} aria-hidden="true" /><input aria-label="Search templates" placeholder="Search templates…" value={query} disabled={saving} onChange={event => { setQuery(event.target.value); setCategory(null); clearSelection(); }} />{query && <button type="button" aria-label="Clear template search" disabled={saving} onClick={() => { setQuery(""); clearSelection(); }}><X size={16} /></button>}</label><button type="button" className="btn btn-primary" onClick={addTemplate}><Plus size={17} /> Add Template</button></div>
     </header>
-    <div className={styles.banner}><Trophy className={styles.trophy} size={29} aria-hidden="true" /><div className={styles.bannerCopy}><h3>Turn Knowledge Into Consistency</h3><p>Use these procedure templates to train your team, standardize operations, and deliver an exceptional customer experience.</p></div><div className={styles.values}>{[{ icon: Users, title: "Organized", text: "Find what you need fast" }, { icon: Zap, title: "Customizable", text: "Make it your own" }, { icon: BarChart3, title: "Built for Growth", text: "Stronger teams. Better results." }].map(({ icon: Icon, title, text }) => <div key={title}><Icon size={20} aria-hidden="true" /><span><strong>{title}</strong><small>{text}</small></span></div>)}</div></div>
+    <ProcedureValueBanner templates />
     <div ref={creator} hidden={!creating} className={styles.creator} id="platform-template-create"><div className={styles.panelHeading}><h3>Create a procedure template</h3><button type="button" className="btn btn-ghost" onClick={() => setCreating(false)}><X size={16} /> Close</button></div>{children}</div>
     <div className={styles.categories} aria-label="Procedure template categories">
-      {availableCategories.map(({ name, description, icon: Icon, color, tint }) => {
-        const count = templates.filter(template => template.category === name).length;
-        return <button type="button" key={name} className={styles.category} style={{ "--accent": color, "--tint": tint } as CSSProperties} aria-expanded={category === name} aria-controls="procedure-template-results" disabled={saving} onClick={() => { setCategory(category === name ? null : name); setQuery(""); clearSelection(); }}><span className={styles.categoryIcon}><Icon size={24} aria-hidden="true" /></span><span className={styles.categoryCopy}><strong>{name}</strong><span>{description}</span></span><span className={styles.categoryFooter}><span><FileText size={13} aria-hidden="true" />{count ? `${count} template${count === 1 ? "" : "s"}` : "Ready for your first template"}</span><ArrowRight size={17} aria-hidden="true" /></span></button>;
-      })}
+      {availableCategories.map(({ name }) => <ProcedureCategoryCard key={name} name={name} count={templates.filter(template => template.category === name).length} selected={category === name} disabled={saving} onClick={() => { setCategory(category === name ? null : name); setQuery(""); clearSelection(); }} />)}
     </div>
     <div id="procedure-template-results" hidden={!category && !search} className={styles.results}>
       <div className={styles.panelHeading}><div><h3>{search ? "Search results" : category}</h3><p role="status">{visible.length} {visible.length === 1 ? "template" : "templates"}{search ? ` matching “${query.trim()}”` : " in this category"}</p></div><button type="button" className="btn btn-secondary" onClick={addTemplate}><Plus size={16} /> Add Template</button></div>

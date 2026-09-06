@@ -1,0 +1,30 @@
+.workspace { margin-top: 12px; }
+.workspace h1 { font-size:clamp(26px,2.5vw,36px); font-weight:750; letter-spacing:-.035em; line-height:1.2; margin:0 0 7px; }
+.secondary { display:flex; align-items:center; justify-content:space-between; gap:12px; flex-wrap:wrap; margin:18px 0; }
+.secondary p { color:var(--muted); font-size:13px; }
+.categoryGroup { min-width:0; display:grid; }
+.categoryGroup > button { height:100%; }
+.categoryActions { display:flex; justify-content:flex-end; gap:8px; padding:8px 4px; }
+.categoryActions small { margin-right:auto; color:var(--muted); font-size:11px; }
+.cardOpen { text-align:left; display:grid; gap:10px; border:0; background:transparent; padding:0; color:inherit; cursor:pointer; }
+.cardOpen strong { font-size:16px; }
+.cardActions { display:flex; align-items:center; gap:8px; flex-wrap:wrap; margin-top:auto; }
+.overlay { border:0; padding:0; color:var(--ink); background:transparent; width:min(940px,calc(100vw - 48px)); max-width:none; max-height:calc(100dvh - 48px); margin:auto; overflow:visible; }
+.overlay::backdrop { background:#14203380; backdrop-filter:blur(3px); }
+.overlayInner { border-radius:20px; background:var(--card,#fff); overflow:auto; max-height:calc(100dvh - 48px); box-shadow:0 24px 90px #14203340; }
+.drawer { width:min(900px,94vw); height:100dvh; max-height:100dvh; margin:0 0 0 auto; }
+.drawer .overlayInner { min-height:100dvh; max-height:100dvh; border-radius:20px 0 0 20px; }
+.overlayHeader { position:sticky; top:0; z-index:5; background:#fff; border-bottom:1px solid var(--line); padding:22px 28px; display:flex; justify-content:space-between; align-items:center; gap:14px; }
+.overlayHeader h2 { font-size:24px; margin:5px 0 0; }
+.eyebrow { color:#a8401a; font-size:10px; font-weight:700; letter-spacing:.17em; }
+.overlayBody { padding:28px; overflow-wrap:anywhere; }
+.overlayBody :global(.form-stack) > h2 { display:none; }
+.overlayBody :global(.input) { max-width:100%; min-width:0; }
+.overlayBody textarea { white-space:pre-wrap; min-height:120px; }
+.overlayBody :global(.form-stack) { gap:22px; }
+.reader { font-size:15px; line-height:1.75; }
+.reader h3 { font-size:19px; margin:24px 0 12px; }
+.readerMeta { display:flex; gap:10px; flex-wrap:wrap; color:var(--muted); font-size:12px; margin-bottom:20px; }
+.readerMeta span { background:#f5f6f8; border-radius:6px; padding:5px 9px; }
+.formActions { display:flex; gap:12px; flex-wrap:wrap; padding-top:18px; border-top:1px solid var(--line); }
+@media(max-width:600px) { .overlay,.drawer { width:100%; height:100dvh; max-height:100dvh; margin:0; } .overlayInner,.drawer .overlayInner { min-height:100dvh; max-height:100dvh; border-radius:0; } .overlayHeader,.overlayBody { padding:18px; } .overlayBody :global(.grid-2) { grid-template-columns:1fr; } .overlayHeader h2 { font-size:21px; } }
