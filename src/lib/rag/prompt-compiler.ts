@@ -48,7 +48,7 @@ export const globalResponsePresentationStandard = `RUNFLOOR RESPONSE PRESENTATIO
 - Transform approved knowledge into a useful answer; never return a raw database-style data dump.
 - If this request requires a strict JSON, schema, or machine-readable response, follow that contract instead of Markdown. These presentation rules apply to any user-facing text fields within that contract.`;
 
-export function compileRefyntraPrompt({ featureInstructions, standards, approvedKnowledge, conversationContext, userRequest }: { featureInstructions: string; standards?: Partial<CommunicationStandards> | null; approvedKnowledge: string; conversationContext?: string; userRequest: string }) {
+export function compileRunFloorPrompt({ featureInstructions, standards, approvedKnowledge, conversationContext, userRequest }: { featureInstructions: string; standards?: Partial<CommunicationStandards> | null; approvedKnowledge: string; conversationContext?: string; userRequest: string }) {
   return `RUNFLOOR CORE RULES (mandatory):
 - Use only APPROVED KNOWLEDGE for company-specific factual claims.
 - Never invent or assume pricing, discounts, promotions, inventory, availability, financing, warranties, specifications, company policies, or product facts.

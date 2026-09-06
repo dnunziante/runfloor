@@ -1,5 +1,6 @@
 "use server";
 
+import { procedureDocument } from "@/lib/procedures/document";
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { getViewer } from "@/lib/auth/viewer";
@@ -521,7 +522,7 @@ export async function copyPlatformProcedureTemplate(formData: FormData) {
   const supabase = createAdminClient();
   const { data: tenant, error: tenantError } = await supabase.from("organizations").select("id,name").eq("id", organizationId).eq("status", "active").maybeSingle();
   if (tenantError || !tenant) throw new Error("This tenant is not available.");
-  const { data: template, error } = await supabase.from("platform_procedure_templates").select("id,title,category,owner,summary,content,version").eq("id", templateId).eq("is_published", true).single();
+  const { data: template, error } = await supabase.from("platform_procedure_templates").select("id,title,category,owner,summary,steps,content,version").eq("id", templateId).eq("is_published", true).single();
   if (error || !template) throw new Error("The procedure template is unavailable.");
 
   const { count, error: existsError } = await supabase.from("operations_procedures").select("id", { head: true, count: "exact" }).eq("organization_id", organizationId).eq("platform_template_id", template.id);
@@ -531,7 +532,7 @@ export async function copyPlatformProcedureTemplate(formData: FormData) {
   const { data: category } = await supabase.from("operations_procedure_categories").select("id,name").eq("organization_id", organizationId).eq("name", template.category).maybeSingle();
   const fallback = category || (await supabase.from("operations_procedure_categories").select("id,name").eq("organization_id", organizationId).eq("name", "Uncategorized").maybeSingle()).data;
   if (!fallback) throw new Error(`${tenant.name} has no procedure categories.`);
-  const { error: insertError } = await supabase.from("operations_procedures").insert({ organization_id: organizationId, title: template.title, category_id: fallback.id, category: fallback.name, owner: template.owner, summary: template.summary, status: "draft", version: 1, content: template.content, source_type: "manual", platform_template_id: template.id, platform_template_version: template.version, created_by: viewer.id });
+  const { error: insertError } = await supabase.from("operations_procedures").insert({ organization_id: organizationId, title: template.title, category_id: fallback.id, category: fallback.name, owner: template.owner, summary: template.summary, status: "draft", version: 1, content: { ...template.content, runfloorDocument: { format: "tiptap-v1", document: procedureDocument(template) } }, source_type: "manual", platform_template_id: template.id, platform_template_version: template.version, created_by: viewer.id });
   if (insertError) throw new Error(insertError.message);
   revalidatePath("/admin/platform");
   return { copied: true, tenantName: tenant.name };

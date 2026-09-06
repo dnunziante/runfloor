@@ -1,5 +1,7 @@
 "use server";
 
+import { validateDocument } from "@/lib/procedures/validation";
+import { procedureDocument } from "@/lib/procedures/document";
 import { revalidatePath } from "next/cache";
 import { getViewer } from "@/lib/auth/viewer";
 import { canManageOperations } from "@/lib/auth/permissions";
@@ -42,6 +44,9 @@ export async function toggleOperationsChecklistStep(checklistId: string, stepId:
 }
 
 export async function saveOperationsProcedure(input: OperationsProcedureRecord) {
+  if (input.content?.runfloorDocument) {
+    try { validateDocument(procedureDocument({ steps: input.steps, content: input.content })); } catch { return { error: "Unsupported procedure formatting. No changes were saved." }; }
+  }
   const ctx = await managerContext(); if (!ctx) return { error: "Manager access is required to manage procedures." };
   if (input.title.trim().length < 2 || input.owner.trim().length < 2 || input.summary.trim().length < 10 || !input.steps.length) return { error: "Complete the procedure details and steps." };
   const existing = !input.id.startsWith("new-");
@@ -51,9 +56,14 @@ export async function saveOperationsProcedure(input: OperationsProcedureRecord) 
   const structuredValues = input.content === undefined ? {} : { content: input.content, source_type: input.sourceType ?? "manual" };
   const query = existing ? ctx.supabase.from("operations_procedures").update({ ...baseValues, ...structuredValues }).eq("id", input.id).eq("organization_id", ctx.viewer.organizationId) : ctx.supabase.from("operations_procedures").insert({ organization_id: ctx.viewer.organizationId, ...baseValues, content: input.content ?? {}, source_type: input.sourceType ?? "manual", created_by: ctx.viewer.id });
   const { data, error } = await query.select("id,title,category_id,category,owner,summary,status,version,updated_at").single(); if (error || !data) return { error: error?.message ?? "Procedure could not be saved." };
-  if (existing) await ctx.supabase.from("operations_procedure_steps").delete().eq("procedure_id", data.id).eq("organization_id", ctx.viewer.organizationId);
-  const { error: stepError } = await ctx.supabase.from("operations_procedure_steps").insert(input.steps.map((title, position) => ({ organization_id: ctx.viewer.organizationId, procedure_id: data.id, title, position })));
-  if (stepError) return { error: stepError.message }; refreshOperations(); return { record: { ...input, id: data.id, categoryId: data.category_id, category: data.category, version: data.version, updatedAt: data.updated_at } };
+  // Rich documents are saved atomically on the procedure row. Preserve the
+  // legacy step records; their short-title constraint cannot hold a full SOP.
+  if (!input.content?.runfloorDocument) {
+    if (existing) await ctx.supabase.from("operations_procedure_steps").delete().eq("procedure_id", data.id).eq("organization_id", ctx.viewer.organizationId);
+    const { error: stepError } = await ctx.supabase.from("operations_procedure_steps").insert(input.steps.map((title, position) => ({ organization_id: ctx.viewer.organizationId, procedure_id: data.id, title, position })));
+    if (stepError) return { error: stepError.message };
+  }
+  refreshOperations(); return { record: { ...input, id: data.id, categoryId: data.category_id, category: data.category, version: data.version, updatedAt: data.updated_at } };
 }
 
 export async function extractImportedOperationsProcedure(formData: FormData) {

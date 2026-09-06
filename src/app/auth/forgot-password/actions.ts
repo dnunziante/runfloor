@@ -21,7 +21,12 @@ export async function requestPasswordRecovery(
   const redirectTo = host && !isLocalHost ? `${protocol}://${host}/auth/callback?next=/auth/reset-password` : undefined;
   const supabase = await createClient();
   const { error } = await supabase.auth.resetPasswordForEmail(email, { redirectTo });
-  if (error) return { error: "We could not send the reset email. Please try again.", success: "" };
+  if (error) {
+    console.error("Password reset email request failed", { code: error.code, message: error.message });
+    if (error.code === "over_email_send_rate_limit") return { error: "Too many reset emails were requested. Please wait a few minutes, then try again.", success: "" };
+    if (/redirect|url/i.test(error.message)) return { error: "Password reset is not configured for this site address yet. Please contact your administrator.", success: "" };
+    return { error: "We could not send the reset email. Please try again.", success: "" };
+  }
 
   return { error: "", success: "If that email has an account, a password-reset link is on its way." };
 }

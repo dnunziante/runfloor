@@ -1,14 +1,97 @@
 "use client";
-import { useMemo, useState } from "react";
-import { BookOpenCheck, Plus } from "lucide-react";
+
+import Link from "next/link";
+import { useRef, useState, type CSSProperties, type ReactNode } from "react";
+import { ArrowRight, BarChart3, BookOpen, Box, Crown, FilePlus2, FileText, FolderOpen, Heart, MoreHorizontal, Plus, Search, Settings, Truck, Trophy, Users, Wrench, X, Zap } from "lucide-react";
 import { copyPlatformProcedureTemplate } from "@/app/admin/platform/actions";
+import styles from "./platform-procedure-template-library.module.css";
 
-const categories = ["Sales Procedures", "Delivery & Post-Sale", "Inventory", "Service", "Parts", "CRM & Lead Management", "Customer Experience", "Management", "Employee & Administrative", "Other", "Uncategorized"];
-type Template = { id:string; title:string; category:string; owner:string; summary:string; version:number };
+const categories = [
+  { name: "Sales Procedures", description: "From first contact to close.", icon: BarChart3, color: "#d83e48", tint: "#fff3f4" },
+  { name: "Delivery & Post-Sale", description: "Ensure a smooth handoff and lasting relationships.", icon: Truck, color: "#4b9339", tint: "#f1f9ed" },
+  { name: "Inventory", description: "Manage stock, intake, and inventory processes.", icon: Box, color: "#2682d9", tint: "#eff7ff" },
+  { name: "Service", description: "Keep customers on the road and coming back.", icon: Wrench, color: "#d77a1e", tint: "#fff7ee" },
+  { name: "Parts", description: "Ordering, receiving, and parts management.", icon: Settings, color: "#8a5bcc", tint: "#f7f2ff" },
+  { name: "CRM & Lead Management", description: "Capture, follow up, and convert more leads.", icon: Users, color: "#008c82", tint: "#edf9f7" },
+  { name: "Customer Experience", description: "Create raving fans at every touchpoint.", icon: Heart, color: "#cf5276", tint: "#fff1f6" },
+  { name: "Management", description: "Lead effectively and drive results.", icon: Crown, color: "#a77b16", tint: "#fffae9" },
+  { name: "Employee & Administrative", description: "HR, onboarding, and day-to-day operations.", icon: Users, color: "#4262d2", tint: "#f0f3ff" },
+  { name: "Other", description: "Additional templates and resources.", icon: MoreHorizontal, color: "#64748b", tint: "#f3f5f8" },
+  { name: "Uncategorized", description: "A home for templates awaiting a category.", icon: FolderOpen, color: "#78716c", tint: "#f7f5f2" },
+];
+type Template = { id: string; title: string; category: string; owner: string; summary: string; version: number };
 
-export function PlatformProcedureTemplateLibrary({ templates, tenants }: { templates: Template[]; tenants: Array<{id:string;name:string}> }) {
-  const [category,setCategory]=useState<string|null>(null); const [selectedId,setSelectedId]=useState<string|null>(null); const [selectedTenants,setSelectedTenants]=useState<string[]>([]); const [message,setMessage]=useState(""); const [error,setError]=useState(""); const [saving,setSaving]=useState(false);
-  const visible=useMemo(()=>category ? templates.filter((template)=>template.category===category) : [],[templates,category]); const selected=templates.find((template)=>template.id===selectedId) || visible[0]; const orderedTenants=[...tenants].sort((a,b)=>a.name.localeCompare(b.name));
-  async function apply(){if(!selected||!selectedTenants.length)return;setSaving(true);setMessage("");setError("");try{let added=0;let alreadyThere=0;for(const organizationId of selectedTenants){const form=new FormData();form.set("templateId",selected.id);form.set("organizationId",organizationId);const result=await copyPlatformProcedureTemplate(form);if(result.copied)added+=1;else alreadyThere+=1}const parts=[];if(added)parts.push(`Added “${selected.title}” to ${added} tenant${added===1?"":"s"}.`);if(alreadyThere)parts.push(`${alreadyThere} tenant${alreadyThere===1?" already has":"s already have"} this procedure.`);setMessage(parts.join(" ")||"No tenant changes were needed.");setSelectedTenants([])}catch(cause){setError(cause instanceof Error?cause.message:"The template could not be added. Please try again.")}finally{setSaving(false)}}
-  return <div className="operations-procedure-workspace"><section><div className="section-heading"><div><h2>Master Procedure Templates</h2><p>Click a category to show or hide its procedures, then choose one to manage.</p></div><button className="btn btn-secondary" onClick={()=>document.getElementById("platform-template-editor")?.scrollIntoView({behavior:"smooth"})}><Plus size={16}/> Add template</button></div><div className="operations-category-list">{categories.map((name)=>{const count=templates.filter((template)=>template.category===name).length;const isOpen=category===name;return <button key={name} aria-expanded={isOpen} className={`card operations-category-card ${isOpen?"selected":""}`} onClick={()=>{setCategory(isOpen?null:name);setSelectedId(null)}}><strong>{isOpen?"⌄ ":"› "}{name}</strong><span>{count} templates · {isOpen?"Hide":"Show"}</span></button>})}</div>{category&&<div className="operations-procedure-cards">{visible.map((template)=><button key={template.id} className={`card operations-procedure-card ${selected?.id===template.id?"selected":""}`} onClick={()=>setSelectedId(template.id)}><BookOpenCheck size={18}/><h2>{template.title}</h2><p>{template.summary}</p><span>{template.owner} · v{template.version}</span></button>)}</div>}</section><aside id="platform-template-editor" className="card operations-procedure-editor">{selected?<><h2>{selected.title}</h2><p>{selected.summary}</p><p><strong>Category:</strong> {selected.category} · <strong>Owner:</strong> {selected.owner}</p><div className="form-stack"><label><input type="checkbox" checked={selectedTenants.length===orderedTenants.length} onChange={e=>setSelectedTenants(e.target.checked?orderedTenants.map(t=>t.id):[])}/> Add to all active tenants</label>{orderedTenants.map(t=><label key={t.id}><input type="checkbox" checked={selectedTenants.includes(t.id)} onChange={e=>setSelectedTenants(x=>e.target.checked?[...x,t.id]:x.filter(id=>id!==t.id))}/> {t.name}</label>)}</div><button className="btn btn-primary" disabled={!selectedTenants.length||saving} onClick={apply}>{saving?"Adding…":"Add to selected tenants"}</button>{message&&<p className="form-success">{message}</p>}{error&&<p className="form-error">{error}</p>}</>:<><h2>{category||"Choose a category"}</h2><p>{category?"No master templates in this category yet. Add one below.":"Open a category to view its procedure templates."}</p></>}</aside></div>;
+export function PlatformProcedureTemplateLibrary({ templates, tenants, children, initialCategory = null, initialQuery = "" }: { templates: Template[]; tenants: Array<{ id: string; name: string }>; children: ReactNode; initialCategory?: string | null; initialQuery?: string }) {
+  const [category, setCategory] = useState<string | null>(initialCategory);
+  const [query, setQuery] = useState(initialQuery);
+  const [selectedId, setSelectedId] = useState<string | null>(null);
+  const [selectedTenants, setSelectedTenants] = useState<string[]>([]);
+  const [message, setMessage] = useState("");
+  const [error, setError] = useState("");
+  const [saving, setSaving] = useState(false);
+  const [creating, setCreating] = useState(false);
+  const creator = useRef<HTMLDivElement>(null);
+  const manager = useRef<HTMLElement>(null);
+  const search = query.trim().toLowerCase();
+  const visible = templates.filter(template => search
+    ? [template.title, template.summary, template.category, template.owner].some(value => value?.toLowerCase().includes(search))
+    : template.category === category);
+  const selected = visible.find(template => template.id === selectedId);
+  const availableCategories = [...categories, ...Array.from(new Set(templates.map(template => template.category))).filter(name => !categories.some(category => category.name === name)).map(name => ({ name, description: "Explore your existing procedure templates.", icon: FolderOpen, color: "#64748b", tint: "#f3f5f8" }))];
+  const orderedTenants = [...tenants].sort((a, b) => a.name.localeCompare(b.name));
+
+  function clearSelection() {
+    setSelectedId(null); setSelectedTenants([]); setMessage(""); setError("");
+  }
+  function addTemplate() {
+    setCreating(true);
+    requestAnimationFrame(() => {
+      const field = creator.current?.querySelector<HTMLSelectElement>('select[name="category"]');
+      if (field) field.value = category || "Uncategorized";
+      creator.current?.scrollIntoView({ behavior: "smooth", block: "center" });
+      creator.current?.querySelector<HTMLInputElement>('input[name="title"]')?.focus({ preventScroll: true });
+    });
+  }
+  function openTemplate(id: string) {
+    clearSelection(); setSelectedId(id);
+    requestAnimationFrame(() => { manager.current?.focus({ preventScroll: true }); manager.current?.scrollIntoView({ behavior: "smooth", block: "nearest" }); });
+  }
+  async function apply() {
+    if (!selected || !selectedTenants.length || saving) return;
+    setSaving(true); setMessage(""); setError("");
+    try {
+      let added = 0; let alreadyThere = 0;
+      for (const organizationId of selectedTenants) {
+        const form = new FormData(); form.set("templateId", selected.id); form.set("organizationId", organizationId);
+        const result = await copyPlatformProcedureTemplate(form);
+        if (result.copied) added += 1; else alreadyThere += 1;
+      }
+      const parts = [];
+      if (added) parts.push(`Added “${selected.title}” to ${added} tenant${added === 1 ? "" : "s"}.`);
+      if (alreadyThere) parts.push(`${alreadyThere} tenant${alreadyThere === 1 ? " already has" : "s already have"} this procedure.`);
+      setMessage(parts.join(" ") || "No tenant changes were needed."); setSelectedTenants([]);
+    } catch (cause) { setError(cause instanceof Error ? cause.message : "The template could not be added. Please try again."); }
+    finally { setSaving(false); }
+  }
+
+  return <section className={styles.library} aria-labelledby="procedure-library-heading">
+    <header className={styles.header}>
+      <div className={styles.heading}><span className={styles.book}><BookOpen size={27} aria-hidden="true" /></span><div><span className={styles.eyebrow}>RUNFLOOR PLAYBOOK</span><h2 id="procedure-library-heading">Procedure Templates</h2><p>Standardize operations. Train faster. Deliver a better experience.</p></div></div>
+      <div className={styles.tools}><label className={styles.search}><Search size={18} aria-hidden="true" /><input aria-label="Search templates" placeholder="Search templates…" value={query} disabled={saving} onChange={event => { setQuery(event.target.value); setCategory(null); clearSelection(); }} />{query && <button type="button" aria-label="Clear template search" disabled={saving} onClick={() => { setQuery(""); clearSelection(); }}><X size={16} /></button>}</label><button type="button" className="btn btn-primary" onClick={addTemplate}><Plus size={17} /> Add Template</button></div>
+    </header>
+    <div className={styles.banner}><Trophy className={styles.trophy} size={29} aria-hidden="true" /><div className={styles.bannerCopy}><h3>Turn Knowledge Into Consistency</h3><p>Use these procedure templates to train your team, standardize operations, and deliver an exceptional customer experience.</p></div><div className={styles.values}>{[{ icon: Users, title: "Organized", text: "Find what you need fast" }, { icon: Zap, title: "Customizable", text: "Make it your own" }, { icon: BarChart3, title: "Built for Growth", text: "Stronger teams. Better results." }].map(({ icon: Icon, title, text }) => <div key={title}><Icon size={20} aria-hidden="true" /><span><strong>{title}</strong><small>{text}</small></span></div>)}</div></div>
+    <div ref={creator} hidden={!creating} className={styles.creator} id="platform-template-create"><div className={styles.panelHeading}><h3>Create a procedure template</h3><button type="button" className="btn btn-ghost" onClick={() => setCreating(false)}><X size={16} /> Close</button></div>{children}</div>
+    <div className={styles.categories} aria-label="Procedure template categories">
+      {availableCategories.map(({ name, description, icon: Icon, color, tint }) => {
+        const count = templates.filter(template => template.category === name).length;
+        return <button type="button" key={name} className={styles.category} style={{ "--accent": color, "--tint": tint } as CSSProperties} aria-expanded={category === name} aria-controls="procedure-template-results" disabled={saving} onClick={() => { setCategory(category === name ? null : name); setQuery(""); clearSelection(); }}><span className={styles.categoryIcon}><Icon size={24} aria-hidden="true" /></span><span className={styles.categoryCopy}><strong>{name}</strong><span>{description}</span></span><span className={styles.categoryFooter}><span><FileText size={13} aria-hidden="true" />{count ? `${count} template${count === 1 ? "" : "s"}` : "Ready for your first template"}</span><ArrowRight size={17} aria-hidden="true" /></span></button>;
+      })}
+    </div>
+    <div id="procedure-template-results" hidden={!category && !search} className={styles.results}>
+      <div className={styles.panelHeading}><div><h3>{search ? "Search results" : category}</h3><p role="status">{visible.length} {visible.length === 1 ? "template" : "templates"}{search ? ` matching “${query.trim()}”` : " in this category"}</p></div><button type="button" className="btn btn-secondary" onClick={addTemplate}><Plus size={16} /> Add Template</button></div>
+      {visible.length ? <div className={styles.templates}>{visible.map(template => <div key={template.id} className={styles.template}><span className={styles.metadata}>{template.category} <span>v{template.version}</span></span><strong>{template.title}</strong>{template.summary && <p>{template.summary}</p>}<span className={styles.templateFooter}><span>{template.owner || "Procedure template"}</span><Link href={`/admin/platform/procedures/${template.id}?${new URLSearchParams({ category: category || "", templateSearch: query })}`}>Open Procedure <ArrowRight size={14} /></Link></span><button type="button" className="btn btn-ghost" disabled={saving} onClick={() => openTemplate(template.id)}>Assign to tenants</button></div>)}</div> : <div className={styles.empty}><FolderOpen size={30} aria-hidden="true" /><h4>{search ? "No matching templates" : "No templates here yet."}</h4><p>{search ? "Try a different name, category, owner, or keyword." : `Create your first ${category} procedure.`}</p><button type="button" className="btn btn-primary" onClick={addTemplate}><Plus size={16} /> Add Template</button></div>}
+      {selected && <section ref={manager} tabIndex={-1} className={styles.manager} aria-label={`Manage ${selected.title}`}><div className={styles.panelHeading}><div><span className={styles.eyebrow}>TEMPLATE DETAILS</span><h3>{selected.title}</h3></div><button type="button" className="btn btn-ghost" disabled={saving} onClick={clearSelection}>Close details</button></div><p>{selected.summary}</p><p className={styles.metadata}>{selected.category} · {selected.owner} · v{selected.version}</p><fieldset disabled={saving} className={styles.tenants}><legend>Add to tenant workspaces</legend><label><input type="checkbox" checked={orderedTenants.length > 0 && selectedTenants.length === orderedTenants.length} disabled={!orderedTenants.length} onChange={event => setSelectedTenants(event.target.checked ? orderedTenants.map(tenant => tenant.id) : [])} /> Add to all active tenants</label>{orderedTenants.map(tenant => <label key={tenant.id}><input type="checkbox" checked={selectedTenants.includes(tenant.id)} onChange={event => setSelectedTenants(ids => event.target.checked ? [...ids, tenant.id] : ids.filter(id => id !== tenant.id))} /> {tenant.name}</label>)}{!orderedTenants.length && <p>No active tenants available.</p>}</fieldset><button type="button" className="btn btn-primary" disabled={!selectedTenants.length || saving} onClick={apply}>{saving ? "Adding…" : "Add to selected tenants"}</button>{message && <p role="status" className="form-success">{message}</p>}{error && <p role="alert" className="form-error">{error}</p>}</section>}
+    </div>
+    <footer className={styles.cta}><FilePlus2 size={28} aria-hidden="true" /><div><h3>Don’t see what you need?</h3><p>Create a new procedure template and keep building your playbook.</p></div><button type="button" className="btn btn-primary" onClick={addTemplate}><Plus size={17} /> Add New Template</button></footer>
+  </section>;
 }

@@ -7,8 +7,6 @@ import { getViewer } from "@/lib/auth/viewer";
 import { createClient } from "@/lib/supabase/server";
 import {
   createTenant,
-  copyPlatformProcedureTemplate,
-  copyPlatformProcedureTemplateToAllTenants,
   copyTenantProcedureToPlatformTemplate,
   deleteEmptyTenant,
   enterTenantWorkspace,
@@ -36,7 +34,8 @@ type TemplateRow = {
 };
 const procedureCategories = ["Sales Procedures", "Delivery & Post-Sale", "Inventory", "Service", "Parts", "CRM & Lead Management", "Customer Experience", "Management", "Employee & Administrative", "Other", "Uncategorized"];
 
-export default async function PlatformAdminPage() {
+export default async function PlatformAdminPage({ searchParams }: { searchParams: Promise<{ category?: string; templateSearch?: string }> }) {
+  const context = await searchParams;
   const viewer = await getViewer();
   if (viewer?.role !== "platform_owner") redirect("/admin");
   const supabase = await createClient();
@@ -72,7 +71,6 @@ export default async function PlatformAdminPage() {
   const tenantRows = (tenants || []) as unknown as TenantRow[];
   const templateRows = (templates || []) as TemplateRow[];
   const procedureTemplateRows = procedureTemplates || [];
-  const templatesByCategory = procedureCategories.map((category) => ({ category, templates: procedureTemplateRows.filter((template) => template.category === category) })).filter((group) => group.templates.length);
   const sourceProcedures = (tenantProcedures || []) as unknown as Array<{
     id: string;
     title: string;
@@ -338,8 +336,8 @@ export default async function PlatformAdminPage() {
           </table>
         </div>
       </section>
+      <PlatformProcedureTemplateLibrary initialCategory={context.category} initialQuery={context.templateSearch} templates={procedureTemplateRows} tenants={tenantRows.filter((tenant) => tenant.status === "active").map((tenant) => ({ id: tenant.id, name: tenant.name }))}>
       <section className="card">
-        <h2>Procedure Templates</h2>
         <p>
           Create a platform procedure once, then copy it into a tenant’s
           independent procedure library.
@@ -349,7 +347,7 @@ export default async function PlatformAdminPage() {
           className="button-row"
           style={{ marginBottom: 16 }}
         >
-          <select className="input" name="procedureId" required defaultValue="">
+          <select className="input" name="procedureId" aria-label="Copy an existing tenant procedure" required defaultValue="">
             <option value="" disabled>
               Copy an existing tenant procedure to templates
             </option>
@@ -367,90 +365,31 @@ export default async function PlatformAdminPage() {
           <div className="grid grid-3">
             <input
               className="input"
-              name="title"
+              name="title" aria-label="Template title"
               required
               placeholder="Template title"
             />
-            <select className="input" name="category" defaultValue="Uncategorized">{procedureCategories.map((category) => <option key={category}>{category}</option>)}</select>
-            <input className="input" name="owner" placeholder="Owner" />
+            <select className="input" name="category" aria-label="Template category" defaultValue="Uncategorized">{Array.from(new Set([...procedureCategories, ...procedureTemplateRows.map((template) => template.category)])).map((category) => <option key={category}>{category}</option>)}</select>
+            <input className="input" name="owner" aria-label="Template owner" placeholder="Owner" />
           </div>
           <textarea
             className="input"
-            name="summary"
+            name="summary" aria-label="Purpose and scope"
             rows={3}
             required
             placeholder="Purpose and scope"
           />
           <textarea
             className="input"
-            name="steps"
+            name="steps" aria-label="Procedure steps"
             rows={6}
             required
             placeholder="Procedure steps. Separate main steps with a blank line; formatting is preserved."
           />
           <button className="btn btn-primary">Save procedure template</button>
         </form>
-        <div className="table-wrap" style={{ marginTop: 16 }}>
-          <table className="table">
-            <thead>
-              <tr>
-                <th>Template</th>
-                <th>Version</th>
-                <th>Copy to tenant</th>
-              </tr>
-            </thead>
-            <tbody>
-              {templatesByCategory.flatMap((group) => [<tr key={`category-${group.category}`}><th colSpan={3}>{group.category}</th></tr>, ...group.templates.map((template) => (
-                <tr key={template.id}>
-                  <td>
-                    <strong>{template.title}</strong>
-                    <br />
-                    <small>
-                      {template.category} · {template.owner}
-                    </small>
-                  </td>
-                  <td>v{template.version}</td>
-                  <td>
-                    <form
-                      action={async (formData) => {
-                        "use server";
-                        await copyPlatformProcedureTemplate(formData);
-                      }}
-                      style={{ display: "flex", gap: 8 }}
-                    >
-                      <input
-                        type="hidden"
-                        name="templateId"
-                        value={template.id}
-                      />
-                      <select
-                        className="input"
-                        name="organizationId"
-                        required
-                        defaultValue=""
-                      >
-                        <option value="" disabled>
-                          Choose tenant
-                        </option>
-                        {tenantRows
-                          .filter((tenant) => tenant.status === "active")
-                          .map((tenant) => (
-                            <option key={tenant.id} value={tenant.id}>
-                              {tenant.name}
-                            </option>
-                          ))}
-                      </select>
-                      <button className="btn btn-ghost">Copy to tenant</button>
-                    </form>
-                    <form action={async (formData) => { "use server"; await copyPlatformProcedureTemplateToAllTenants(formData); }} style={{ marginTop: 8 }}><input type="hidden" name="templateId" value={template.id}/><button className="btn btn-secondary">Add to all tenants</button></form>
-                  </td>
-                </tr>
-              ))])}
-            </tbody>
-          </table>
-        </div>
       </section>
-      <PlatformProcedureTemplateLibrary templates={procedureTemplateRows} tenants={tenantRows.filter((tenant) => tenant.status === "active").map((tenant) => ({ id: tenant.id, name: tenant.name }))} />
+      </PlatformProcedureTemplateLibrary>
     </AppShell>
   );
 }

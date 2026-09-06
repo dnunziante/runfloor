@@ -12,6 +12,7 @@ import {
   Plus,
   Search,
   Trash2,
+  X,
 } from "lucide-react";
 import { useMemo, useState } from "react";
 import {
@@ -27,6 +28,9 @@ import {
   type OperationsProcedureRecord,
 } from "@/lib/operations/data";
 import type { OperationsPersistence } from "@/lib/operations/repository";
+import type { JSONContent } from "@tiptap/core";
+import { ProcedureRichBody } from "./procedure-rich-body";
+import { documentText, procedureDocument } from "@/lib/procedures/document";
 import { ProcedureContent } from "@/components/procedure-content";
 
 export function OperationsProcedureManager({
@@ -55,9 +59,12 @@ export function OperationsProcedureManager({
   const [owner, setOwner] = useState("");
   const [summary, setSummary] = useState("");
   const [steps, setSteps] = useState("");
+  const [richDocument, setRichDocument] = useState<JSONContent | null>(null);
   const [status, setStatus] =
     useState<OperationsProcedureRecord["status"]>("Draft");
   const selected = procedures.find((item) => item.id === selectedId) ?? null;
+  const [readingId, setReadingId] = useState<string | null>(null);
+  const reading = procedures.find((item) => item.id === readingId) ?? null;
   const category = categories.find((item) => item.id === selectedCategory);
   const orderedCategories = [...categories].sort((left, right) => {
     const leftIndex = defaultOperationsProcedureCategories.findIndex(
@@ -88,7 +95,7 @@ export function OperationsProcedureManager({
     setCategoryId(selectedCategory ?? categories[0]?.id ?? "");
     setOwner("");
     setSummary("");
-    setSteps("");
+    setSteps(""); setRichDocument(null);
     setStatus("Draft");
   };
   const edit = (item: OperationsProcedureRecord) => {
@@ -99,12 +106,13 @@ export function OperationsProcedureManager({
     setOwner(item.owner);
     setSummary(item.summary);
     setSteps(item.steps.join("\n"));
+    setRichDocument(item.content?.runfloorDocument ? procedureDocument({ steps: item.steps, content: item.content }) : null);
     setStatus(item.status);
   };
   async function save(event: React.FormEvent) {
     event.preventDefault();
     const category = categories.find((item) => item.id === categoryId);
-    const stepList = steps
+    const stepList = richDocument ? [documentText(richDocument)] : steps
       .split(/\r?\n\s*\r?\n/)
       .map((item) => item.trim())
       .filter(Boolean);
@@ -127,6 +135,7 @@ export function OperationsProcedureManager({
       owner: owner.trim(),
       summary: summary.trim(),
       steps: stepList,
+      ...(richDocument ? { content: { ...old?.content, runfloorDocument: { format: "tiptap-v1", document: richDocument } }, sourceType: old?.sourceType } : {}),
       status,
       version: old ? old.version + 1 : 1,
       updatedAt: new Date().toISOString(),
@@ -241,11 +250,11 @@ export function OperationsProcedureManager({
           <strong>Category:</strong> {selected.category} ·{" "}
           <strong>Owner:</strong> {selected.owner}
         </p>
-        <ol>
+        {selected.content?.runfloorDocument ? <ProcedureRichBody key={`read-${selected.id}-${selected.version}`} document={procedureDocument({ steps: selected.steps, content: selected.content })} /> : <ol>
           {selected.steps.map((step, index) => (
           <li key={index}><ProcedureContent content={step}/></li>
           ))}
-        </ol>
+        </ol>}
         {canManage && (
           <div className="button-row">
             <button
@@ -307,6 +316,7 @@ export function OperationsProcedureManager({
             required
           />
         </label>
+        {richDocument ? <ProcedureRichBody key={`edit-${editingId}`} document={richDocument} editable onChange={setRichDocument} /> : (
         <label>
           <span className="label">Procedure steps</span>
           <textarea
@@ -317,7 +327,7 @@ export function OperationsProcedureManager({
             required
           />
           <small className="field-help">One step per line.</small>
-        </label>
+        </label>)}
         <label>
           <span className="label">Publishing status</span>
           <select
@@ -446,15 +456,25 @@ export function OperationsProcedureManager({
             <div className="operations-procedure-cards">
               {filtered.map((item, index) => (
                 <div className={`card operations-procedure-card ${selectedId === item.id ? "selected" : ""}`} key={item.id}>
-                <button onClick={() => { setSelectedId(item.id); setEditingId(null); }}>
-                  <BookOpenCheck size={18} />
-                  <h2>{item.title}</h2>
-                  <p>{item.summary}</p>
-                  <div className="operations-procedure-card-meta">
-                    <span>{item.category}</span>
-                    <span>{item.owner}</span>
+                  <button onClick={() => { setSelectedId(item.id); setEditingId(null); }}>
+                    <BookOpenCheck size={18} />
+                    <h2>{item.title}</h2>
+                    <p>{item.summary}</p>
+                    <div className="operations-procedure-card-meta">
+                      <span>{item.category}</span>
+                      <span>{item.owner}</span>
+                    </div>
+                  </button>
+                  <div className="button-row">
+                    <button className="btn btn-secondary" onClick={() => setReadingId(item.id)}>
+                      <Eye size={16} /> Open full procedure
+                    </button>
+                    {canManage && <>
+                      <button className="icon-button" aria-label={`Move ${item.title} up`} disabled={index === 0} onClick={() => moveProcedure(item.id, -1)}><ChevronUp size={16}/></button>
+                      <button className="icon-button" aria-label={`Move ${item.title} down`} disabled={index === filtered.length - 1} onClick={() => moveProcedure(item.id, 1)}><ChevronDown size={16}/></button>
+                    </>}
                   </div>
-                </button>{canManage && <div className="button-row"><button className="icon-button" aria-label={`Move ${item.title} up`} disabled={index === 0} onClick={() => moveProcedure(item.id, -1)}><ChevronUp size={16}/></button><button className="icon-button" aria-label={`Move ${item.title} down`} disabled={index === filtered.length - 1} onClick={() => moveProcedure(item.id, 1)}><ChevronDown size={16}/></button></div>}</div>
+                </div>
               ))}
             </div>
           ) : (
@@ -465,6 +485,28 @@ export function OperationsProcedureManager({
           ))}
       </section>
       <aside className="card operations-procedure-editor">{editor}</aside>
+      {reading && (
+        <div aria-label={`Full procedure: ${reading.title}`} aria-modal="true" className="credential-modal procedure-reading-modal" role="dialog">
+          <button aria-label="Close procedure" className="credential-modal-backdrop" onClick={() => setReadingId(null)} type="button" />
+          <article className="credential-modal-panel procedure-reading-panel">
+            <div className="procedure-reading-heading">
+              <div>
+                <p className="eyebrow">{reading.category}</p>
+                <h2>{reading.title}</h2>
+                <p>Owner: {reading.owner}</p>
+              </div>
+              <button aria-label="Close procedure" className="credential-close" onClick={() => setReadingId(null)} type="button"><X size={20} /></button>
+            </div>
+            <div className="procedure-reading-content">
+              {reading.summary && <section><h3>Purpose and scope</h3><ProcedureContent content={reading.summary} /></section>}
+              <section>
+                <h3>Procedure steps</h3>
+                {reading.content?.runfloorDocument ? <ProcedureRichBody key={`full-${reading.id}-${reading.version}`} document={procedureDocument({ steps: reading.steps, content: reading.content })} /> : reading.steps.map((step, index) => <div className="procedure-reading-step" key={index}><strong>{index + 1}</strong><ProcedureContent content={step} /></div>)}
+              </section>
+            </div>
+          </article>
+        </div>
+      )}
     </div>
   );
 }

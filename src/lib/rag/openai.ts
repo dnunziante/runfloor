@@ -7,7 +7,7 @@ import {
   type TrainingType,
 } from "@/lib/training/generated";
 import { validateSalesEmailDraft, validateSalesTextDraft } from "./sales-email-quality";
-import { compileRefyntraPrompt, type CommunicationStandards } from "./prompt-compiler";
+import { compileRunFloorPrompt, type CommunicationStandards } from "./prompt-compiler";
 
 export const EMBEDDING_MODEL = "text-embedding-3-small";
 const CHAT_MODEL = process.env.OPENAI_CHAT_MODEL || "gpt-5-mini";
@@ -48,7 +48,7 @@ export async function createEmbeddings(inputs: string[]) {
 }
 
 export async function createGroundedAnswer(question: string, sourceContext: string, standards?: Partial<CommunicationStandards> | null, conversationContext?: string) {
-  const system = compileRefyntraPrompt({ standards, approvedKnowledge: sourceContext, conversationContext, userRequest: question, featureInstructions: "You are the RunFloor Sales Assistant. Help a salesperson answer customer questions and recommend an appropriate approved product only when enough relevant information is available. Product-specific excerpts take priority over general excerpts. Records labeled ‘Competitor reference’ are for factual comparison only: never recommend, present for sale, or describe them as the organization's offering. When possible, identify the source used." });
+  const system = compileRunFloorPrompt({ standards, approvedKnowledge: sourceContext, conversationContext, userRequest: question, featureInstructions: "You are the RunFloor Sales Assistant. Help a salesperson answer customer questions and recommend an appropriate approved product only when enough relevant information is available. Product-specific excerpts take priority over general excerpts. Records labeled ‘Competitor reference’ are for factual comparison only: never recommend, present for sale, or describe them as the organization's offering. When possible, identify the source used." });
   const data = await requestOpenAI("chat/completions", {
     model: CHAT_MODEL,
     messages: [{ role: "system", content: system }, { role: "user", content: question }],
@@ -231,7 +231,7 @@ export type SalesEmailInput = {
 };
 
 export async function createSalesEmail(input: SalesEmailInput, approvedContext: string, salespersonName: string, standards?: Partial<CommunicationStandards> | null) {
-  const system = compileRefyntraPrompt({ standards, approvedKnowledge: approvedContext, userRequest: JSON.stringify({ ...input, salespersonName }), featureInstructions: `You write concise dealership sales emails for RunFloor users. Write like an experienced professional salesperson, never like a marketing bot.
+  const system = compileRunFloorPrompt({ standards, approvedKnowledge: approvedContext, userRequest: JSON.stringify({ ...input, salespersonName }), featureInstructions: `You write concise dealership sales emails for RunFloor users. Write like an experienced professional salesperson, never like a marketing bot.
 
 RULES:
 - Most emails must be 75–150 words. Use a confident, conversational, helpful tone.
@@ -274,7 +274,7 @@ RULES:
 }
 
 export async function createSalesText(input: SalesEmailInput, approvedContext: string, salespersonName: string, standards?: Partial<CommunicationStandards> | null) {
-  const system = compileRefyntraPrompt({ standards, approvedKnowledge: approvedContext, userRequest: JSON.stringify({ ...input, salespersonName }), featureInstructions: `You write concise dealership sales text messages for RunFloor users. Write like an experienced professional salesperson, not a marketing bot.
+  const system = compileRunFloorPrompt({ standards, approvedKnowledge: approvedContext, userRequest: JSON.stringify({ ...input, salespersonName }), featureInstructions: `You write concise dealership sales text messages for RunFloor users. Write like an experienced professional salesperson, not a marketing bot.
 
 RULES:
 - Write one natural SMS message, normally 25–70 words. Do not include a subject line.
