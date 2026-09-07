@@ -11,7 +11,7 @@ const demoEmployees = [
   {id:"demo-john",name:"John Smith",role:"Salesperson",locationId:"demo-mb",location:"Myrtle Beach",questions:42,messages:19,training:76,confidence:"4.4",lastActivity:"38 min ago"},
   {id:"demo-maya",name:"Maya Stone",role:"Salesperson",locationId:"demo-nmb",location:"North Myrtle Beach",questions:53,messages:24,training:91,confidence:"4.8",lastActivity:"8 min ago"},
 ];
-function summarize(employees: DashboardData["employees"]) { const count=employees.length || 1; return {questions:employees.reduce((n,e)=>n+e.questions,0),messages:employees.reduce((n,e)=>n+e.messages,0),training:Math.round(employees.reduce((n,e)=>n+e.training,0)/count),confidence:(employees.reduce((n,e)=>n+Number(e.confidence),0)/count).toFixed(1)}; }
+function summarize(employees: DashboardData["employees"]) { const count=employees.length || 1; const scores=employees.map(e=>Number(e.confidence)).filter(Number.isFinite); return {questions:employees.reduce((n,e)=>n+e.questions,0),messages:employees.reduce((n,e)=>n+e.messages,0),training:Math.round(employees.reduce((n,e)=>n+e.training,0)/count),confidence:scores.length?(scores.reduce((sum,score)=>sum+score,0)/scores.length).toFixed(1):"—"}; }
 
 export async function getDashboardData(input: {view?:string;locationId?:string;employeeId?:string}): Promise<DashboardData> {
  const viewer=await getViewer(); if (!viewer) return {allowed:false,team:false,scope:"employee",title:"Dashboard",subtitle:"Sign in to view performance.",locations:[],employees:[],metrics:{questions:0,messages:0,training:0,confidence:"—"}};

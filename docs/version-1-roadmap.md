@@ -96,3 +96,8 @@ Version 1 is ready for a controlled pilot when a company can securely onboard, m
 - Competitor brand families reuse tenant product_families with a reserved competitor-brand- slug prefix, filtered out of the own-product family library. Family covers use the existing image storage. Manual and document uploads inside a family preserve its ID; ungrouped imports match by brand name.
 
 - Redesigned competitor management with live count cards, section navigation that preserves form entries, a separate image panel within model creation, collapsible specifications, brand covers and quick actions, searchable/filterable management tables, archive browsing, and CSV export of current results. Existing create, upload, edit, duplicate, guide, publish, archive, and remove actions remain available.
+
+## Signed-in Home
+
+- Added a visual Home at /dashboard with role-aware quick actions, actual workspace performance, training progress, activity, team links, resources, and a generated decorative golf-cart banner. Detailed company/location/employee performance remains at /dashboard/performance; existing filtered dashboard links redirect there.
+- Header search now finds working workspace destinations; shortcut customization is session-only and clearly labeled. No invented revenue, customers, announcements, or online-status data is displayed.
