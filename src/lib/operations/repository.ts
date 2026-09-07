@@ -51,15 +51,23 @@ export async function getOperationsWorkspace(): Promise<OperationsWorkspace> {
 
   const supabase = await createClient();
   const organizationId = viewer.organizationId;
-  const [checklistsResult, proceduresResult, categoriesResult, alertsResult, schedulesResult, handoffsResult, incidentsResult] = await Promise.all([
+  const [checklistsResult, initialProceduresResult, initialCategoriesResult, alertsResult, schedulesResult, handoffsResult, incidentsResult] = await Promise.all([
     supabase.from("operations_checklists").select("id,title,location_name,owner,due_date,created_at,operations_checklist_steps(id,title,is_complete,position)").eq("organization_id", organizationId).order("created_at", { ascending: false }),
-    supabase.from("operations_procedures").select("id,title,category_id,category,owner,summary,status,version,updated_at,sort_order,content,source_type,operations_procedure_categories(name),operations_procedure_steps(id,title,position)").eq("organization_id", organizationId).neq("status", "archived").order("sort_order").order("updated_at", { ascending: false }),
-    supabase.from("operations_procedure_categories").select("id,name,is_default").eq("organization_id", organizationId).order("is_default", { ascending: false }).order("name"),
+    supabase.from("operations_procedures").select("id,title,category_id,category,owner,summary,status,version,updated_at,sort_order,content,source_type,operations_procedure_categories(name),operations_procedure_steps(id,title,position)").eq("organization_id", organizationId).is("archived_at", null).neq("status", "archived").order("sort_order").order("updated_at", { ascending: false }),
+    supabase.from("operations_procedure_categories").select("id,name,is_default,sort_order,description,style_name").eq("organization_id", organizationId).is("archived_at", null).order("sort_order").order("name"),
     supabase.from("operations_alerts").select("id,title,detail,severity,location_name,owner,due_date,status,created_at,operations_alert_history(id,status,note,created_at)").eq("organization_id", organizationId).order("created_at", { ascending: false }),
     supabase.from("operations_schedules").select("id,procedure_id,frequency,location_name,owner,next_run_date,status,last_generated_at,created_at,operations_procedures(title)").eq("organization_id", organizationId).order("created_at", { ascending: false }),
     supabase.from("operations_handoffs").select("id,location_name,from_shift,to_shift,summary,unresolved_issues,decisions,owner,status,created_at,updated_at").eq("organization_id", organizationId).order("created_at", { ascending: false }),
     supabase.from("operations_incidents").select("id,title,category,severity,location_name,occurred_at,reported_by_name,description,immediate_action,root_cause,corrective_action,owner,due_date,status,created_at,updated_at").eq("organization_id", organizationId).order("created_at", { ascending: false }),
   ]);
+  let proceduresResult = initialProceduresResult;
+  let categoriesResult = initialCategoriesResult;
+  // Keep the current library usable until the additive management migration is activated.
+  if (proceduresResult.error?.code === "42703") proceduresResult = await supabase.from("operations_procedures").select("id,title,category_id,category,owner,summary,status,version,updated_at,sort_order,content,source_type,operations_procedure_categories(name),operations_procedure_steps(id,title,position)").eq("organization_id", organizationId).neq("status", "archived").order("sort_order").order("updated_at", { ascending: false });
+  if (categoriesResult.error?.code === "42703") {
+    const legacy = await supabase.from("operations_procedure_categories").select("id,name,is_default").eq("organization_id", organizationId).order("is_default", { ascending: false }).order("name");
+    categoriesResult = legacy.error ? legacy : { ...legacy, data: legacy.data.map(row => ({ ...row, sort_order: defaultOperationsProcedureCategories.findIndex(item => item.name === row.name) < 0 ? 1000 : defaultOperationsProcedureCategories.findIndex(item => item.name === row.name), description: "", style_name: row.name })) };
+  }
   const firstError = [checklistsResult, proceduresResult, categoriesResult, alertsResult, schedulesResult, handoffsResult, incidentsResult].find((result) => result.error)?.error;
 
   type ChildStep = { id: string; title: string; position: number };
@@ -85,6 +93,6 @@ export async function getOperationsWorkspace(): Promise<OperationsWorkspace> {
   const handoffs = (handoffsResult.data ?? []).map((row) => ({ id: row.id, location: row.location_name, fromShift: row.from_shift, toShift: row.to_shift, summary: row.summary, unresolvedIssues: row.unresolved_issues, decisions: row.decisions, owner: row.owner, status: titleCase(row.status) as OperationsHandoffRecord["status"], createdAt: row.created_at, updatedAt: row.updated_at }));
   const incidents = (incidentsResult.data ?? []).map((row) => ({ id: row.id, title: row.title, category: titleCase(row.category) as OperationsIncidentRecord["category"], severity: titleCase(row.severity) as OperationsIncidentRecord["severity"], location: row.location_name, occurredAt: row.occurred_at.slice(0, 16), reportedBy: row.reported_by_name, description: row.description, immediateAction: row.immediate_action, rootCause: row.root_cause, correctiveAction: row.corrective_action, owner: row.owner, dueDate: row.due_date, status: titleCase(row.status) as OperationsIncidentRecord["status"], createdAt: row.created_at, updatedAt: row.updated_at }));
 
-  const procedureCategories = (categoriesResult.data ?? []).map((row) => ({ id: row.id, name: row.name, isDefault: row.is_default }));
+  const procedureCategories = (categoriesResult.data ?? []).map((row) => ({ id: row.id, name: row.name, isDefault: row.is_default, sortOrder: row.sort_order, description: row.description, styleName: row.style_name }));
   return { persistence: "supabase", error: firstError?.message ?? "", canManage: canManageOperations(viewer.role), checklists, procedures, procedureCategories, alerts, schedules, handoffs, incidents };
 }

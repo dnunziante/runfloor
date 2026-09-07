@@ -16,3 +16,4 @@ env.local.txt
 .env.local
 .env.*.local
 supabase/.temp/
+.qa/

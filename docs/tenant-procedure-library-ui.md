@@ -1,5 +1,7 @@
 # Tenant Procedure Library redesign
 
+The category restrictions described below are superseded by the approved management and archive work in [procedure-library-management.md](procedure-library-management.md). Database activation is still pending; the existing library remains usable until activation.
+
 The organization-facing `/operations/procedures` page now shares the Platform Admin category cards, color/icon configuration, value banner, and design styles. Data remains separate: tenant procedures/categories still come from `getOperationsWorkspace`, using the current organization filter and existing authenticated client/RLS. No server actions, repository queries, role checks, schemas, migrations, environment variables or master records were changed.
 
 The default view uses the available width for category cards with a single header search. Category browsing provides descriptions, actual tenant counts, back navigation, empty states and creation in the selected category. Search works across tenant titles, categories, owners and summaries. The full reader and create/edit drawer use native modal dialogs with focus containment, Escape/close controls and focus restoration. All original fields, publishing status, procedure ordering, delete safeguards and custom category actions remain. Category creation/rename and deletion confirmation use in-app forms instead of browser prompts.

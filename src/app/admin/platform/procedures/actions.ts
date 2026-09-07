@@ -1,5 +1,6 @@
 "use server";
 
+import { activeProcedureRows, isProcedureLibraryReady } from "@/lib/procedures/library-availability";
 import { revalidatePath } from "next/cache";
 import { type JSONContent } from "@tiptap/core";
 import { getViewer } from "@/lib/auth/viewer";
@@ -11,7 +12,7 @@ async function authorizedTemplate(id: string) {
   const viewer = await getViewer();
   if (!isPlatformTemplateEditor(viewer) || !/^[0-9a-f-]{36}$/i.test(id)) throw new Error("Platform owner access is required.");
   const supabase = await createClient();
-  const { data, error } = await supabase.from("platform_procedure_templates").select(templateColumns).eq("id", id).single();
+  const { data, error } = await activeProcedureRows(supabase.from("platform_procedure_templates").select(templateColumns).eq("id", id), await isProcedureLibraryReady("platform")).single();
   if (error || !data) throw new Error("This procedure is unavailable.");
   return { viewer: viewer!, supabase, template: data as ProcedureTemplate };
 }
@@ -21,7 +22,7 @@ export async function updateProcedureTemplate(input: { id: string; updatedAt: st
     if (typeof input.title !== "string" || input.title.trim().length < 2 || input.title.length > 160 || typeof input.category !== "string" || !input.category.trim() || input.category.length > 120 || typeof input.owner !== "string" || input.owner.length > 120 || typeof input.summary !== "string" || input.summary.length > 100_000) throw new Error("Enter a title (2–160 characters), category, and valid team and purpose.");
     if (input.document !== undefined) validateDocument(input.document);
     const content = input.document === undefined ? template.content : { ...template.content, runfloorDocument: { format: "tiptap-v1", document: input.document } };
-    const { data, error } = await supabase.from("platform_procedure_templates").update({ title: input.title, category: input.category, owner: input.owner, summary: input.summary, content, version: template.version + 1, updated_at: new Date().toISOString() }).eq("id", template.id).eq("updated_at", input.updatedAt).select(templateColumns).maybeSingle();
+    const { data, error } = await activeProcedureRows(supabase.from("platform_procedure_templates").update({ title: input.title, category: input.category, owner: input.owner, summary: input.summary, content, version: template.version + 1, updated_at: new Date().toISOString() }).eq("id", template.id).eq("updated_at", input.updatedAt), await isProcedureLibraryReady("platform")).select(templateColumns).maybeSingle();
     if (error) throw new Error(error.message);
     if (!data) throw new Error("This procedure changed while you were editing. Reload it before saving; your changes have not been saved.");
     revalidatePath("/admin/platform"); revalidatePath(`/admin/platform/procedures/${template.id}`);

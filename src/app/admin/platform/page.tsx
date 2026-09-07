@@ -5,6 +5,8 @@ import { PageHeader } from "@/components/page-header";
 import { PlatformProcedureTemplateLibrary } from "@/components/platform-procedure-template-library";
 import { getViewer } from "@/lib/auth/viewer";
 import { createClient } from "@/lib/supabase/server";
+import { defaultOperationsProcedureCategories } from "@/lib/operations/data";
+import { getProcedureLibrary } from "@/lib/procedures/library-repository";
 import {
   createTenant,
   copyTenantProcedureToPlatformTemplate,
@@ -32,7 +34,6 @@ type TemplateRow = {
   is_public_demo_visible: boolean;
   is_available_during_signup: boolean;
 };
-const procedureCategories = ["Sales Procedures", "Delivery & Post-Sale", "Inventory", "Service", "Parts", "CRM & Lead Management", "Customer Experience", "Management", "Employee & Administrative", "Other", "Uncategorized"];
 
 export default async function PlatformAdminPage({ searchParams }: { searchParams: Promise<{ category?: string; templateSearch?: string }> }) {
   const context = await searchParams;
@@ -42,8 +43,8 @@ export default async function PlatformAdminPage({ searchParams }: { searchParams
   const [
     { data: tenants },
     { data: templates },
-    { data: procedureTemplates },
-    { data: tenantProcedures },
+    procedureTemplateResult,
+    tenantProcedureResult,
   ] = await Promise.all([
     supabase
       .from("organizations")
@@ -59,18 +60,21 @@ export default async function PlatformAdminPage({ searchParams }: { searchParams
       .order("name"),
     supabase
       .from("platform_procedure_templates")
-      .select("id,title,category,owner,summary,version")
+      .select("id,title,category,owner,summary,version").is("archived_at", null)
       .order("updated_at", { ascending: false }),
     supabase
       .from("operations_procedures")
       .select("id,title,organization_id,organizations(name)")
-      .neq("status", "archived")
+      .neq("status", "archived").is("archived_at", null)
       .order("title")
       .limit(500),
   ]);
   const tenantRows = (tenants || []) as unknown as TenantRow[];
   const templateRows = (templates || []) as TemplateRow[];
+  const procedureTemplates = procedureTemplateResult.error?.code === "42703" ? (await supabase.from("platform_procedure_templates").select("id,title,category,owner,summary,version").order("updated_at", { ascending: false })).data : procedureTemplateResult.data;
+  const tenantProcedures = tenantProcedureResult.error?.code === "42703" ? (await supabase.from("operations_procedures").select("id,title,organization_id,organizations(name)").neq("status", "archived").order("title").limit(500)).data : tenantProcedureResult.data;
   const procedureTemplateRows = procedureTemplates || [];
+  const procedureLibrary = await getProcedureLibrary("platform");
   const sourceProcedures = (tenantProcedures || []) as unknown as Array<{
     id: string;
     title: string;
@@ -336,7 +340,7 @@ export default async function PlatformAdminPage({ searchParams }: { searchParams
           </table>
         </div>
       </section>
-      <PlatformProcedureTemplateLibrary initialCategory={context.category} initialQuery={context.templateSearch} templates={procedureTemplateRows} tenants={tenantRows.filter((tenant) => tenant.status === "active").map((tenant) => ({ id: tenant.id, name: tenant.name }))}>
+      <PlatformProcedureTemplateLibrary snapshot={procedureLibrary} initialCategory={context.category} initialQuery={context.templateSearch} templates={procedureTemplateRows} tenants={tenantRows.filter((tenant) => tenant.status === "active").map((tenant) => ({ id: tenant.id, name: tenant.name }))}>
       <section className="card">
         <p>
           Create a platform procedure once, then copy it into a tenant’s
@@ -369,7 +373,7 @@ export default async function PlatformAdminPage({ searchParams }: { searchParams
               required
               placeholder="Template title"
             />
-            <select className="input" name="category" aria-label="Template category" defaultValue="Uncategorized">{Array.from(new Set([...procedureCategories, ...procedureTemplateRows.map((template) => template.category)])).map((category) => <option key={category}>{category}</option>)}</select>
+            <select className="input" name="category" aria-label="Template category" defaultValue="Uncategorized">{(procedureLibrary.error ? Array.from(new Set([...defaultOperationsProcedureCategories.map(category => category.name), ...procedureTemplateRows.map(template => template.category)])) : procedureLibrary.categories.filter(category => !category.archived_at).map(category => category.name)).map((category) => <option key={category}>{category}</option>)}</select>
             <input className="input" name="owner" aria-label="Template owner" placeholder="Owner" />
           </div>
           <textarea

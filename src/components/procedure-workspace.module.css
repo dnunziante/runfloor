@@ -2,7 +2,10 @@
 .workspace h1 { font-size:clamp(26px,2.5vw,36px); font-weight:750; letter-spacing:-.035em; line-height:1.2; margin:0 0 7px; }
 .secondary { display:flex; align-items:center; justify-content:space-between; gap:12px; flex-wrap:wrap; margin:18px 0; }
 .secondary p { color:var(--muted); font-size:13px; }
-.categoryGroup { min-width:0; display:grid; }
+.categoryGroup { min-width:0; display:grid; position:relative; }
+.categoryGroup > details { position:absolute; top:8px; right:7px; z-index:2; }
+.categoryGroup:has(details[open]) { z-index:10; }
+.categoryGroup > button { padding-right:38px; width:100%; }
 .categoryGroup > button { height:100%; }
 .categoryActions { display:flex; justify-content:flex-end; gap:8px; padding:8px 4px; }
 .categoryActions small { margin-right:auto; color:var(--muted); font-size:11px; }
@@ -12,6 +15,7 @@
 .overlay { border:0; padding:0; color:var(--ink); background:transparent; width:min(940px,calc(100vw - 48px)); max-width:none; max-height:calc(100dvh - 48px); margin:auto; overflow:visible; }
 .overlay::backdrop { background:#14203380; backdrop-filter:blur(3px); }
 .overlayInner { border-radius:20px; background:var(--card,#fff); overflow:auto; max-height:calc(100dvh - 48px); box-shadow:0 24px 90px #14203340; }
+.compact { width:min(560px,calc(100vw - 48px)); }
 .drawer { width:min(900px,94vw); height:100dvh; max-height:100dvh; margin:0 0 0 auto; }
 .drawer .overlayInner { min-height:100dvh; max-height:100dvh; border-radius:20px 0 0 20px; }
 .overlayHeader { position:sticky; top:0; z-index:5; background:#fff; border-bottom:1px solid var(--line); padding:22px 28px; display:flex; justify-content:space-between; align-items:center; gap:14px; }

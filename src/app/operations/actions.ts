@@ -1,5 +1,6 @@
 "use server";
 
+import { activeProcedureRows, isProcedureLibraryReady } from "@/lib/procedures/library-availability";
 import { validateDocument } from "@/lib/procedures/validation";
 import { procedureDocument } from "@/lib/procedures/document";
 import { revalidatePath } from "next/cache";
@@ -50,11 +51,11 @@ export async function saveOperationsProcedure(input: OperationsProcedureRecord) 
   const ctx = await managerContext(); if (!ctx) return { error: "Manager access is required to manage procedures." };
   if (input.title.trim().length < 2 || input.owner.trim().length < 2 || input.summary.trim().length < 10 || !input.steps.length) return { error: "Complete the procedure details and steps." };
   const existing = !input.id.startsWith("new-");
-  const { data: category, error: categoryError } = await ctx.supabase.from("operations_procedure_categories").select("id,name").eq("id", input.categoryId).eq("organization_id", ctx.viewer.organizationId).single();
+  const { data: category, error: categoryError } = await activeProcedureRows(ctx.supabase.from("operations_procedure_categories").select("id,name").eq("id", input.categoryId).eq("organization_id", ctx.viewer.organizationId), await isProcedureLibraryReady("tenant")).single();
   if (categoryError || !category) return { error: "Choose a valid procedure category." };
   const baseValues = { title: input.title.trim(), category_id: category.id, category: category.name, owner: input.owner.trim(), summary: input.summary.trim(), status: dbValue(input.status), version: existing ? input.version : 1 };
   const structuredValues = input.content === undefined ? {} : { content: input.content, source_type: input.sourceType ?? "manual" };
-  const query = existing ? ctx.supabase.from("operations_procedures").update({ ...baseValues, ...structuredValues }).eq("id", input.id).eq("organization_id", ctx.viewer.organizationId) : ctx.supabase.from("operations_procedures").insert({ organization_id: ctx.viewer.organizationId, ...baseValues, content: input.content ?? {}, source_type: input.sourceType ?? "manual", created_by: ctx.viewer.id });
+  const query = existing ? activeProcedureRows(ctx.supabase.from("operations_procedures").update({ ...baseValues, ...structuredValues }).eq("id", input.id).eq("organization_id", ctx.viewer.organizationId), await isProcedureLibraryReady("tenant")) : ctx.supabase.from("operations_procedures").insert({ organization_id: ctx.viewer.organizationId, ...baseValues, content: input.content ?? {}, source_type: input.sourceType ?? "manual", created_by: ctx.viewer.id });
   const { data, error } = await query.select("id,title,category_id,category,owner,summary,status,version,updated_at").single(); if (error || !data) return { error: error?.message ?? "Procedure could not be saved." };
   // Rich documents are saved atomically on the procedure row. Preserve the
   // legacy step records; their short-title constraint cannot hold a full SOP.

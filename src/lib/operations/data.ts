@@ -71,7 +71,7 @@ export const operationsProcedureRecords: OperationsProcedureRecord[] = [
   { id: "showroom-opening", title: "Daily showroom opening", categoryId: "employee-administrative", category: "Employee & Administrative", owner: "Opening Manager", summary: "Prepare the customer-facing showroom and team workspace before opening.", status: "Draft", version: 1, updatedAt: "2026-08-09T10:20:00.000Z", steps: ["Complete the opening safety walk", "Position and inspect showroom carts", "Review appointments, deliveries, and staffing", "Confirm customer areas are clean and ready"] },
 ];
 
-export type OperationsProcedureCategory = { id: string; name: string; isDefault: boolean };
+export type OperationsProcedureCategory = { id: string; name: string; isDefault: boolean; sortOrder?: number; description?: string; styleName?: string };
 export const defaultOperationsProcedureCategories: OperationsProcedureCategory[] = [["sales-procedures", "Sales Procedures"], ["delivery-post-sale", "Delivery & Post-Sale"], ["inventory", "Inventory"], ["service", "Service"], ["parts", "Parts"], ["crm-lead-management", "CRM & Lead Management"], ["customer-experience", "Customer Experience"], ["management", "Management"], ["employee-administrative", "Employee & Administrative"], ["other", "Other"], ["uncategorized", "Uncategorized"]].map(([id, name]) => ({ id, name, isDefault: true }));
 
 export type OperationsAlertRecord = {

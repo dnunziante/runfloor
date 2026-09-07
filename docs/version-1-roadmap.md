@@ -58,6 +58,10 @@ Version 1 is ready for a controlled pilot when a company can securely onboard, m
 
 ## Operations Assistant prototype
 
+- Approved and applied September 6, 2026: the 90 procedures in the nine selected standard categories are inherited by every industry template, automatically seeded for new tenants, and distributed to all existing tenants without overwriting existing tenant records. See `standard-procedure-rollout.md`.
+
+- Approved September 6, 2026: persistent category management and recoverable archives for both platform procedure templates and tenant procedures, with independent data and permissions. Implementation is prepared locally; shared database activation awaits explicit approval following automatic review. See `procedure-library-management.md`.
+
 - Added a responsive sample-data dashboard for daily checklist completion, assignments, quick procedures, and operational alerts.
 - All operational information is explicitly labeled as prototype data; no live inventory, employee, scheduling, database, or AI integration is connected.
 - Added browser-local checklist creation, location and owner assignment, due dates, step completion, and retained progress with loading, error, and empty states.

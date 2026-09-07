@@ -11,11 +11,11 @@ import { procedureExtensions } from "@/lib/procedures/extensions";
 import { ProcedureFormattingToolbar } from "./procedure-formatting-toolbar";
 import styles from "./procedure-document.module.css";
 
-export function ProcedureDocument({ initial, backHref }: { initial: ProcedureTemplate; backHref: string }) {
+export function ProcedureDocument({ initial, backHref, initialEditing = false, categories = [initial.category] }: { initial: ProcedureTemplate; backHref: string; initialEditing?: boolean; categories?: string[] }) {
   const router = useRouter();
   const toc = useRef<HTMLDetailsElement>(null);
   const [record, setRecord] = useState(initial);
-  const [editing, setEditing] = useState(false);
+  const [editing, setEditing] = useState(initialEditing);
   const [title, setTitle] = useState(initial.title);
   const [category, setCategory] = useState(initial.category);
   const [owner, setOwner] = useState(initial.owner);
@@ -81,7 +81,7 @@ export function ProcedureDocument({ initial, backHref }: { initial: ProcedureTem
     <div className={`${styles.layout} ${!editing && headings.length >= 4 ? styles.withToc : ""}`}>
       {!editing && headings.length >= 4 && <aside className={styles.toc}><details ref={toc} open><summary>On this page</summary><nav aria-label="Procedure sections"><a href="#procedure-overview">Overview & purpose</a>{headings.map((heading, index) => <button key={index} onClick={() => editor?.view.dom.querySelectorAll("h1,h2,h3,h4,h5,h6")[index]?.scrollIntoView({ behavior: "smooth", block: "start" })}>{heading}</button>)}</nav></details></aside>}
       <article className={styles.document} id="procedure-overview">
-        {editing ? <div className={styles.fields}><label>Procedure title<input className="input" value={title} maxLength={160} onChange={event => setTitle(event.target.value)} disabled={busy} /></label><div><label>Category<input className="input" value={category} maxLength={120} onChange={event => setCategory(event.target.value)} disabled={busy} /></label><label>Team / Department<input className="input" value={owner} maxLength={120} onChange={event => setOwner(event.target.value)} disabled={busy} /></label></div><label>Description / Purpose<textarea className="input" rows={5} value={summary} onChange={event => setSummary(event.target.value)} disabled={busy} /></label><p>Version {record.version} · Saving creates version {record.version + 1}.</p></div> : <div className={styles.overview}><span className={styles.eyebrow}>STANDARD OPERATING PROCEDURE</span><h2>{record.title}</h2><div className={styles.meta}><span>{record.category}</span><span>{record.owner || "Team not assigned"}</span><span>Version {record.version}</span></div><h3>Purpose</h3><p>{record.summary || "No purpose has been added yet."}</p></div>}
+        {editing ? <div className={styles.fields}><label>Procedure title<input className="input" value={title} maxLength={160} onChange={event => setTitle(event.target.value)} disabled={busy} /></label><div><label>Category<select className="input" value={category} onChange={event => setCategory(event.target.value)} disabled={busy}>{categories.map(name => <option key={name}>{name}</option>)}</select></label><label>Team / Department<input className="input" value={owner} maxLength={120} onChange={event => setOwner(event.target.value)} disabled={busy} /></label></div><label>Description / Purpose<textarea className="input" rows={5} value={summary} onChange={event => setSummary(event.target.value)} disabled={busy} /></label><p>Version {record.version} · Saving creates version {record.version + 1}.</p></div> : <div className={styles.overview}><span className={styles.eyebrow}>STANDARD OPERATING PROCEDURE</span><h2>{record.title}</h2><div className={styles.meta}><span>{record.category}</span><span>{record.owner || "Team not assigned"}</span><span>Version {record.version}</span></div><h3>Purpose</h3><p>{record.summary || "No purpose has been added yet."}</p></div>}
         {editing && editor && <ProcedureFormattingToolbar editor={editor} busy={busy} setError={setError} />}
         {!editing && !hasBody && <div className={styles.empty}>No procedure content has been added yet.</div>}
         <div className={styles.body} data-testid="full-procedure-body"><EditorContent editor={editor} />{!editor && <p>Loading complete procedure…</p>}</div>
