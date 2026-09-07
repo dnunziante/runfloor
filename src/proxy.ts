@@ -88,6 +88,7 @@ export const config = {
     "/pricing-calculator/:path*",
     "/quote-calculator/:path*",
     "/products/:path*",
+    "/competitors/:path*",
     "/comparisons/:path*",
     "/objections/:path*",
     "/email/:path*",

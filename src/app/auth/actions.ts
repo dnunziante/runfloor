@@ -41,7 +41,7 @@ export async function login(
       name: error.name,
       status: error.status,
     });
-    return { error: "The email or password is incorrect." };
+    return { error: error.name === "AuthRetryableFetchError" || !error.status || error.status >= 500 ? "Sign-in could not reach the workspace. Please try again." : "The email or password is incorrect." };
   }
 
   console.info("[auth/login] sign-in accepted", { nextPath });

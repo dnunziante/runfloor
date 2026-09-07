@@ -85,3 +85,14 @@ Version 1 is ready for a controlled pilot when a company can securely onboard, m
 - Added tenant opportunity management for creating, editing, publishing, and archiving Growth Advisor opportunities.
 - Added a tenant-aware Growth Performance dashboard for plan status, deadlines, task completion, opportunity-level execution health, and verified business results.
 - Added verified Growth Plan outcomes for dated leads, appointments, revenue, costs, notes, and deterministic ROI reporting, with tenant-scoped Supabase policies and a browser-local demo fallback.
+
+## Competitor model library
+
+- Added a dedicated Competitors page in Sales navigation using the shared product cards, galleries, search, brand filter, and detail guides.
+- Uses only published competitor products from the existing tenant catalog. Missing competitor prices are labeled as not provided. Administrators continue managing models through Products and pricing.
+
+- Added a separate Admin > Competitor products & pricing page with model images, manual creation, document extraction, competitor-only spreadsheet validation, and grouped management controls. Shared product editors return to competitor management, and catalog actions refresh both competitor pages.
+
+- Competitor brand families reuse tenant product_families with a reserved competitor-brand- slug prefix, filtered out of the own-product family library. Family covers use the existing image storage. Manual and document uploads inside a family preserve its ID; ungrouped imports match by brand name.
+
+- Redesigned competitor management with live count cards, section navigation that preserves form entries, a separate image panel within model creation, collapsible specifications, brand covers and quick actions, searchable/filterable management tables, archive browsing, and CSV export of current results. Existing create, upload, edit, duplicate, guide, publish, archive, and remove actions remain available.

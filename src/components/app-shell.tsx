@@ -14,6 +14,7 @@ const links = [
   ["Loan Calculator", "/pricing-calculator", Calculator],
   ["Quote Calculator", "/quote-calculator", Calculator],
   ["Products", "/products", Boxes],
+  ["Competitors", "/competitors", Scale],
   ["Comparisons", "/comparisons", GitCompareArrows],
   ["Write an Email", "/email", Mail],
   ["Write a Text", "/text", MessagesSquare],

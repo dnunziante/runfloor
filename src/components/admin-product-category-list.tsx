@@ -8,7 +8,7 @@ import type { ProductDTO, ProductFamilyDTO } from "@/lib/products/types";
 
 type Category = ProductFamilyDTO & { products: ProductDTO[] };
 
-export function AdminProductCategoryList({ categories }: { categories: Category[] }) {
+export function AdminProductCategoryList({ categories, allowReorder = true, expanded = false }: { categories: Category[]; allowReorder?: boolean; expanded?: boolean }) {
   const [items, setItems] = useState(categories);
   const [draggedId, setDraggedId] = useState<string | null>(null);
   const [message, setMessage] = useState("");
@@ -45,22 +45,23 @@ export function AdminProductCategoryList({ categories }: { categories: Category[
   }
 
   return <div className="admin-product-categories">
-    <p className="admin-product-order-help">Drag items into the preferred order, or use the arrow buttons. Changes save automatically.</p>
+    {allowReorder && <p className="admin-product-order-help">Drag items into the preferred order, or use the arrow buttons. Changes save automatically.</p>}
     {message && <p className={message === "Order saved." ? "form-success" : message === "Saving order…" ? "field-help" : "form-error"} role="status">{message}</p>}
-    {items.map((family) => <details className="admin-product-category" name="admin-product-category" key={family.id}>
+    {items.map((family) => <details className="admin-product-category" name={expanded ? undefined : "admin-product-category"} open={expanded || undefined} key={family.id}>
       <summary><span><strong>{family.name}</strong><small>{family.products.length} {family.products.length === 1 ? "item" : "items"}</small></span><ChevronDown className="admin-product-category-chevron" size={18}/></summary>
-      {family.products.length ? <div className="table-wrap"><table className="table"><thead><tr><th aria-label="Order"/><th>Name</th><th>Price</th><th>Status</th><th>Actions</th></tr></thead><tbody>{family.products.map((product, index) => <tr
+      {family.products.length ? <div className="table-wrap"><table className="table"><thead><tr>{allowReorder && <th aria-label="Order"/>}<th>Name</th>{expanded && <><th>Brand</th><th>Year</th><th>Category</th></>}<th>Price</th><th>Status</th><th>Actions</th></tr></thead><tbody>{family.products.map((product, index) => <tr
         className={draggedId === product.id ? "is-dragging" : ""}
-        draggable={!isPending}
+        draggable={allowReorder && !isPending}
         key={product.id}
         onDragStart={(event) => { setDraggedId(product.id); event.dataTransfer.effectAllowed = "move"; event.dataTransfer.setData("text/plain", product.id); }}
         onDragEnd={() => setDraggedId(null)}
         onDragOver={(event) => { event.preventDefault(); event.dataTransfer.dropEffect = "move"; }}
-        onDrop={(event) => { event.preventDefault(); const sourceId = event.dataTransfer.getData("text/plain") || draggedId; if (sourceId) reorder(family.id, sourceId, product.id); setDraggedId(null); }}
+        onDrop={(event) => { event.preventDefault(); const sourceId = event.dataTransfer.getData("text/plain") || draggedId; if (allowReorder && sourceId) reorder(family.id, sourceId, product.id); setDraggedId(null); }}
       >
-        <td><div className="product-order-controls"><GripVertical className="product-drag-handle" size={18} aria-hidden="true"/><button type="button" onClick={() => move(family.id, product.id, -1)} disabled={index === 0 || isPending} aria-label={`Move ${product.name} up`}><ArrowUp size={14}/></button><button type="button" onClick={() => move(family.id, product.id, 1)} disabled={index === family.products.length - 1 || isPending} aria-label={`Move ${product.name} down`}><ArrowDown size={14}/></button></div></td>
+        {allowReorder && <td><div className="product-order-controls"><GripVertical className="product-drag-handle" size={18} aria-hidden="true"/><button type="button" onClick={() => move(family.id, product.id, -1)} disabled={index === 0 || isPending} aria-label={`Move ${product.name} up`}><ArrowUp size={14}/></button><button type="button" onClick={() => move(family.id, product.id, 1)} disabled={index === family.products.length - 1 || isPending} aria-label={`Move ${product.name} down`}><ArrowDown size={14}/></button></div></td>}
         <td><div className="admin-product-name">{product.imageUrl ? <span className="admin-product-thumbnail" style={{backgroundImage:`url(${product.imageUrl})`}} role="img" aria-label={`${product.name} thumbnail`}/> : <span className={`admin-product-thumbnail placeholder ${product.color}`} aria-hidden="true"/>}<span><strong>{product.name}</strong><small>{product.model}</small></span></div></td>
-        <td>${product.price.toLocaleString()}</td>
+        {expanded && <><td>{product.brand || product.manufacturer || "Not provided"}</td><td>{product.modelYear || "Not provided"}</td><td>{product.productCategory || "Not provided"}</td></>}
+        <td>{expanded && !product.price ? "Not provided" : `${product.price.toLocaleString()}`}</td>
         <td><span className={`badge ${product.status === "Draft" ? "amber" : ""}`}>{product.status}</span></td>
         <td><div className="product-row-actions">
           <Link className="btn btn-ghost status-button" href={`/admin/products/${product.id}/edit`}><Pencil size={14}/> Edit</Link>

@@ -16,6 +16,9 @@ export async function POST(request: Request) {
   const returnTo = String(form.get("returnTo") || "/admin/products");
   if (!files.length) return NextResponse.json({ error: "Choose at least one file." }, { status: 400 });
   const db = createAdminClient();
+  const familyId = String(form.get("familyId") || "");
+  const { data: family } = familyId ? await db.from("product_families").select("id,name,slug").eq("id", familyId).eq("organization_id", viewer.organizationId).maybeSingle() : { data: null };
+  if (familyId && (!family || productType !== "competitor_product" || !family.slug.startsWith("competitor-brand-"))) return NextResponse.json({ error: "Choose a competitor family from this workspace." }, { status: 400 });
   const { data: organization } = await db.from("organizations").select("industry_template_id").eq("id", viewer.organizationId).maybeSingle();
   const { data: template } = organization?.industry_template_id ? await db.from("industry_templates").select("template_key").eq("id", organization.industry_template_id).maybeSingle() : { data: null };
   const industry = template?.template_key === "golf-cart" ? "golf-cart" as const : template?.template_key === "rv" ? "rv" as const : "generic" as const;
@@ -28,8 +31,8 @@ export async function POST(request: Request) {
     try {
       const models = await extractProductModels(file, {}, industry);
       for (const item of models) {
-        const brand = item.manufacturer || manufacturer;
-        await db.from("products").insert({ organization_id: viewer.organizationId, source_document_id: document.id, product_type: productType, review_status: "pending_review", status: "draft", name: item.name, slug: `${slug(item.name)}-${crypto.randomUUID().slice(0, 8)}`, model: item.model, manufacturer: brand, brand, model_year: item.modelYear, product_category: item.category, description: item.description, specifications: item.specifications, base_price_cents: 0, visual_theme: "blue" });
+        const brand = family?.name || item.manufacturer || manufacturer;
+        await db.from("products").insert({ organization_id: viewer.organizationId, source_document_id: document.id, family_id: family?.id || null, product_type: productType, review_status: "pending_review", status: "draft", name: item.name, slug: `${slug(item.name)}-${crypto.randomUUID().slice(0, 8)}`, model: item.model, manufacturer: brand, brand, model_year: item.modelYear, product_category: item.category, description: item.description, specifications: item.specifications, base_price_cents: 0, visual_theme: "blue" });
       }
       await db.from("product_documents").update({ processing_status: "needs_review", models_found: models.length, updated_at: new Date().toISOString() }).eq("id", document.id);
     } catch (error) {

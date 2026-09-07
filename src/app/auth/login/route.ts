@@ -35,7 +35,7 @@ export async function POST(request: NextRequest) {
 
   try {
     const { error } = await supabase.auth.signInWithPassword({ email, password });
-    if (error) return loginRedirect(request, nextPath, "credentials");
+    if (error) return loginRedirect(request, nextPath, error.name === "AuthRetryableFetchError" || !error.status || error.status >= 500 ? "network" : "credentials");
   } catch {
     return loginRedirect(request, nextPath, "network");
   }

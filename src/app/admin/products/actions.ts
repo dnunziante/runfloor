@@ -42,11 +42,11 @@ async function requireCatalogManager() {
 
 const requireTenantAdmin = requireCatalogManager;
 
-export async function createProductFamily(name: string): Promise<ProductFamilyActionState> {
+export async function createProductFamily(name: string, competitor = false): Promise<ProductFamilyActionState> {
   const viewer = await requireTenantAdmin();
   const familyName = name.trim().slice(0, 120);
-  const slug = slugify(familyName);
-  if (familyName.length < 2 || !slug) return { error: "Enter a category name with at least two characters.", success: "" };
+  const slug = `${competitor ? "competitor-brand-" : ""}${slugify(familyName)}`;
+  if (familyName.length < 2 || !slugify(familyName)) return { error: "Enter a category name with at least two characters.", success: "" };
 
   const supabase = await createClient();
   const { data: existing } = await supabase.from("product_families").select("id").eq("organization_id", viewer.organizationId).eq("slug", slug).maybeSingle();
@@ -57,6 +57,8 @@ export async function createProductFamily(name: string): Promise<ProductFamilyAc
   revalidatePath("/products");
   revalidatePath("/products/families");
   revalidatePath("/admin/products");
+  revalidatePath("/admin/competitors");
+  revalidatePath("/competitors");
   return { error: "", success: `${data.name} was created.`, familyId: data.id };
 }
 
@@ -73,6 +75,8 @@ export async function createProductCatalog(name: string, description: string): P
   const { data, error } = await supabase.from("product_families").insert({ organization_id: viewer.organizationId, name: catalogName, slug, description: catalogDescription, sort_order: (lastCatalog?.sort_order ?? 0) + 10 }).select("id, name").single();
   if (error || !data) return { error: error?.code === "23505" ? "A catalog with that name already exists." : "The catalog could not be created.", success: "" };
   revalidatePath("/products"); revalidatePath("/admin/products");
+  revalidatePath("/admin/competitors");
+  revalidatePath("/competitors");
   return { error: "", success: `${data.name} was created.`, catalogId: data.id };
 }
 
@@ -85,6 +89,8 @@ export async function updateProductCatalog(catalogId: string, name: string, desc
   const { data, error } = await supabase.from("product_families").update({ name: catalogName, slug, description: catalogDescription, updated_at: new Date().toISOString() }).eq("id", catalogId).eq("organization_id", viewer.organizationId).select("slug").maybeSingle();
   if (error || !data) return { error: error?.code === "23505" ? "A catalog with that name already exists." : "The catalog could not be updated.", success: "" };
   revalidatePath("/products"); revalidatePath(`/products/families/${data.slug}`); revalidatePath("/admin/products");
+  revalidatePath("/admin/competitors");
+  revalidatePath("/competitors");
   return { error: "", success: "Catalog updated.", catalogId };
 }
 
@@ -107,7 +113,9 @@ export async function deleteProductCatalog(catalogId: string, disposition: "unca
   }
   const { error } = await supabase.from("product_families").delete().eq("id", catalogId).eq("organization_id", viewer.organizationId);
   if (error) return { error: "The catalog could not be deleted.", success: "" };
-  revalidatePath("/products"); revalidatePath(`/products/families/${catalog.slug}`); revalidatePath("/admin/products"); revalidatePath("/comparisons");
+  revalidatePath("/products"); revalidatePath(`/products/families/${catalog.slug}`); revalidatePath("/admin/products");
+  revalidatePath("/admin/competitors");
+  revalidatePath("/competitors"); revalidatePath("/comparisons");
   return { error: "", success: "Catalog deleted. Products were kept according to your selection." };
 }
 
@@ -200,6 +208,8 @@ export async function createProduct(
   revalidatePath("/products/families");
   revalidatePath("/comparisons");
   revalidatePath("/admin/products");
+  revalidatePath("/admin/competitors");
+  revalidatePath("/competitors");
   return { error: "", success: `${name} was saved.`, productId, organizationId: viewer.organizationId };
 }
 
@@ -220,6 +230,8 @@ export async function saveProductFamilyImage(familyId: string, imagePath: string
   revalidatePath("/products");
   revalidatePath(`/products/families/${data.slug}`);
   revalidatePath("/admin/products");
+  revalidatePath("/admin/competitors");
+  revalidatePath("/competitors");
   return { error: "", success: `${data.name} image was saved.` };
 }
 
@@ -254,6 +266,8 @@ export async function saveProductImagePaths(productId: string, imagePaths: strin
   revalidatePath("/products");
   revalidatePath("/comparisons");
   revalidatePath("/admin/products");
+  revalidatePath("/admin/competitors");
+  revalidatePath("/competitors");
 }
 
 export async function saveWarrantyDocumentPaths(productId: string, documentPaths: string[]) {
@@ -266,6 +280,8 @@ export async function saveWarrantyDocumentPaths(productId: string, documentPaths
   if (error) throw new Error("The warranty documents could not be saved.");
   revalidatePath("/products");
   revalidatePath("/admin/products");
+  revalidatePath("/admin/competitors");
+  revalidatePath("/competitors");
 }
 
 export async function updateProduct(
@@ -350,6 +366,8 @@ export async function updateProduct(
   revalidatePath(`/products/${data.slug}`);
   revalidatePath("/comparisons");
   revalidatePath("/admin/products");
+  revalidatePath("/admin/competitors");
+  revalidatePath("/competitors");
   revalidatePath(`/admin/products/${productId}/edit`);
   return { error: "", success: `${name} was updated.` };
 }
@@ -396,6 +414,8 @@ export async function duplicateProduct(formData: FormData) {
   if (error) throw new Error("The product could not be duplicated.");
 
   revalidatePath("/admin/products");
+  revalidatePath("/admin/competitors");
+  revalidatePath("/competitors");
   redirect(`/admin/products/${duplicateId}/edit`);
 }
 
@@ -423,6 +443,8 @@ export async function saveProductOrder(familyId: string, productIds: string[]): 
   revalidatePath("/pricing-calculator");
   revalidatePath("/quote-calculator");
   revalidatePath("/admin/products");
+  revalidatePath("/admin/competitors");
+  revalidatePath("/competitors");
   return { error: "", success: "Order saved." };
 }
 
@@ -446,6 +468,8 @@ export async function setProductStatus(formData: FormData) {
   revalidatePath("/products");
   revalidatePath("/comparisons");
   revalidatePath("/admin/products");
+  revalidatePath("/admin/competitors");
+  revalidatePath("/competitors");
 }
 
 export async function setProductCatalog(formData: FormData) {
@@ -478,6 +502,8 @@ export async function setProductCatalog(formData: FormData) {
   revalidatePath("/products");
   revalidatePath("/comparisons");
   revalidatePath("/admin/products");
+  revalidatePath("/admin/competitors");
+  revalidatePath("/competitors");
 }
 
 export async function saveSalesGuide(
@@ -512,6 +538,8 @@ export async function saveSalesGuide(
   revalidatePath(`/products/${data.slug}`);
   revalidatePath("/products");
   revalidatePath("/admin/products");
+  revalidatePath("/admin/competitors");
+  revalidatePath("/competitors");
   revalidatePath(`/admin/products/${productId}/guide`);
   return { error: "", success: `${data.name} sales guide was saved.` };
 }
@@ -543,4 +571,6 @@ export async function deleteProduct(formData: FormData) {
   revalidatePath("/products");
   revalidatePath("/comparisons");
   revalidatePath("/admin/products");
+  revalidatePath("/admin/competitors");
+  revalidatePath("/competitors");
 }

@@ -21,6 +21,7 @@ export default async function ProductSalesGuidePage({ params }: { params: Promis
   const { slug } = await params;
   const { product } = await getTenantProductBySlug(slug);
   if (!product) notFound();
+  const competitor = product.productType === "competitor_product";
   const guide = product.salesGuide;
   const specifications = [
     ["Frame", product.range], ["Passenger capacity", product.seats], ["Powertrain", product.powertrain], ["Dimensions", product.dimensions], ["Running distance", product.runningDistance], ["Turning radius", product.turningRadius], ["Max load capacity", product.maxLoadCapacity],
@@ -28,10 +29,10 @@ export default async function ProductSalesGuidePage({ params }: { params: Promis
   ].filter(([, value]) => Boolean(value?.trim())) as Array<[string, string]>;
 
   return <AppShell title="Product Sales Guide">
-    <PageHeader eyebrow="Approved product guidance" title={`${product.name} sales guide`} description={`${product.model} · Use this guide to prepare and lead a consistent customer conversation.`} action={<Link className="btn btn-ghost" href="/products"><ArrowLeft size={16}/> Product Library</Link>}/>
+    <PageHeader eyebrow={competitor ? "Competitor model" : "Approved product guidance"} title={`${product.name} sales guide`} description={`${product.model} · Use this guide to prepare and lead a consistent customer conversation.`} action={<Link className="btn btn-ghost" href={competitor ? "/competitors" : "/products"}><ArrowLeft size={16}/> {competitor ? "Competitor Library" : "Product Library"}</Link>}/>
     <section className="sales-guide-hero card">
       <div className={`sales-guide-image ${product.color} ${product.imageUrl ? "has-image" : ""}`} style={product.imageUrl ? {backgroundImage:`url(${product.imageUrl})`} : undefined} role="img" aria-label={`${product.name} primary product image`}/>
-      <div><span className="badge blue">{product.status}</span><h2>{product.name} · {product.model}</h2><p>{product.description}</p><div className="chips"><span className="chip">{product.range}</span><span className="chip">{product.seats}</span><span className="chip">{product.powertrain}</span>{product.highlights.map((highlight) => <span className="chip" key={highlight}>{highlight}</span>)}</div><strong className="price">Starting at ${product.price.toLocaleString()}</strong></div>
+      <div><span className="badge blue">{product.status}</span><h2>{product.name} · {product.model}</h2><p>{product.description}</p><div className="chips"><span className="chip">{product.range}</span><span className="chip">{product.seats}</span><span className="chip">{product.powertrain}</span>{product.highlights.map((highlight) => <span className="chip" key={highlight}>{highlight}</span>)}</div><strong className="price">{competitor && !product.price ? "Price not provided" : `Starting at $${product.price.toLocaleString()}`}</strong></div>
     </section>
     <section className="card product-specifications-card" aria-labelledby="product-specifications-heading"><div className="guide-section-title"><ClipboardCheck size={20}/><h2 id="product-specifications-heading">Product specifications</h2></div>{specifications.length ? <div className="product-specifications">{specifications.map(([label, value]) => <Specification key={label} label={label} value={value}/>)}</div> : <p className="guide-empty">No approved product specifications have been added yet.</p>}</section>
     <div className="grid grid-2 sales-guide-grid">

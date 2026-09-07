@@ -12,7 +12,7 @@ export default async function AdminSalesGuidePage({ params }: { params: Promise<
   if (!product) notFound();
 
   return <AppShell title="Admin · Sales Guide">
-    <PageHeader eyebrow="Tenant product guidance" title={`${product.name} sales guide`} description={`${product.model} · Create approved guidance for sales conversations, demonstrations, objections, and follow-up.`} action={<div className="guide-header-actions"><Link className="btn btn-ghost" href="/admin/products"><ArrowLeft size={16}/> Products</Link>{product.status === "Published" && <Link className="btn btn-secondary" href={`/products/${product.slug}`}><ExternalLink size={16}/> Preview guide</Link>}</div>}/>
+    <PageHeader eyebrow="Tenant product guidance" title={`${product.name} sales guide`} description={`${product.model} · Create approved guidance for sales conversations, demonstrations, objections, and follow-up.`} action={<div className="guide-header-actions"><Link className="btn btn-ghost" href={product.productType === "competitor_product" ? "/admin/competitors" : "/admin/products"}><ArrowLeft size={16}/> {product.productType === "competitor_product" ? "Competitor products" : "Products"}</Link>{product.status === "Published" && <Link className="btn btn-secondary" href={`/products/${product.slug}`}><ExternalLink size={16}/> Preview guide</Link>}</div>}/>
     <SalesGuideEditor product={product}/>
   </AppShell>;
 }

@@ -148,9 +148,9 @@ export async function getTenantProducts(options: { includeDrafts?: boolean; fami
   };
 }
 
-export async function getTenantProductFamilies(): Promise<ProductFamilyResult> {
+export async function getTenantProductFamilies(competitor = false): Promise<ProductFamilyResult> {
   const viewer = await getViewer();
-  if (viewer?.demo || isLocalDemoMode() || !isSupabaseConfigured()) return { families: demoFamilies, source: "demo" };
+  if (viewer?.demo || isLocalDemoMode() || !isSupabaseConfigured()) return { families: competitor ? [] : demoFamilies, source: "demo" };
   if (!viewer?.organizationId) return { families: [], source: "supabase", error: "Your account is not assigned to an organization." };
 
   const supabase = await createClient();
@@ -162,7 +162,7 @@ export async function getTenantProductFamilies(): Promise<ProductFamilyResult> {
     .order("name");
 
   if (error) return { families: [], source: "supabase", error: "Product families could not be loaded from the workspace." };
-  const rows = data as ProductFamilyRow[];
+  const rows = (data as ProductFamilyRow[]).filter((row) => row.slug.startsWith("competitor-brand-") === competitor);
   const paths = rows.map((row) => row.image_path).filter((path): path is string => Boolean(path));
   const signedUrls = new Map<string, string>();
   if (paths.length) {
