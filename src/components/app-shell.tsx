@@ -110,13 +110,6 @@ export function AppShell({ children, title }: { children: React.ReactNode; title
           <summary><span className="module-icon"><Bot size={18}/></span><span>Business Assistant</span><ChevronDown className="module-chevron" size={16}/></summary>
           <div className="module-links">{businessAssistantLinks.map(([label, href, Icon]) => <Link className={pathname === "/assistant" && label === "Chat" ? "active" : ""} href={href} key={href} onClick={() => setOpen(false)}><Icon size={18}/><span>{label}</span></Link>)}</div>
         </details>
-        <details className="module-group" key={`coach-${pathname}`} open={coachSectionActive}>
-          <summary><span className="module-icon"><GraduationCap size={18}/></span><span>Sales Coach</span><ChevronDown className="module-chevron" size={16}/></summary>
-          <div className="module-links">{coachLinks.map(([label, href, Icon]) => {
-            const active = pathname === href || (href === "/training" && pathname.startsWith("/training/"));
-            return <Link className={active ? "active" : ""} href={href} key={href} onClick={() => setOpen(false)}><Icon size={18}/><span>{label}</span></Link>;
-          })}</div>
-        </details>
         <details className="module-group" key={`sales-${pathname}`} open={salesSectionActive}>
           <summary><span className="module-icon"><BriefcaseBusiness size={18}/></span><span>Sales Assistant</span><ChevronDown className="module-chevron" size={16}/></summary>
           <div className="module-links">{links.filter(([label]) => label !== "Admin" || administratorVisible).map(([label, href, Icon]) => {
@@ -127,6 +120,13 @@ export function AppShell({ children, title }: { children: React.ReactNode; title
         <details className="module-group" key={`operations-${pathname}`} open={operationsSectionActive}>
           <summary><span className="module-icon"><ClipboardCheck size={18}/></span><span>Operations Assistant</span><ChevronDown className="module-chevron" size={16}/></summary>
           <div className="module-links">{operationsLinks.map(([label, href, Icon]) => <Link className={pathname === href || (href !== "/operations" && pathname.startsWith(`${href}/`)) ? "active" : ""} href={href} key={href} onClick={() => setOpen(false)}><Icon size={18}/><span>{label}</span></Link>)}</div>
+        </details>
+        <details className="module-group" key={`coach-${pathname}`} open={coachSectionActive}>
+          <summary><span className="module-icon"><GraduationCap size={18}/></span><span>Sales Coach</span><ChevronDown className="module-chevron" size={16}/></summary>
+          <div className="module-links">{coachLinks.map(([label, href, Icon]) => {
+            const active = pathname === href || (href === "/training" && pathname.startsWith("/training/"));
+            return <Link className={active ? "active" : ""} href={href} key={href} onClick={() => setOpen(false)}><Icon size={18}/><span>{label}</span></Link>;
+          })}</div>
         </details>
         <details className="module-group" key={`growth-${pathname}`} open={growthSectionActive}>
           <summary><span className="module-icon"><TrendingUp size={18}/></span><span>Business Growth Advisor</span><ChevronDown className="module-chevron" size={16}/></summary>
