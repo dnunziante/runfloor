@@ -11,7 +11,6 @@ import type { Viewer } from "@/lib/auth/viewer";
 
 const links = [
   ["Dashboard", "/dashboard/performance", BarChart3],
-  ["Ask the Assistant", "/assistant", Bot],
   ["Loan Calculator", "/pricing-calculator", Calculator],
   ["Quote Calculator", "/quote-calculator", Calculator],
   ["Products", "/products", Boxes],
@@ -22,6 +21,12 @@ const links = [
   ["Knowledge Base", "/knowledge-base", BookOpen],
   ["Analytics", "/analytics", BarChart3],
   ["Admin", "/admin", ShieldCheck],
+] as const;
+
+const businessAssistantLinks = [
+  ["Chat", "/assistant", Bot],
+  ["Suggested Prompts", "/assistant#suggested-prompts", Sparkles],
+  ["Assistant Tools", "/assistant#assistant-tools", Boxes],
 ] as const;
 
 const operationsLinks = [
@@ -85,6 +90,7 @@ export function AppShell({ children, title }: { children: React.ReactNode; title
 
   const roleLabel = viewer.role === "platform_owner" ? "Platform Owner" : viewer.role === "tenant_admin" ? "Tenant Admin" : viewer.role === "manager" ? "Manager" : "Salesperson";
   const coachSectionActive = pathname.startsWith("/coach") || pathname === "/objections" || pathname === "/role-play" || pathname === "/training" || pathname.startsWith("/training/");
+  const businessAssistantActive = pathname === "/assistant";
   const growthSectionActive = pathname.startsWith("/growth") || pathname.startsWith("/admin/growth");
   const operationsSectionActive = pathname.startsWith("/operations");
   const executiveSectionActive = pathname.startsWith("/executive") || pathname.startsWith("/admin/executive") || pathname.startsWith("/admin/sales-results");
@@ -100,17 +106,21 @@ export function AppShell({ children, title }: { children: React.ReactNode; title
       <div className="workspace"><span className="avatar avatar-square">{viewer.organizationName.charAt(0)}</span><span><small>{viewer.demo ? "Demo workspace" : viewer.role === "platform_owner" ? "Viewing workspace" : "Workspace"}</small>{viewer.role === "platform_owner" && workspaces.length > 0 ? <select className="workspace-select" value={viewer.organizationId} onChange={(event) => changeWorkspace(event.target.value)} aria-label="Switch workspace">{workspaces.map((workspace) => <option key={workspace.id} value={workspace.id}>{workspace.name}</option>)}</select> : <strong>{viewer.organizationName}</strong>}</span>{viewer.role === "platform_owner" && workspaces.length > 0 ? null : <ChevronDown size={16}/>}</div>
       <nav className="nav module-nav" aria-label="Main navigation">
         <Link className={pathname === "/dashboard" ? "active" : ""} href="/dashboard" aria-current={pathname === "/dashboard" ? "page" : undefined} onClick={() => setOpen(false)}><LayoutDashboard size={18}/><span>Home</span></Link>
-        <details className="module-group" key={`sales-${pathname}`} open={salesSectionActive}>
-          <summary><span className="module-icon"><BriefcaseBusiness size={18}/></span><span>Sales Assistant</span><ChevronDown className="module-chevron" size={16}/></summary>
-          <div className="module-links">{links.filter(([label]) => label !== "Admin" || administratorVisible).map(([label, href, Icon]) => {
-            const active = pathname === href || (href === "/admin" && pathname.startsWith("/admin") && !pathname.startsWith("/admin/growth") && !pathname.startsWith("/admin/executive") && !pathname.startsWith("/admin/sales-results"));
-            return <Link className={active ? "active" : ""} href={href} key={href} onClick={() => setOpen(false)}><Icon size={18}/><span>{label}</span></Link>;
-          })}</div>
+        <details className="module-group" key={`business-assistant-${pathname}`} open={businessAssistantActive}>
+          <summary><span className="module-icon"><Bot size={18}/></span><span>Business Assistant</span><ChevronDown className="module-chevron" size={16}/></summary>
+          <div className="module-links">{businessAssistantLinks.map(([label, href, Icon]) => <Link className={pathname === "/assistant" && label === "Chat" ? "active" : ""} href={href} key={href} onClick={() => setOpen(false)}><Icon size={18}/><span>{label}</span></Link>)}</div>
         </details>
         <details className="module-group" key={`coach-${pathname}`} open={coachSectionActive}>
           <summary><span className="module-icon"><GraduationCap size={18}/></span><span>Sales Coach</span><ChevronDown className="module-chevron" size={16}/></summary>
           <div className="module-links">{coachLinks.map(([label, href, Icon]) => {
             const active = pathname === href || (href === "/training" && pathname.startsWith("/training/"));
+            return <Link className={active ? "active" : ""} href={href} key={href} onClick={() => setOpen(false)}><Icon size={18}/><span>{label}</span></Link>;
+          })}</div>
+        </details>
+        <details className="module-group" key={`sales-${pathname}`} open={salesSectionActive}>
+          <summary><span className="module-icon"><BriefcaseBusiness size={18}/></span><span>Sales Assistant</span><ChevronDown className="module-chevron" size={16}/></summary>
+          <div className="module-links">{links.filter(([label]) => label !== "Admin" || administratorVisible).map(([label, href, Icon]) => {
+            const active = pathname === href || (href === "/admin" && pathname.startsWith("/admin") && !pathname.startsWith("/admin/growth") && !pathname.startsWith("/admin/executive") && !pathname.startsWith("/admin/sales-results"));
             return <Link className={active ? "active" : ""} href={href} key={href} onClick={() => setOpen(false)}><Icon size={18}/><span>{label}</span></Link>;
           })}</div>
         </details>

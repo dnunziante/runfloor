@@ -11,6 +11,7 @@ export type ChangeRoleState = { error: string; success: string };
 export type ChangeLocationState = { error: string; success: string };
 export type UpdateCredentialsState = { error: string; success: string };
 export type RemoveUserState = { error: string; success: string };
+export type ReactivateUserState = { error: string; success: string };
 
 const validRoles = new Set(["manager", "salesperson"]);
 const uuidPattern = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
@@ -201,8 +202,46 @@ export async function removeUserFromWorkspace(_previousState: RemoveUserState, f
     const { count } = await supabase.from("organization_memberships").select("id", { count: "exact", head: true }).eq("organization_id", membership.organization_id).eq("role", "tenant_admin").eq("status", "active");
     if ((count || 0) < 2) return { error: "Keep at least one active Admin in this workspace.", success: "" };
   }
-  const { error } = await supabase.from("organization_memberships").update({ status: "suspended", location_id: null }).eq("id", membershipId).eq("organization_id", membership.organization_id);
+  const { error } = await supabase.from("organization_memberships").update({ status: "suspended" }).eq("id", membershipId).eq("organization_id", membership.organization_id);
   if (error) return { error: "The user could not be removed from this workspace.", success: "" };
   revalidatePath("/admin/users");
   return { error: "", success: "User removed from this workspace. Their account was not deleted." };
+}
+
+export async function reactivateUserInWorkspace(_previousState: ReactivateUserState, formData: FormData): Promise<ReactivateUserState> {
+  const viewer = await getViewer();
+  const membershipId = String(formData.get("membershipId") || "");
+  const requestedLocationId = String(formData.get("locationId") || "");
+  if (viewer?.demo || !viewer || !["tenant_admin", "platform_owner"].includes(viewer.role) || !uuidPattern.test(membershipId)) {
+    return { error: "Only an Admin can reactivate users.", success: "" };
+  }
+
+  const supabase = await createClient();
+  const { data: membership } = await supabase.from("organization_memberships")
+    .select("organization_id, role, status, location_id")
+    .eq("id", membershipId)
+    .maybeSingle();
+  if (!membership || (viewer.role !== "platform_owner" && membership.organization_id !== viewer.organizationId)) {
+    return { error: "That user is outside your workspace.", success: "" };
+  }
+  if (membership.status !== "suspended") return { error: "That user is already active.", success: "" };
+  let locationId = membership.location_id;
+  if (membership.role !== "tenant_admin" && !locationId) {
+    if (!uuidPattern.test(requestedLocationId)) return { error: "Choose a location to reactivate this user.", success: "" };
+    const { data: location } = await supabase.from("locations").select("id").eq("id", requestedLocationId).eq("organization_id", membership.organization_id).eq("is_active", true).maybeSingle();
+    if (!location) return { error: "Choose an active location in this user's tenant.", success: "" };
+    locationId = location.id;
+  }
+
+  const { data, error } = await supabase.from("organization_memberships")
+    .update({ status: "active", location_id: locationId })
+    .eq("id", membershipId)
+    .eq("organization_id", membership.organization_id)
+    .eq("status", "suspended")
+    .select("id")
+    .maybeSingle();
+  if (error || !data) return { error: "The user could not be reactivated.", success: "" };
+
+  revalidatePath("/admin/users");
+  return { error: "", success: "User access reactivated." };
 }

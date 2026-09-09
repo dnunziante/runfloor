@@ -1,36 +1,40 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import Link from "next/link";
+import { useEffect, useRef, useState } from "react";
+import { ArrowRight, BarChart3, BookOpenCheck, Bot, Boxes, BrainCircuit, CheckSquare, ChevronDown, ClipboardCheck, DollarSign, Lightbulb, Mail, MapPin, Paperclip, Search, Send, ShieldCheck, Sparkles, Target, Users } from "lucide-react";
 import { AppShell } from "@/components/app-shell";
-import { PageHeader } from "@/components/page-header";
-import { Bot, Send, Sparkles } from "lucide-react";
 import { AssistantMarkdown } from "@/components/assistant-markdown";
+import styles from "./assistant-dashboard.module.css";
 
 type Message = { role: "user" | "ai"; text: string };
+const prompts = [["Compare two products", "Compare two products for a customer.", Boxes, "orange"], ["Create a sales email", "Help me create a sales email.", Mail, "red"], ["Build a team training plan", "Build a team training plan.", Users, "purple"], ["Analyze my sales performance", "Analyze my sales performance.", BarChart3, "blue"], ["Help with an objection", "Help me respond to a customer objection.", Target, "orange"], ["Create an SOP", "Help me create a standard operating procedure.", ClipboardCheck, "green"], ["Give me marketing ideas", "Give me marketing ideas for our business.", Lightbulb, "red"], ["Review a store process", "Help me review a store process.", CheckSquare, "orange"], ["Build a checklist", "Help me build an operations checklist.", ShieldCheck, "green"]] as const;
+const domains = [["Sales", "Close more deals", Send, "orange"], ["Operations", "Run smoother", ShieldCheck, "blue"], ["Marketing", "Grow your business", Target, "green"], ["Leadership", "Build stronger teams", Users, "purple"], ["Finance", "Make smarter decisions", DollarSign, "orange"], ["Industry Insights", "Stay ahead", BrainCircuit, "red"]] as const;
+const tools = [["Product Library", "Get specs, compare, and position", "/products", Boxes, "green"], ["Procedure Library", "Find operational guidance", "/operations/procedures", BookOpenCheck, "blue"], ["Email & Text Generator", "Create customer-ready messages", "/email", Mail, "purple"], ["Checklists & Templates", "Use proven workflows", "/operations/checklists", ClipboardCheck, "orange"], ["Data & Analytics", "Review team performance", "/analytics", BarChart3, "green"]] as const;
 
 export default function AssistantPage() {
-  const [input, setInput] = useState("");
-  const [sending, setSending] = useState(false);
-  const [workspaceName, setWorkspaceName] = useState("Your workspace");
-  const [messages, setMessages] = useState<Message[]>([{ role: "ai", text: "Ask a product or sales question and I’ll answer from your approved RunFloor knowledge." }]);
-  const prompts = ["Compare two products", "Explain a key feature", "Help respond to a price objection"];
+  const [input, setInput] = useState(""); const [sending, setSending] = useState(false); const [workspaceName, setWorkspaceName] = useState("your workspace");
+  const [promptsOpen, setPromptsOpen] = useState(true);
+  const [messages, setMessages] = useState<Message[]>([{ role: "ai", text: "I’m your RunFloor Business Assistant — here to help with sales, operations, marketing, leadership, finance, and more.\n\nWhat can I help you with today?" }]);
+  const messagesRef = useRef<HTMLDivElement>(null);
+  useEffect(() => { fetch("/api/auth/context").then((response) => response.ok ? response.json() : null).then((viewer) => { if (viewer?.organizationName) setWorkspaceName(viewer.organizationName); }).catch(() => undefined); }, []);
+  useEffect(() => { messagesRef.current?.scrollTo({ top: messagesRef.current.scrollHeight, behavior: "smooth" }); }, [messages]);
+  async function send(question = input) { if (!question.trim() || sending) return; setMessages((current) => [...current, { role: "user", text: question }]); setInput(""); setSending(true); try { const response = await fetch("/api/assistant", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ question }) }); const result = await response.json().catch(() => ({})); setMessages((current) => [...current, { role: "ai", text: response.ok ? result.answer : (result.error || "The Business Assistant could not complete the request.") }]); } finally { setSending(false); } }
 
-  useEffect(() => {
-    fetch("/api/auth/context").then((response) => response.ok ? response.json() : null).then((viewer) => {
-      if (viewer?.organizationName) setWorkspaceName(viewer.organizationName);
-    }).catch(() => undefined);
-  }, []);
-
-  async function send(question = input) {
-    if (!question.trim() || sending) return;
-    setMessages((current) => [...current, { role: "user", text: question }]);
-    setInput(""); setSending(true);
-    try {
-      const response = await fetch("/api/assistant", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ question }) });
-      const result = await response.json().catch(() => ({}));
-      setMessages((current) => [...current, { role: "ai", text: response.ok ? result.answer : (result.error || "The Sales Assistant could not complete the request.") }]);
-    } finally { setSending(false); }
-  }
-
-  return <AppShell title="Ask the Assistant"><PageHeader eyebrow={workspaceName + " sales copilot"} title="What can I help you sell today?" description="Answers are grounded in approved product knowledge for this workspace."/><div className="chat-layout"><aside className="card chat-sidebar"><h2>Suggested questions</h2><p style={{fontSize:12}}>Try a common sales question for this workspace.</p>{prompts.map((prompt) => <button className="prompt" style={{width:"100%",background:"white",textAlign:"left"}} key={prompt} onClick={() => send(prompt)} disabled={sending}>{prompt}</button>)}<div className="callout" style={{marginTop:18}}><Sparkles size={18}/><h3 style={{marginTop:8}}>Grounded answers</h3><p style={{fontSize:11,margin:0}}>Product answers use approved workspace knowledge only.</p></div></aside><section className="card chat-window"><header className="chat-head"><span className="bot-icon"><Bot size={20}/></span><div><strong>Sales Assistant</strong><small style={{display:"block",color:"#16825d"}}>● Knowledge search enabled</small></div></header><div className="messages">{messages.map((message, index) => <div className={"message " + message.role} key={index}>{message.role === "ai" ? <AssistantMarkdown content={message.text}/> : message.text}</div>)}</div><form className="composer" onSubmit={(event) => { event.preventDefault(); send(); }}><input className="input" value={input} onChange={(event) => setInput(event.target.value)} placeholder="Ask a question about a customer or product…" aria-label="Message" disabled={sending}/><button className="btn btn-primary" aria-label="Send" disabled={sending}><Send size={17}/><span>{sending ? "Searching…" : "Send"}</span></button></form></section></div></AppShell>;
+  return <AppShell title="Business Assistant"><div className={styles.page}>
+    <section className={styles.hero}><div><span>RunFloor AI Assistant</span><h1>Your Business Coach. Built for Real Results.</h1><p>Get expert guidance on sales, operations, marketing, leadership, and more — all powered by your approved business knowledge.</p></div><div className={styles.quote} aria-hidden="true">“Better Decisions.<br/>Drive Bigger Results.”</div></section>
+    <section className={styles.domains} aria-label="Assistant expertise">{domains.map(([name, detail, Icon, tone]) => <button type="button" onClick={() => send(`Help me with ${name.toLowerCase()}.`)} disabled={sending} key={name}><span className={`${styles.icon} ${styles[tone]}`}><Icon/></span><span><strong>{name}</strong><small>{detail}</small></span></button>)}</section>
+    <div className={styles.layout}><main className={styles.chatCard}>
+      <header className={styles.chatHeader}><span className={`${styles.icon} ${styles.brandIcon}`}><Bot/></span><div><strong>RunFloor Assistant</strong><small><i/> Online · Powered by {workspaceName} knowledge</small></div><span className={styles.assistantBadge}><Sparkles/> Business Assistant</span></header>
+      <div className={styles.messages} ref={messagesRef}>{messages.map((message, index) => <div className={`${styles.messageRow} ${message.role === "user" ? styles.userRow : ""}`} key={index}>{message.role === "ai" && <span className={`${styles.icon} ${styles.brandIcon}`}><Bot/></span>}<div className={`${styles.message} ${message.role === "user" ? styles.userMessage : ""}`}>{message.role === "ai" ? <AssistantMarkdown content={message.text}/> : message.text}</div></div>)}</div>
+      <div className={styles.promptToggleRow}><button className={`${styles.promptToggle} ${promptsOpen ? styles.promptToggleOpen : ""}`} type="button" onClick={() => setPromptsOpen((open) => !open)} aria-expanded={promptsOpen} aria-controls="suggested-prompts" aria-label={promptsOpen ? "Hide suggested prompts" : "Show suggested prompts"}><ChevronDown/></button></div>
+      <div className={`${styles.prompts} ${promptsOpen ? "" : styles.promptsCollapsed}`} id="suggested-prompts" aria-hidden={!promptsOpen}>{prompts.map(([label, question, Icon, tone]) => <button type="button" onClick={() => send(question)} disabled={sending || !promptsOpen} tabIndex={promptsOpen ? 0 : -1} key={label}><span className={`${styles.miniIcon} ${styles[tone]}`}><Icon/></span>{label}<ArrowRight/></button>)}</div>
+      <form className={styles.composer} onSubmit={(event) => { event.preventDefault(); send(); }}><textarea value={input} onChange={(event) => setInput(event.target.value)} placeholder="Ask me anything about your business…" aria-label="Message" disabled={sending} rows={2}/><div><span className={styles.attachHint}><Paperclip/> Add context</span><button type="submit" aria-label="Send message" disabled={sending || !input.trim()}><Send/>{sending && <span>Thinking…</span>}</button></div></form>
+      <nav className={styles.contextLinks} aria-label="Business knowledge shortcuts"><Link href="/products"><Boxes/> Products</Link><Link href="/operations/procedures"><BookOpenCheck/> Procedures</Link><Link href="/admin/settings"><MapPin/> Locations</Link><Link href="/competitors"><Target/> Competitors</Link><Link href="/analytics"><BarChart3/> Reports</Link><Link href="/knowledge-base"><Search/> Knowledge</Link></nav>
+    </main><aside className={styles.rail} id="assistant-tools">
+      <section className={styles.railCard}><h2>Your Tools</h2><div className={styles.toolList}>{tools.map(([name, detail, href, Icon, tone]) => <Link href={href} key={name}><span className={`${styles.icon} ${styles[tone]}`}><Icon/></span><span><strong>{name}</strong><small>{detail}</small></span><ArrowRight/></Link>)}</div></section>
+      <section className={styles.railCard}><h2>Current Conversation</h2><div className={styles.conversationInfo}><Bot/><strong>{Math.max(0, messages.length - 1)} questions asked</strong><span>This conversation stays open while you use this page.</span></div></section>
+      <section className={styles.railCard}><h2>Quick Actions</h2><div className={styles.actionGrid}><Link href="/operations/checklists"><CheckSquare/> New Checklist</Link><Link href="/email"><Mail/> Write an Email</Link><Link href="/operations/procedures"><BookOpenCheck/> Procedures</Link><Link href="/analytics"><BarChart3/> Performance</Link></div></section>
+    </aside></div>
+  </div></AppShell>;
 }
