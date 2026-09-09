@@ -17,8 +17,41 @@ export const defaultCommunicationStandards: CommunicationStandards = {
 };
 
 const label = (value: string) => value.replaceAll("_", " ");
+const allowedValues = {
+  tone: ["professional", "conversational", "friendly", "direct", "consultative"],
+  responseLength: ["concise", "balanced", "detailed"],
+  salesApproach: ["consultative", "educational", "direct", "relationship_focused"],
+  discoveryLevel: ["minimal", "moderate", "thorough"],
+  competitorBehavior: ["do_not_discuss", "when_asked", "when_helpful"],
+  ctaStrength: ["soft", "balanced", "strong"],
+} as const;
+
+function enumSetting<T extends string>(value: unknown, allowed: readonly T[], fallback: T): T {
+  return typeof value === "string" && allowed.includes(value as T) ? value as T : fallback;
+}
+
+function booleanSetting(value: unknown, fallback: boolean) {
+  return typeof value === "boolean" ? value : fallback;
+}
+
 export function normalizeStandards(value: Partial<CommunicationStandards> | null | undefined): CommunicationStandards {
-  return { ...defaultCommunicationStandards, ...(value || {}), advancedInstructions: typeof value?.advancedInstructions === "string" ? value.advancedInstructions : "" };
+  return {
+    tone: enumSetting(value?.tone, allowedValues.tone, defaultCommunicationStandards.tone),
+    responseLength: enumSetting(value?.responseLength, allowedValues.responseLength, defaultCommunicationStandards.responseLength),
+    salesApproach: enumSetting(value?.salesApproach, allowedValues.salesApproach, defaultCommunicationStandards.salesApproach),
+    discoveryLevel: enumSetting(value?.discoveryLevel, allowedValues.discoveryLevel, defaultCommunicationStandards.discoveryLevel),
+    competitorBehavior: enumSetting(value?.competitorBehavior, allowedValues.competitorBehavior, defaultCommunicationStandards.competitorBehavior),
+    ctaStrength: enumSetting(value?.ctaStrength, allowedValues.ctaStrength, defaultCommunicationStandards.ctaStrength),
+    useShortParagraphs: booleanSetting(value?.useShortParagraphs, defaultCommunicationStandards.useShortParagraphs),
+    useBullets: booleanSetting(value?.useBullets, defaultCommunicationStandards.useBullets),
+    useHeadings: booleanSetting(value?.useHeadings, defaultCommunicationStandards.useHeadings),
+    avoidLargeBlocks: booleanSetting(value?.avoidLargeBlocks, defaultCommunicationStandards.avoidLargeBlocks),
+    askDiscoveryBeforeRecommendation: booleanSetting(value?.askDiscoveryBeforeRecommendation, defaultCommunicationStandards.askDiscoveryBeforeRecommendation),
+    explainRecommendation: booleanSetting(value?.explainRecommendation, defaultCommunicationStandards.explainRecommendation),
+    offerAlternative: booleanSetting(value?.offerAlternative, defaultCommunicationStandards.offerAlternative),
+    connectBenefits: booleanSetting(value?.connectBenefits, defaultCommunicationStandards.connectBenefits),
+    advancedInstructions: typeof value?.advancedInstructions === "string" ? value.advancedInstructions : "",
+  };
 }
 
 export function formatCompanyStandards(input: Partial<CommunicationStandards> | null | undefined) {
