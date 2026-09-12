@@ -15,3 +15,18 @@
   flex: 0 0 auto;
   white-space: nowrap;
 }
+
+:global(.tenant-status-field) {
+  display: grid;
+  flex: 1 1 145px;
+  gap: 4px;
+  min-width: 145px;
+}
+
+:global(.tenant-status-field > span) {
+  color: var(--muted);
+  font-size: 9px;
+  font-weight: 800;
+  letter-spacing: .06em;
+  text-transform: uppercase;
+}

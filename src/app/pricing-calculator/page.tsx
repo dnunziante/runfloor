@@ -1,23 +1,26 @@
 import { AppShell } from "@/components/app-shell";
-import { PageHeader } from "@/components/page-header";
-import { PricingCalculator } from "@/components/pricing-calculator";
+import { CombinedCalculator } from "@/components/combined-calculator";
 import { getTenantProductFamilies, getTenantProducts } from "@/lib/products/data";
+import { getOrganizationLocations } from "@/lib/locations";
 
 const addOnFamilySlugs = new Set(["accessories", "warranties"]);
 
 export default async function PricingCalculatorPage() {
-  const [result, familyResult] = await Promise.all([getTenantProducts(), getTenantProductFamilies()]);
-  const vehicleFamilyIds = new Set(familyResult.families.filter((family) => !addOnFamilySlugs.has(family.slug)).map((family) => family.id));
+  const [result, familyResult, locationResult] = await Promise.all([getTenantProducts(), getTenantProductFamilies(), getOrganizationLocations()]);
+  const addOnFamilyIds = new Set(familyResult.families.filter((family) => addOnFamilySlugs.has(family.slug)).map((family) => family.id));
+  const accessoryFamilyIds = new Set(familyResult.families.filter((family) => family.slug === "accessories").map((family) => family.id));
+  const warrantyFamilyIds = new Set(familyResult.families.filter((family) => family.slug === "warranties").map((family) => family.id));
   const vehicles = result.products
-    .filter((product) => product.familyId && vehicleFamilyIds.has(product.familyId))
+    .filter((product) => product.productType !== "competitor_product" && (!product.familyId || !addOnFamilyIds.has(product.familyId)))
     .sort((first, second) => {
       const nameOrder = first.name.localeCompare(second.name, undefined, { sensitivity: "base", numeric: true });
       if (nameOrder) return nameOrder;
       const priceOrder = first.price - second.price;
       return priceOrder || first.model.localeCompare(second.model, undefined, { sensitivity: "base", numeric: true });
     });
-  return <AppShell title="Loan Calculator">
-    <PageHeader eyebrow="Loan estimate" title="Build a clear loan scenario" description="Estimate acquisition cost, amount financed, and monthly payment using your published products."/>
-    {result.error || familyResult.error ? <div className="card error-card"><h2>Calculator unavailable</h2><p>{result.error || familyResult.error}</p></div> : <PricingCalculator products={vehicles}/>}
+  const accessories = result.products.filter((product) => product.familyId && accessoryFamilyIds.has(product.familyId));
+  const warranties = result.products.filter((product) => product.familyId && warrantyFamilyIds.has(product.familyId));
+  return <AppShell title="Quote & Financing Calculator">
+    {result.error || familyResult.error || locationResult.error ? <div className="card error-card"><h2>Calculator unavailable</h2><p>{result.error || familyResult.error || locationResult.error}</p></div> : <CombinedCalculator vehicles={vehicles} accessories={accessories} warranties={warranties} locations={locationResult.locations}/>}
   </AppShell>;
 }

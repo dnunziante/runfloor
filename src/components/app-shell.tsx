@@ -11,8 +11,7 @@ import type { Viewer } from "@/lib/auth/viewer";
 
 const links = [
   ["Dashboard", "/dashboard/performance", BarChart3],
-  ["Loan Calculator", "/pricing-calculator", Calculator],
-  ["Quote Calculator", "/quote-calculator", Calculator],
+  ["Quote & Loan Calculator", "/pricing-calculator", Calculator],
   ["Products", "/products", Boxes],
   ["Competitors", "/competitors", Scale],
   ["Comparisons", "/comparisons", GitCompareArrows],

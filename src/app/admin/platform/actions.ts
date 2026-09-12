@@ -289,7 +289,10 @@ export async function updateTenant(formData: FormData) {
     throw new Error("Enter a valid tenant name and status.");
   }
 
-  const supabase = await createClient();
+  // Platform owners manage organizations outside their currently selected
+  // workspace. The role check above is the authorization boundary; use the
+  // server-only admin client so tenant-scoped RLS cannot discard the update.
+  const supabase = createAdminClient();
   const { data: template } = await supabase
     .from("industry_templates")
     .select("id,is_enabled")
@@ -302,10 +305,16 @@ export async function updateTenant(formData: FormData) {
     .from("organizations")
     .update({ name, status, subscription_status: subscriptionStatus, industry_template_id: template.id })
     .eq("id", tenantId)
-    .select("id, industry_template_id")
+    .select("id, name, status, subscription_status, industry_template_id")
     .maybeSingle();
 
-  if (error || !savedTenant || savedTenant.industry_template_id !== template.id) throw new Error("The tenant template assignment could not be confirmed.");
+  if (error || !savedTenant) throw new Error("The tenant settings could not be saved.");
+  if (
+    savedTenant.name !== name ||
+    savedTenant.status !== status ||
+    savedTenant.subscription_status !== subscriptionStatus ||
+    savedTenant.industry_template_id !== template.id
+  ) throw new Error("The saved tenant settings could not be confirmed. Please try again.");
   revalidatePath("/admin/platform");
 }
 

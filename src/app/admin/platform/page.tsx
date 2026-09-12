@@ -179,27 +179,27 @@ export default async function PlatformAdminPage({ searchParams }: { searchParams
                             </option>
                           ))}
                       </select>
-                      <select
-                        className="input"
-                        name="subscriptionStatus"
-                        defaultValue={tenant.subscription_status}
-                        aria-label={`${tenant.name} subscription`}
-                      >
-                        <option value="trial">Trial</option>
-                        <option value="active">Active</option>
-                        <option value="past_due">Past due</option>
-                        <option value="suspended">Suspended</option>
-                        <option value="cancelled">Cancelled</option>
-                      </select>
-                      <select
-                        className="input"
-                        name="status"
-                        defaultValue={tenant.status}
-                        aria-label={`${tenant.name} tenant status`}
-                      >
-                        <option value="active">Active</option>
-                        <option value="suspended">Archived</option>
-                      </select>
+                      <label className="tenant-status-field"><span>Subscription</span><select
+                          className="input"
+                          name="subscriptionStatus"
+                          defaultValue={tenant.subscription_status}
+                          aria-label={`${tenant.name} subscription status`}
+                        >
+                          <option value="trial">Trial</option>
+                          <option value="active">Active</option>
+                          <option value="past_due">Past due</option>
+                          <option value="suspended">Suspended</option>
+                          <option value="cancelled">Cancelled</option>
+                        </select></label>
+                      <label className="tenant-status-field"><span>Workspace</span><select
+                          className="input"
+                          name="status"
+                          defaultValue={tenant.status}
+                          aria-label={`${tenant.name} workspace status`}
+                        >
+                          <option value="active">Active</option>
+                          <option value="suspended">Archived</option>
+                        </select></label>
                       <button className="btn btn-ghost">Save tenant</button>
                     </form>
                   </td>
