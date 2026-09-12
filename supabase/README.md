@@ -31,6 +31,14 @@ do update set role = 'tenant_admin', status = 'active';
 
 The user can then sign in at `/login`. Users without an active organization membership are sent to `/no-access`.
 
+## Multi-tenant user access
+
+Authentication identities remain globally unique by email. Tenant access is represented by one `organization_memberships` row per user and organization, so the same account can hold different roles and optional location assignments in multiple workspaces.
+
+`20260912010000_multi_tenant_active_workspace_hardening.sql` adds the user-leading membership index, preserves profile email lookup for existing and future authentication users, and restricts each user's active workspace context to organizations they are allowed to access. The Admin Users invitation flow reuses an existing authentication identity when present and creates only the missing tenant membership. New identities continue through the normal email invitation flow.
+
+The workspace selector stores the selected organization in `platform_workspace_contexts`. Application reads derive their tenant scope from that active organization, while row-level security independently requires a valid active membership. Platform owners retain only the cross-tenant access already defined by the existing permission architecture.
+
 ## Roles
 
 - `platform_owner`: stored only on the user profile; controls platform methodology and all tenants.

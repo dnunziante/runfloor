@@ -19,6 +19,7 @@ import {
   type OperationsScheduleRecord,
 } from "@/lib/operations/data";
 import { createClient } from "@/lib/supabase/server";
+import { isLocalDemoMode } from "@/lib/supabase/config";
 
 export type OperationsPersistence = "demo" | "supabase";
 export type OperationsWorkspace = {
@@ -36,14 +37,32 @@ export type OperationsWorkspace = {
 
 const titleCase = (value: string) => value.split("_").map((part) => part[0]?.toUpperCase() + part.slice(1)).join(" ");
 
+const rvDemoText = (value: string) => value
+  .replace(/golf carts/gi, "RVs")
+  .replace(/golf cart/gi, "RV")
+  .replace(/carts/gi, "RVs")
+  .replace(/cart/gi, "RV")
+  .replace(/test drives?/gi, "RV walk-throughs")
+  .replace(/showroom/gi, "RV lot");
+
+function rvDemoRecords<T>(value: T): T {
+  if (typeof value === "string") return rvDemoText(value) as T;
+  if (Array.isArray(value)) return value.map(rvDemoRecords) as T;
+  if (value && typeof value === "object") return Object.fromEntries(Object.entries(value).map(([key, item]) => [key, rvDemoRecords(item)])) as T;
+  return value;
+}
+
 export async function getOperationsWorkspace(): Promise<OperationsWorkspace> {
   const viewer = await getViewer();
-  if (viewer?.demo) return {
-    persistence: "demo", error: "", canManage: true, checklists: operationsChecklistRecords,
-    procedures: operationsProcedureRecords, procedureCategories: defaultOperationsProcedureCategories, alerts: operationsAlertRecords,
-    schedules: operationsScheduleRecords, handoffs: operationsHandoffRecords,
-    incidents: operationsIncidentRecords,
-  };
+  if (viewer?.demo) {
+    const publicRvDemo = !isLocalDemoMode();
+    return {
+      persistence: "demo", error: "", canManage: true, checklists: publicRvDemo ? rvDemoRecords(operationsChecklistRecords) : operationsChecklistRecords,
+      procedures: publicRvDemo ? rvDemoRecords(operationsProcedureRecords) : operationsProcedureRecords, procedureCategories: defaultOperationsProcedureCategories, alerts: publicRvDemo ? rvDemoRecords(operationsAlertRecords) : operationsAlertRecords,
+      schedules: publicRvDemo ? rvDemoRecords(operationsScheduleRecords) : operationsScheduleRecords, handoffs: publicRvDemo ? rvDemoRecords(operationsHandoffRecords) : operationsHandoffRecords,
+      incidents: publicRvDemo ? rvDemoRecords(operationsIncidentRecords) : operationsIncidentRecords,
+    };
+  }
   if (!viewer) return {
     persistence: "supabase", error: "Sign in to view operations.", canManage: false,
     checklists: [], procedures: [], procedureCategories: [], alerts: [], schedules: [], handoffs: [], incidents: [],

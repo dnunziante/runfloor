@@ -4,6 +4,7 @@ import { getViewer } from "@/lib/auth/viewer";
 import { demoProductFamilies as demoFamilies, demoProducts } from "@/lib/demo/catalog";
 import { isLocalDemoMode, isSupabaseConfigured } from "@/lib/supabase/config";
 import { createClient } from "@/lib/supabase/server";
+import { createAdminClient } from "@/lib/supabase/admin";
 import type { ProductDTO, ProductFamilyResult, ProductResult, ProductStatus, ProductType, SalesGuideDTO } from "./types";
 
 type ProductRow = {
@@ -64,6 +65,32 @@ export const emptySalesGuide: SalesGuideDTO = {
   disclaimers: "",
 };
 
+type TemplateProductRow = {
+  id: string; family_name: string; name: string; model: string; model_year: number | null;
+  model_variant: string; specifications: Record<string, string> | null; description: string;
+  base_price_cents: number; range_text: string; seats_text: string; powertrain_text: string;
+  product_type: ProductType; manufacturer: string; product_category: string; sort_order: number;
+};
+
+const templateFamilyId = (name: string) => `demo-rv-${name.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "") || "products"}`;
+
+async function getPublicRvTemplateProducts(): Promise<ProductResult> {
+  const admin = createAdminClient();
+  const { data: template, error: templateError } = await admin.from("industry_templates").select("id").eq("template_key", "rv").eq("is_enabled", true).maybeSingle();
+  if (templateError || !template) return { products: [], source: "supabase", error: "The RV demo catalog is unavailable." };
+  const { data, error } = await admin.from("industry_template_products").select("id,family_name,name,model,model_year,model_variant,specifications,description,base_price_cents,range_text,seats_text,powertrain_text,product_type,manufacturer,product_category,sort_order").eq("industry_template_id", template.id).order("sort_order").order("name");
+  if (error) return { products: [], source: "supabase", error: "The RV demo catalog is unavailable." };
+  return { source: "supabase", products: ((data ?? []) as TemplateProductRow[]).map((row) => ({ id: row.id, familyId: templateFamilyId(row.family_name), name: row.name, slug: `rv-${row.id}`, model: row.model, brand: row.manufacturer, manufacturer: row.manufacturer, modelYear: row.model_year, modelVariant: row.model_variant, productType: row.product_type, productCategory: row.product_category, specifications: row.specifications ?? {}, description: row.description, price: row.base_price_cents / 100, range: row.range_text, seats: row.seats_text, powertrain: row.powertrain_text, dimensions: "", runningDistance: "", turningRadius: "", maxLoadCapacity: "", sortOrder: row.sort_order, highlights: [], color: "orange", imageUrl: null, imageUrls: [], imagePaths: [], salesGuide: emptySalesGuide, status: "Published" })) };
+}
+
+async function getPublicRvTemplateFamilies(): Promise<ProductFamilyResult> {
+  const products = await getPublicRvTemplateProducts();
+  if (products.error) return { families: [], source: products.source, error: products.error };
+  const groups = new Map<string, number>();
+  for (const product of products.products) { const name = product.familyId?.replace(/^demo-rv-/, "").replace(/-/g, " ") || "RVs"; groups.set(name, (groups.get(name) ?? 0) + 1); }
+  return { source: "supabase", families: [...groups].map(([name, productCount]) => ({ id: templateFamilyId(name), name: name.replace(/\b\w/g, (letter) => letter.toUpperCase()), slug: templateFamilyId(name).replace(/^demo-rv-/, ""), description: "Explore this RV category in the public RunFloor demo.", imageUrl: null, imagePath: null, productCount })) };
+}
+
 function toDTO(row: ProductRow, imageUrls: string[] = [], imagePaths: string[] = []): ProductDTO {
   return {
     id: row.id,
@@ -101,7 +128,11 @@ function toDTO(row: ProductRow, imageUrls: string[] = [], imagePaths: string[] =
 
 export async function getTenantProducts(options: { includeDrafts?: boolean; familyId?: string } = {}): Promise<ProductResult> {
   const viewer = await getViewer();
-  if (viewer?.demo || isLocalDemoMode() || !isSupabaseConfigured()) {
+  if (viewer?.demo && !isLocalDemoMode() && isSupabaseConfigured()) {
+    const result = await getPublicRvTemplateProducts();
+    return options.familyId ? { ...result, products: result.products.filter((product) => product.familyId === options.familyId) } : result;
+  }
+  if (isLocalDemoMode() || !isSupabaseConfigured()) {
     return { products: options.familyId ? demoProducts.filter((product) => product.familyId === options.familyId) : demoProducts, source: "demo" };
   }
 
@@ -150,7 +181,8 @@ export async function getTenantProducts(options: { includeDrafts?: boolean; fami
 
 export async function getTenantProductFamilies(competitor = false): Promise<ProductFamilyResult> {
   const viewer = await getViewer();
-  if (viewer?.demo || isLocalDemoMode() || !isSupabaseConfigured()) return { families: competitor ? [] : demoFamilies, source: "demo" };
+  if (viewer?.demo && !isLocalDemoMode() && isSupabaseConfigured()) return competitor ? { families: [], source: "supabase" } : getPublicRvTemplateFamilies();
+  if (isLocalDemoMode() || !isSupabaseConfigured()) return { families: competitor ? [] : demoFamilies, source: "demo" };
   if (!viewer?.organizationId) return { families: [], source: "supabase", error: "Your account is not assigned to an organization." };
 
   const supabase = await createClient();

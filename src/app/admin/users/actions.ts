@@ -13,8 +13,21 @@ export type UpdateCredentialsState = { error: string; success: string };
 export type RemoveUserState = { error: string; success: string };
 export type ReactivateUserState = { error: string; success: string };
 
-const validRoles = new Set(["manager", "salesperson"]);
+const validRoles = new Set(["tenant_admin", "manager", "salesperson"]);
 const uuidPattern = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
+
+async function findAuthUserByEmail(admin: ReturnType<typeof createAdminClient>, email: string) {
+  const { data: profile } = await admin.from("profiles").select("id").ilike("email", email).maybeSingle();
+  if (profile?.id) return profile.id;
+  for (let page = 1; page <= 100; page += 1) {
+    const { data, error } = await admin.auth.admin.listUsers({ page, perPage: 1000 });
+    if (error) throw error;
+    const match = data.users.find((user) => user.email?.toLowerCase() === email);
+    if (match) return match.id;
+    if (data.users.length < 1000) break;
+  }
+  return null;
+}
 
 export async function inviteUser(_previousState: InviteUserState, formData: FormData): Promise<InviteUserState> {
   const viewer = await getViewer();
@@ -30,19 +43,36 @@ export async function inviteUser(_previousState: InviteUserState, formData: Form
   const locationId = String(formData.get("locationId") || "");
   const requestedOrganizationId = String(formData.get("organizationId") || "");
   const organizationId = viewer.role === "platform_owner" && uuidPattern.test(requestedOrganizationId) ? requestedOrganizationId : viewer.organizationId;
-  if (!organizationId || !firstName || !lastName || !phone || !/^\S+@\S+\.\S+$/.test(email) || !validRoles.has(role) || !uuidPattern.test(locationId)) {
+  const locationRequired = role !== "tenant_admin";
+  if (!organizationId || !firstName || !lastName || !phone || !/^\S+@\S+\.\S+$/.test(email) || !validRoles.has(role) || (locationRequired && !uuidPattern.test(locationId))) {
     return { error: "Enter a first name, last name, phone, email, role, and location.", success: "" };
   }
 
   try {
     const admin = createAdminClient();
-    const { data: location } = await admin
+    const { data: organization } = await admin.from("organizations").select("id, name").eq("id", organizationId).eq("status", "active").maybeSingle();
+    if (!organization) return { error: "Choose an active tenant.", success: "" };
+    const { data: location } = uuidPattern.test(locationId) ? await admin
       .from("locations")
       .select("id, name")
       .eq("id", locationId)
       .eq("organization_id", organizationId)
-      .maybeSingle();
-    if (!location) return { error: "Choose a location in this BGC workspace.", success: "" };
+      .maybeSingle() : { data: null };
+    if (locationRequired && !location) return { error: `Choose a location in ${organization.name}.`, success: "" };
+
+    const existingUserId = await findAuthUserByEmail(admin, email);
+    if (existingUserId) {
+      const { data: existingMembership, error: membershipLookupError } = await admin.from("organization_memberships").select("id, status").eq("organization_id", organizationId).eq("user_id", existingUserId).maybeSingle();
+      if (membershipLookupError) return { error: "The existing user's tenant access could not be checked.", success: "" };
+      if (existingMembership?.status === "active") return { error: "", success: `This user already has access to ${organization.name}.` };
+      const membershipValues = { organization_id: organizationId, user_id: existingUserId, role, location_id: location?.id ?? null, status: "active" as const };
+      const { error: membershipError } = existingMembership
+        ? await admin.from("organization_memberships").update(membershipValues).eq("id", existingMembership.id)
+        : await admin.from("organization_memberships").insert(membershipValues);
+      if (membershipError) return { error: `The existing user could not be added to ${organization.name}.`, success: "" };
+      revalidatePath("/admin/users");
+      return { error: "", success: `Existing RunFloor user added to ${organization.name}.` };
+    }
 
     const requestHeaders = await headers();
     const protocol = requestHeaders.get("x-forwarded-proto") || "http";
@@ -65,7 +95,7 @@ export async function inviteUser(_previousState: InviteUserState, formData: Form
         last_name: lastName,
         phone,
         role,
-        location_id: location.id,
+        location_id: location?.id ?? null,
         auth_user_id: invitation.user.id,
         status: "pending",
         invited_by: viewer.id,
@@ -86,8 +116,11 @@ export async function inviteUser(_previousState: InviteUserState, formData: Form
       : await admin.from("organization_invitations").insert(invitationRecord);
     if (dataError) return { error: "The email was sent, but its workspace assignment could not be saved. Contact an administrator before the person signs in.", success: "" };
 
+    const { error: membershipError } = await admin.from("organization_memberships").upsert({ organization_id: organizationId, user_id: invitation.user.id, role, location_id: location?.id ?? null, status: "invited" }, { onConflict: "organization_id,user_id" });
+    if (membershipError) return { error: "The email was sent, but its tenant membership could not be saved. Contact an administrator before the person signs in.", success: "" };
+
     revalidatePath("/admin/users");
-    return { error: "", success: `${role === "manager" ? "Manager" : "Employee"} invitation sent to ${email} for ${location.name}.` };
+    return { error: "", success: `${role === "tenant_admin" ? "Admin" : role === "manager" ? "Manager" : "Employee"} invitation sent to ${email} for ${organization.name}${location ? ` — ${location.name}` : ""}.` };
   } catch (error) {
     const message = error instanceof Error ? error.message : "The invitation could not be prepared.";
     return { error: message, success: "" };
@@ -124,13 +157,13 @@ export async function changeUserLocation(_previousState: ChangeLocationState, fo
   if (viewer?.demo || !viewer || !["tenant_admin", "platform_owner"].includes(viewer.role)) return { error: "Only an Admin can change locations.", success: "" };
   const membershipId = String(formData.get("membershipId") || "");
   const locationId = String(formData.get("locationId") || "");
-  if (!uuidPattern.test(membershipId) || !uuidPattern.test(locationId)) return { error: "Choose a valid location.", success: "" };
+  if (!uuidPattern.test(membershipId) || (locationId && !uuidPattern.test(locationId))) return { error: "Choose a valid location.", success: "" };
   const supabase = await createClient();
   const { data: membership } = await supabase.from("organization_memberships").select("organization_id").eq("id", membershipId).maybeSingle();
   if (!membership || (viewer.role !== "platform_owner" && membership.organization_id !== viewer.organizationId)) return { error: "That user is outside your workspace.", success: "" };
-  const { data: location } = await supabase.from("locations").select("id").eq("id", locationId).eq("organization_id", membership.organization_id).maybeSingle();
-  if (!location) return { error: "Choose a location in the user's tenant.", success: "" };
-  const { error } = await supabase.from("organization_memberships").update({ location_id: location.id }).eq("id", membershipId).eq("organization_id", membership.organization_id);
+  const { data: location } = locationId ? await supabase.from("locations").select("id").eq("id", locationId).eq("organization_id", membership.organization_id).maybeSingle() : { data: null };
+  if (locationId && !location) return { error: "Choose a location in the user's tenant.", success: "" };
+  const { error } = await supabase.from("organization_memberships").update({ location_id: location?.id ?? null }).eq("id", membershipId).eq("organization_id", membership.organization_id);
   if (error) return { error: "The location could not be updated.", success: "" };
   revalidatePath("/admin/users");
   return { error: "", success: "User location updated." };

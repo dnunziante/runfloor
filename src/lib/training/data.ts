@@ -1,7 +1,7 @@
 import "server-only";
 
 import { getViewer } from "@/lib/auth/viewer";
-import { demoTrainingLessons, demoTrainingModules } from "@/lib/demo/training";
+import { demoTrainingLessons, demoTrainingModules, publicRvDemoTrainingLessons, publicRvDemoTrainingModules } from "@/lib/demo/training";
 import { isLocalDemoMode } from "@/lib/supabase/config";
 import { createClient } from "@/lib/supabase/server";
 import { toDisplayTrainingCategory } from "./categories";
@@ -28,6 +28,9 @@ type TrainingRow = {
   knowledge_documents: { original_filename: string; collection: string; mime_type?: string } | null;
   locations?: { name: string } | null;
 };
+
+const demoLessonsFor = (publicDemo: boolean) => publicDemo && !isLocalDemoMode() ? publicRvDemoTrainingLessons : demoTrainingLessons;
+const demoModulesFor = (publicDemo: boolean) => publicDemo && !isLocalDemoMode() ? publicRvDemoTrainingModules : demoTrainingModules;
 
 const lessonSelect = "id, knowledge_document_id, title, description, estimated_minutes, created_at, generated_content, is_published, generation_status, generation_error, training_type, include_knowledge_check, source_review_required, location_id, generated_at, published_at, knowledge_documents(original_filename, collection, mime_type), locations(name)";
 
@@ -58,7 +61,7 @@ function mapLesson(row: TrainingRow): TrainingLessonDTO {
 
 export async function getTrainingLessons(options: { includeDrafts?: boolean } = {}): Promise<TrainingResult> {
   const viewer = await getViewer();
-  if (viewer?.demo || isLocalDemoMode()) return { lessons: demoTrainingLessons };
+  if (viewer?.demo || isLocalDemoMode()) return { lessons: demoLessonsFor(Boolean(viewer?.demo)) };
   if (!viewer?.organizationId) return { lessons: [], error: "Your account is not assigned to an organization." };
 
   const supabase = await createClient();
@@ -80,7 +83,7 @@ export async function getTrainingLessons(options: { includeDrafts?: boolean } = 
 export async function getTrainingLesson(lessonId: string): Promise<TrainingLessonDTO | null> {
   const viewer = await getViewer();
   if (!/^[0-9a-f-]{36}$/i.test(lessonId)) return null;
-  if (viewer?.demo || isLocalDemoMode()) return demoTrainingLessons.find((lesson)=>lesson.id===lessonId)??null;
+  if (viewer?.demo || isLocalDemoMode()) return demoLessonsFor(Boolean(viewer?.demo)).find((lesson)=>lesson.id===lessonId)??null;
   if (!viewer?.organizationId) return null;
 
   const supabase = await createClient();
@@ -98,7 +101,7 @@ export async function getTrainingLesson(lessonId: string): Promise<TrainingLesso
 
 export async function getTrainingLessonForReview(lessonId: string): Promise<TrainingLessonDTO | null> {
   const viewer = await getViewer();
-  if (viewer?.demo || isLocalDemoMode()) return demoTrainingLessons.find((lesson) => lesson.id === lessonId) ?? null;
+  if (viewer?.demo || isLocalDemoMode()) return demoLessonsFor(Boolean(viewer?.demo)).find((lesson) => lesson.id === lessonId) ?? null;
   if (!/^[0-9a-f-]{36}$/i.test(lessonId) || !viewer?.organizationId || !["manager", "tenant_admin", "platform_owner"].includes(viewer.role)) return null;
   const supabase = await createClient();
   const { data, error } = await supabase.from("training_lessons").select(lessonSelect).eq("id", lessonId).eq("organization_id", viewer.organizationId).maybeSingle();
@@ -107,7 +110,7 @@ export async function getTrainingLessonForReview(lessonId: string): Promise<Trai
 
 export async function getTrainingLessonsForReview(): Promise<TrainingResult> {
   const viewer = await getViewer();
-  if (viewer?.demo || isLocalDemoMode()) return { lessons: demoTrainingLessons };
+  if (viewer?.demo || isLocalDemoMode()) return { lessons: demoLessonsFor(Boolean(viewer?.demo)) };
   if (!viewer?.organizationId || !["manager", "tenant_admin", "platform_owner"].includes(viewer.role)) return { lessons: [], error: "Manager access is required." };
   const supabase = await createClient();
   const { data, error } = await supabase.from("training_lessons").select(lessonSelect).eq("organization_id", viewer.organizationId).order("updated_at", { ascending: false });
@@ -198,7 +201,7 @@ export async function getTrainingLessonCompleted(lessonId: string): Promise<bool
 
 export async function getTrainingModules(options: { includeDrafts?: boolean; includeDraftLessons?: boolean } = {}): Promise<TrainingModulesResult> {
   const viewer = await getViewer();
-  if (viewer?.demo || isLocalDemoMode()) return { modules: demoTrainingModules, lessons: demoTrainingLessons };
+  if (viewer?.demo || isLocalDemoMode()) return { modules: demoModulesFor(Boolean(viewer?.demo)), lessons: demoLessonsFor(Boolean(viewer?.demo)) };
   if (!viewer?.organizationId) return { modules: [], lessons: [], error: "Your account is not assigned to an organization." };
 
   const supabase = await createClient();

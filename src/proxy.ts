@@ -52,16 +52,17 @@ export async function proxy(request: NextRequest) {
     return NextResponse.redirect(loginUrl);
   }
 
-  const [{ data: profile }, { data: membership }] = await Promise.all([
+  const [{ data: profile }, { data: memberships }, { data: workspaceContext }] = await Promise.all([
     supabase.from("profiles").select("is_platform_owner").eq("id", user.id).maybeSingle(),
     supabase
       .from("organization_memberships")
-      .select("role")
+      .select("organization_id, role")
       .eq("user_id", user.id)
-      .eq("status", "active")
-      .limit(1)
-      .maybeSingle(),
+      .eq("status", "active"),
+    supabase.from("platform_workspace_contexts").select("active_organization_id").eq("user_id", user.id).maybeSingle(),
   ]);
+
+  const membership = memberships?.find((item) => item.organization_id === workspaceContext?.active_organization_id) ?? memberships?.[0];
 
   if (!profile?.is_platform_owner && !membership) {
     const noAccessUrl = request.nextUrl.clone();

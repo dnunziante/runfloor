@@ -11,7 +11,7 @@ export function ChangeUserLocationForm({ membershipId, currentLocationId, locati
   return <form action={action} className="user-assignment-form">
     <input type="hidden" name="membershipId" value={membershipId} />
     <select className="input" name="locationId" defaultValue={currentLocationId || ""} aria-label="User location">
-      <option value="" disabled>No location</option>
+      <option value="">No location</option>
       {locations.map((location) => <option value={location.id} key={location.id}>{location.name}</option>)}
     </select>
     <button className="btn btn-ghost" type="submit" disabled={pending}>{pending ? "Saving…" : "Save"}</button>

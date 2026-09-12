@@ -34,11 +34,11 @@ export const demoViewer: Viewer = {
 
 const publicDemoViewer: Viewer = {
   id: "public-demo-user",
-  email: "demo@runfloor.example",
+  email: "demo@runfloorrv.example",
   fullName: "Demo User",
   initials: "DU",
   organizationId: "00000000-0000-0000-0000-000000000000",
-  organizationName: "RunFloor Demo",
+  organizationName: "RunFloor RV",
   role: "salesperson",
   demo: true,
 };
@@ -64,14 +64,12 @@ export async function getViewer(): Promise<Viewer | null> {
 
   if (!user) return hasPublicDemoCookie ? publicDemoViewer : null;
 
-  const { data: membership } = await supabase
+  const { data: memberships } = await supabase
     .from("organization_memberships")
     .select("organization_id, role, organizations(name)")
     .eq("user_id", user.id)
     .eq("status", "active")
-    .order("created_at", { ascending: true })
-    .limit(1)
-    .maybeSingle();
+    .order("created_at", { ascending: true });
 
   const { data: profile } = await supabase
     .from("profiles")
@@ -80,14 +78,16 @@ export async function getViewer(): Promise<Viewer | null> {
     .maybeSingle();
 
   const isPlatformOwner = Boolean(profile?.is_platform_owner);
-  const { data: workspaceContext } = isPlatformOwner
-    ? await supabase.from("platform_workspace_contexts").select("active_organization_id, organizations(name)").eq("user_id", user.id).maybeSingle()
-    : { data: null };
+  const { data: workspaceContext } = await supabase.from("platform_workspace_contexts").select("active_organization_id, organizations(name)").eq("user_id", user.id).maybeSingle();
   const fullName = profile?.full_name || user.email?.split("@")[0] || "User";
+  const membershipRows = memberships ?? [];
+  const contextMembership = membershipRows.find((item) => item.organization_id === workspaceContext?.active_organization_id);
+  const membership = contextMembership ?? membershipRows[0];
   const membershipOrganization = membership?.organizations as unknown as { name: string } | null;
   const contextOrganization = workspaceContext?.organizations as unknown as { name: string } | null;
-  const organizationId = isPlatformOwner && workspaceContext?.active_organization_id ? workspaceContext.active_organization_id : membership?.organization_id || "";
-  const organizationName = isPlatformOwner && contextOrganization?.name ? contextOrganization.name : membershipOrganization?.name || "No organization";
+  const canUseContext = isPlatformOwner || Boolean(contextMembership);
+  const organizationId = canUseContext && workspaceContext?.active_organization_id ? workspaceContext.active_organization_id : membership?.organization_id || "";
+  const organizationName = canUseContext && contextOrganization?.name ? contextOrganization.name : membershipOrganization?.name || "No organization";
 
   return {
     id: user.id,
