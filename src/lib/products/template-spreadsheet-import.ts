@@ -40,6 +40,7 @@ export async function parseTemplateProductSpreadsheet(file: File, industry: Prod
   for (const sheetName of workbook.SheetNames) {
     const sheet = workbook.Sheets[sheetName];
     const matrix = XLSX.utils.sheet_to_json<unknown[]>(sheet, { header: 1, defval: "", raw: true });
+    if (!matrix.some((row) => row.some((value) => clean(value)))) continue;
     const sheetStartRow = sheet["!ref"] ? XLSX.utils.decode_range(sheet["!ref"]).s.r + 1 : 1;
     const headerMatch = matrix.slice(0, 25).map((row, index) => ({ index, score: row.filter((cell) => recognized(cell, industry)).length })).sort((left, right) => right.score - left.score || left.index - right.index)[0];
     const headerlessRv = industry === "rv" && (!headerMatch || headerMatch.score < 2) && matrix.length > 0 && isHeaderlessExpandedRvRow(matrix[0]);

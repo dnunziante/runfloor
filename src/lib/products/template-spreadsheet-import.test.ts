@@ -64,3 +64,13 @@ test("recognizes a headerless expanded RV worksheet by its guarded column order"
   assert.equal(result.products[0].specifications.gvwrDerived, false);
   assert.match(result.errors[0], /header row was missing/);
 });
+
+test("ignores completely empty worksheets without reporting a correction error", async () => {
+  const workbook = XLSX.utils.book_new();
+  XLSX.utils.book_append_sheet(workbook, XLSX.utils.json_to_sheet([{ Model: "26BUD", Manufacturer: "Example RV" }]), "Products");
+  XLSX.utils.book_append_sheet(workbook, XLSX.utils.aoa_to_sheet([]), "Sheet2");
+  const bytes = XLSX.write(workbook, { bookType: "xlsx", type: "array" });
+  const result = await parseTemplateProductSpreadsheet(new File([bytes], "products-with-empty-sheet.xlsx"), "rv");
+  assert.equal(result.products.length, 1);
+  assert.deepEqual(result.errors, []);
+});
