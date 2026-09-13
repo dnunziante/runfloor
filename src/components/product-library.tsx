@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import Link from "next/link";
-import { Database, GitCompareArrows, Search } from "lucide-react";
+import { Database, GitCompareArrows, LayoutGrid, List, Search } from "lucide-react";
 import type { ProductDTO } from "@/lib/products/types";
 
 function ProductGallery({ product }: { product: ProductDTO }) {
@@ -14,11 +14,38 @@ function ProductGallery({ product }: { product: ProductDTO }) {
   </div>;
 }
 
-export function ProductLibrary({ products, live, emptyMessage, addOnMode = false, competitorMode = false }: { products: ProductDTO[]; live: boolean; emptyMessage?: string; addOnMode?: boolean; competitorMode?: boolean }) {
+export function ProductLibrary({ products, live, emptyMessage, addOnMode = false, competitorMode = false, isRv = false }: { products: ProductDTO[]; live: boolean; emptyMessage?: string; addOnMode?: boolean; competitorMode?: boolean; isRv?: boolean }) {
   const [query, setQuery] = useState("");
   const [brand, setBrand] = useState("");
+  const [category, setCategory] = useState("");
+  const [year, setYear] = useState("");
+  const [sort, setSort] = useState("popular");
+  const [view, setView] = useState<"grid" | "list">("grid");
   const brands = Array.from(new Set(products.map((product) => product.brand || product.manufacturer || "").filter(Boolean))).sort();
-  const shown = products.filter((product) => `${product.name} ${product.model} ${product.brand || ""} ${product.manufacturer || ""} ${product.modelYear || ""} ${product.modelVariant || ""}`.toLowerCase().includes(query.trim().toLowerCase()) && (!brand || (product.brand || product.manufacturer) === brand));
+  const categories = Array.from(new Set(products.map((product) => product.productCategory || "").filter(Boolean))).sort();
+  const years = Array.from(new Set(products.map((product) => product.modelYear).filter((value): value is number => Boolean(value)))).sort((a, b) => b - a);
+  const filtered = products.filter((product) => `${product.name} ${product.model} ${product.brand || ""} ${product.manufacturer || ""} ${product.modelYear || ""} ${product.modelVariant || ""}`.toLowerCase().includes(query.trim().toLowerCase()) && (!brand || (product.brand || product.manufacturer) === brand) && (!category || product.productCategory === category) && (!year || String(product.modelYear) === year));
+  const shown = [...filtered].sort((a, b) => sort === "name" ? a.name.localeCompare(b.name) : sort === "year" ? (b.modelYear || 0) - (a.modelYear || 0) : (a.sortOrder || 0) - (b.sortOrder || 0));
+
+  if (isRv && competitorMode) return <div className="rv-competitor-library">
+    <div className="rv-competitor-toolbar">
+      <label><Search aria-hidden="true"/><input className="input" aria-label="Search competitor RVs" placeholder="Search competitor models, brands, or keywords..." value={query} onChange={(event) => setQuery(event.target.value)}/></label>
+      <select className="input" aria-label="Filter by competitor brand" value={brand} onChange={(event) => setBrand(event.target.value)}><option value="">All brands</option>{brands.map((name) => <option key={name}>{name}</option>)}</select>
+      <select className="input" aria-label="Filter by RV type" value={category} onChange={(event) => setCategory(event.target.value)}><option value="">All RV types</option>{categories.map((name) => <option key={name}>{name}</option>)}</select>
+      <span className={`badge ${live ? "" : "amber"}`}><Database size={13}/>{live ? "Live workspace data" : "Demo data"}</span>
+      <Link className="btn btn-secondary" href="/comparisons"><GitCompareArrows size={16}/> Compare models</Link>
+    </div>
+    <div className="rv-competitor-layout">
+      <aside className="rv-competitor-filters"><header><h2>Filters</h2><button type="button" onClick={() => { setBrand(""); setCategory(""); setYear(""); setQuery(""); }}>Clear all</button></header>
+        {categories.length > 0 && <section><h3>RV Type</h3>{categories.map((name) => <button className={category === name ? "active" : ""} type="button" key={name} onClick={() => setCategory(category === name ? "" : name)}><span>{name}</span><small>{products.filter((product) => product.productCategory === name).length}</small></button>)}</section>}
+        {brands.length > 0 && <section><h3>Brand</h3>{brands.map((name) => <button className={brand === name ? "active" : ""} type="button" key={name} onClick={() => setBrand(brand === name ? "" : name)}><span>{name}</span><small>{products.filter((product) => (product.brand || product.manufacturer) === name).length}</small></button>)}</section>}
+        {years.length > 0 && <section><h3>Model Year</h3>{years.map((value) => <button className={year === String(value) ? "active" : ""} type="button" key={value} onClick={() => setYear(year === String(value) ? "" : String(value))}><span>{value}</span><small>{products.filter((product) => product.modelYear === value).length}</small></button>)}</section>}
+      </aside>
+      <section className="rv-competitor-results"><header><div><h2>{shown.length} Competitor Model{shown.length === 1 ? "" : "s"}</h2><p>{products.length ? "Showing published models from your workspace" : "Your competitor library is ready for published models"}</p></div><label>Sort by<select value={sort} onChange={(event) => setSort(event.target.value)}><option value="popular">Most Popular</option><option value="name">Model Name</option><option value="year">Newest Year</option></select></label><div className="rv-view-toggle"><button className={view === "grid" ? "active" : ""} type="button" onClick={() => setView("grid")}><LayoutGrid/>Grid</button><button className={view === "list" ? "active" : ""} type="button" onClick={() => setView("list")}><List/>List</button></div></header>
+        {shown.length ? <div className={`rv-competitor-cards ${view === "list" ? "list" : ""}`}>{shown.map((product) => <article className="rv-competitor-card" key={product.id}><ProductGallery product={product}/><div className="rv-competitor-card-body"><span className="rv-competitor-brand">{product.brand || product.manufacturer || "Competitor RV"}</span><h2>{product.name}</h2><p className="rv-competitor-meta">{[product.modelYear, product.brand || product.manufacturer].filter(Boolean).join("  |  ")}</p><div className="rv-competitor-specs">{[product.seats, product.range, product.powertrain].filter(Boolean).map((value, index) => <span key={`${product.id}-${index}`}>{value}</span>)}</div><p>{product.description}</p><div><Link href={`/products/${product.slug}`}>View product guide</Link><Link href="/comparisons"><GitCompareArrows/>Compare</Link></div></div></article>)}</div> : <div className="card output empty"><div><Search size={32}/><h2>No matching competitor RVs</h2><p>{products.length ? "Try another filter or clear your search." : emptyMessage}</p>{(query || brand || category || year) && <button className="btn btn-secondary" onClick={() => {setQuery("");setBrand("");setCategory("");setYear("");}}>Clear filters</button>}</div></div>}
+      </section>
+    </div>
+  </div>;
   return <>
     <div className="product-toolbar">
       <div style={{position:"relative",maxWidth:440,minWidth:220,flex:1}}><Search size={17} style={{position:"absolute",left:12,top:13,color:"#68738a"}}/><input className="input" style={{paddingLeft:38}} aria-label="Search models or configurations" placeholder={addOnMode ? "Search available add-ons" : "Search models or configurations"} value={query} onChange={(event)=>setQuery(event.target.value)}/></div>

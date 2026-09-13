@@ -7,8 +7,10 @@ export function ProductFamilyLibrary({ families, isRv = false }: { families: Pro
   const vehicleFamilies = families.filter((family) => !addOnSlugs.has(family.slug));
   const addOnFamilies = families.filter((family) => addOnSlugs.has(family.slug));
 
+  const sparseRvLibrary = isRv && vehicleFamilies.length <= 2;
+
   return <div className={`form-stack ${isRv ? "rv-product-library" : ""}`}>
-    <div className="product-family-grid">
+    <div className={`product-family-grid ${sparseRvLibrary ? "rv-product-family-grid-sparse" : ""}`}>
       {vehicleFamilies.map((family) => <Link className="card product-family-card" href={`/products/families/${family.slug}`} key={family.id}>
       <div className={`product-family-cover ${family.imageUrl ? "has-image" : ""}`} style={family.imageUrl ? { backgroundImage: `url(${family.imageUrl})` } : undefined}>
         {!family.imageUrl && <div><ImagePlus size={34}/><span>Product family image</span></div>}
