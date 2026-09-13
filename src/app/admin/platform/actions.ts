@@ -494,7 +494,7 @@ export async function createTenant(formData: FormData) {
         powertrain_text: voltage,
         product_type: starter.product_type || "our_product",
         manufacturer: starter.manufacturer || "",
-        brand: starter.manufacturer || "",
+        brand: String((starter.specifications as Record<string, unknown> | null)?.brand || starter.manufacturer || ""),
         product_category: starter.product_category || "",
         status: "published",
         review_status: "approved",

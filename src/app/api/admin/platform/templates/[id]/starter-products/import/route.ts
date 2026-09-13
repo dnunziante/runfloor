@@ -4,12 +4,19 @@ import { extractProductModels, type ProductExtractionIndustry } from "@/lib/prod
 import { canonicalGolfCartSpecificationKey } from "@/lib/products/golf-cart-specifications";
 import { canonicalRvSpecificationKey } from "@/lib/products/rv-specifications";
 import { createAdminClient } from "@/lib/supabase/admin";
+import { parseTemplateProductSpreadsheet, type SpecificationValue } from "@/lib/products/template-spreadsheet-import";
 
 const types = new Set(["application/pdf", "image/jpeg", "image/png", "application/vnd.openxmlformats-officedocument.wordprocessingml.document", "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet", "text/csv"]);
 const validId = (value: string) => /^[0-9a-f-]{36}$/i.test(value);
 const text = (value: unknown, length = 160) => String(value || "").trim().slice(0, length);
-function normalizedSpecifications(source: Record<string, string>, industry: ProductExtractionIndustry) {
-  return Object.fromEntries(Object.entries(source).map(([key, value]) => [industry === "golf-cart" ? canonicalGolfCartSpecificationKey(key) : industry === "rv" ? canonicalRvSpecificationKey(key) : key.trim(), text(value, 500)]).filter(([key, value]) => key && value));
+function normalizedSpecifications(source: Record<string, SpecificationValue>, industry: ProductExtractionIndustry) {
+  return Object.fromEntries(Object.entries(source).map(([key, value]) => [industry === "golf-cart" ? canonicalGolfCartSpecificationKey(key) : industry === "rv" ? canonicalRvSpecificationKey(key) : key.trim(), typeof value === "string" ? text(value, 500) : value]).filter(([key]) => key));
+}
+
+function priceCents(specifications: Record<string, SpecificationValue>) {
+  const source = specifications.msrpUsd ?? specifications.msrp;
+  const amount = typeof source === "number" ? source : Number(String(source ?? "").replace(/[$,]/g, ""));
+  return Number.isFinite(amount) && amount >= 0 ? Math.round(amount * 100) : 0;
 }
 
 export async function POST(request: Request, { params }: { params: Promise<{ id: string }> }) {
@@ -34,14 +41,21 @@ export async function POST(request: Request, { params }: { params: Promise<{ id:
     const { error: importError } = await db.from("industry_template_product_imports").insert({ id: importId, industry_template_id: templateId, uploaded_by: viewer.id, original_filename: file.name, storage_path: storagePath, mime_type: file.type, size_bytes: file.size });
     if (importError) return NextResponse.json({ error: "The import record could not be saved." }, { status: 500 });
     try {
-      const extracted = await extractProductModels(file, context, industry);
-      const { data: existing } = await db.from("industry_template_products").select("id,manufacturer,model,model_year,model_variant").eq("industry_template_id", templateId);
+      const spreadsheet = /\.(xlsx|csv)$/i.test(file.name) ? await parseTemplateProductSpreadsheet(file, industry) : null;
+      const extracted = spreadsheet?.products || await extractProductModels(file, context, industry);
+      const { data: existing } = await db.from("industry_template_products").select("id,manufacturer,model,model_year,model_variant,specifications").eq("industry_template_id", templateId);
       const candidates = extracted.map((item) => {
-        const product = { name: text(item.name, 180), model: text(item.model || item.name, 160), manufacturer: text(item.manufacturer || context.manufacturer), modelYear: item.modelYear, modelVariant: "", productCategory: text(item.category, 120), productType: context.productType === "competitor_product" ? "competitor_product" : "our_product", description: text(item.description, 4000), specifications: normalizedSpecifications(item.specifications, industry) };
-        const duplicate = (existing || []).find((row) => (row.manufacturer || "").toLowerCase() === product.manufacturer.toLowerCase() && (row.model || "").toLowerCase() === product.model.toLowerCase() && (row.model_variant || "").toLowerCase() === product.modelVariant.toLowerCase() && row.model_year === product.modelYear);
+        const product = { name: text(item.name, 180), model: text(item.model || item.name, 160), manufacturer: text(item.manufacturer || context.manufacturer), modelYear: item.modelYear, modelVariant: "modelVariant" in item ? text(item.modelVariant) : "", productCategory: text(item.category, 120), productType: context.productType === "competitor_product" ? "competitor_product" : "our_product", description: text(item.description, 4000), specifications: normalizedSpecifications(item.specifications, industry), warnings: "warnings" in item ? item.warnings : [], sourceRow: "sourceRow" in item ? item.sourceRow : null };
+        const identity = (value: unknown) => text(value).toLowerCase();
+        const duplicate = (existing || []).find((row) => {
+          const specs = (row.specifications || {}) as Record<string, SpecificationValue>;
+          const manufacturerMatches = identity(row.manufacturer) === identity(product.manufacturer) || (identity(specs.brand) && identity(specs.brand) === identity(product.specifications.brand));
+          const lineMatches = !identity(product.specifications.productLine) || identity(specs.productLine || row.model_variant) === identity(product.specifications.productLine);
+          return manufacturerMatches && lineMatches && identity(row.model) === identity(product.model) && row.model_year === product.modelYear;
+        });
         return { ...product, duplicateId: duplicate?.id || null };
       });
-      return NextResponse.json({ importId, candidates, skippedDuplicates: candidates.filter((candidate) => candidate.duplicateId).length });
+      return NextResponse.json({ importId, candidates, totalRows: spreadsheet?.totalRows ?? candidates.length, errors: spreadsheet?.errors ?? [], detectedFormat: spreadsheet?.detectedFormat ?? "document", warningCount: candidates.filter((candidate) => candidate.warnings.length).length, duplicateCount: candidates.filter((candidate) => candidate.duplicateId).length });
     } catch (error) {
       return NextResponse.json({ error: error instanceof Error ? error.message : "Extraction failed." }, { status: 422 });
     }
@@ -58,7 +72,8 @@ export async function POST(request: Request, { params }: { params: Promise<{ id:
     for (const candidate of candidates) {
       const name = text(candidate.name, 180); const action = text(candidate.action);
       if (!name || action === "skip") { skipped++; continue; }
-      const values = { industry_template_id: templateId, source_import_id: importId, family_name: "Starter Products", name, model: text(candidate.model || name), model_year: Number.isInteger(candidate.modelYear) ? candidate.modelYear : null, model_variant: text(candidate.modelVariant), manufacturer: text(candidate.manufacturer), product_category: text(candidate.productCategory, 120), product_type: candidate.productType === "competitor_product" ? "competitor_product" : "our_product", description: text(candidate.description, 4000), specifications: normalizedSpecifications((candidate.specifications || {}) as Record<string, string>, industry), updated_at: new Date().toISOString() };
+      const specifications = normalizedSpecifications((candidate.specifications || {}) as Record<string, SpecificationValue>, industry);
+      const values = { industry_template_id: templateId, source_import_id: importId, family_name: "Starter Products", name, model: text(candidate.model || name), model_year: Number.isInteger(candidate.modelYear) ? candidate.modelYear : null, model_variant: text(candidate.modelVariant), manufacturer: text(candidate.manufacturer), product_category: text(candidate.productCategory, 120), product_type: candidate.productType === "competitor_product" ? "competitor_product" : "our_product", description: text(candidate.description, 4000), specifications, base_price_cents: priceCents(specifications), updated_at: new Date().toISOString() };
       if (action === "update" && validId(text(candidate.duplicateId))) { const { error } = await db.from("industry_template_products").update(values).eq("id", text(candidate.duplicateId)).eq("industry_template_id", templateId); if (error) return NextResponse.json({ error: "A starter product could not be updated." }, { status: 500 }); updated++; }
       else { const { error } = await db.from("industry_template_products").insert(values); if (error) return NextResponse.json({ error: "A starter product could not be saved." }, { status: 500 }); created++; }
     }

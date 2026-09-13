@@ -67,7 +67,7 @@ export const emptySalesGuide: SalesGuideDTO = {
 
 type TemplateProductRow = {
   id: string; family_name: string; name: string; model: string; model_year: number | null;
-  model_variant: string; specifications: Record<string, string> | null; description: string;
+  model_variant: string; specifications: Record<string, string | number | boolean | null> | null; description: string;
   base_price_cents: number; range_text: string; seats_text: string; powertrain_text: string;
   product_type: ProductType; manufacturer: string; product_category: string; sort_order: number;
 };
@@ -80,7 +80,7 @@ async function getPublicRvTemplateProducts(): Promise<ProductResult> {
   if (templateError || !template) return { products: [], source: "supabase", error: "The RV demo catalog is unavailable." };
   const { data, error } = await admin.from("industry_template_products").select("id,family_name,name,model,model_year,model_variant,specifications,description,base_price_cents,range_text,seats_text,powertrain_text,product_type,manufacturer,product_category,sort_order").eq("industry_template_id", template.id).order("sort_order").order("name");
   if (error) return { products: [], source: "supabase", error: "The RV demo catalog is unavailable." };
-  return { source: "supabase", products: ((data ?? []) as TemplateProductRow[]).map((row) => ({ id: row.id, familyId: templateFamilyId(row.family_name), name: row.name, slug: `rv-${row.id}`, model: row.model, brand: row.manufacturer, manufacturer: row.manufacturer, modelYear: row.model_year, modelVariant: row.model_variant, productType: row.product_type, productCategory: row.product_category, specifications: row.specifications ?? {}, description: row.description, price: row.base_price_cents / 100, range: row.range_text, seats: row.seats_text, powertrain: row.powertrain_text, dimensions: "", runningDistance: "", turningRadius: "", maxLoadCapacity: "", sortOrder: row.sort_order, highlights: [], color: "orange", imageUrl: null, imageUrls: [], imagePaths: [], salesGuide: emptySalesGuide, status: "Published" })) };
+  return { source: "supabase", products: ((data ?? []) as TemplateProductRow[]).map((row) => ({ id: row.id, familyId: templateFamilyId(row.family_name), name: row.name, slug: `rv-${row.id}`, model: row.model, brand: String(row.specifications?.brand || row.manufacturer), manufacturer: row.manufacturer, modelYear: row.model_year, modelVariant: row.model_variant, productType: row.product_type, productCategory: row.product_category, specifications: row.specifications ?? {}, description: row.description, price: row.base_price_cents / 100, range: row.range_text, seats: row.seats_text, powertrain: row.powertrain_text, dimensions: "", runningDistance: "", turningRadius: "", maxLoadCapacity: "", sortOrder: row.sort_order, highlights: [], color: "orange", imageUrl: null, imageUrls: [], imagePaths: [], salesGuide: emptySalesGuide, status: "Published" })) };
 }
 
 async function getPublicRvTemplateFamilies(): Promise<ProductFamilyResult> {
@@ -105,7 +105,7 @@ function toDTO(row: ProductRow, imageUrls: string[] = [], imagePaths: string[] =
     productType: row.product_type || "our_product",
     productCategory: row.product_category || "",
     salePrice: row.sale_price_cents === null ? null : row.sale_price_cents / 100,
-    specifications: Object.fromEntries(Object.entries(row.specifications || {}).filter(([, value]) => typeof value === "string").map(([key, value]) => [key, value as string])),
+    specifications: Object.fromEntries(Object.entries(row.specifications || {}).filter(([, value]) => ["string", "number", "boolean"].includes(typeof value) || value === null)) as Record<string, string | number | boolean | null>,
     description: row.description,
     price: row.base_price_cents / 100,
     range: row.range_text,

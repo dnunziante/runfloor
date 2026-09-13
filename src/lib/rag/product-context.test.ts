@@ -13,3 +13,12 @@ test("formats catalog price and source", () => {
   assert.match(context, /Product catalog — Beyond/);
   assert.match(context, /\$13,495\.00/);
 });
+
+test("makes numeric and boolean RV specifications available to AI context", () => {
+  const context = formatProductContext({ ...products[0], specifications: { freshWaterGal: 81, hitchWeightLb: 2165, primaryBed: "king", slides: 3, awning: false } });
+  assert.match(context, /fresh Water Gal: 81/i);
+  assert.match(context, /hitch Weight Lb: 2165/i);
+  assert.match(context, /primary Bed: king/i);
+  assert.match(context, /slides: 3/i);
+  assert.match(context, /awning: No/i);
+});

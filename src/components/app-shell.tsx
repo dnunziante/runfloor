@@ -58,7 +58,7 @@ export function AppShell({ children, title, industry }: { children: React.ReactN
   const [open, setOpen] = useState(false);
   const [collapsed, setCollapsed] = useState(false);
   const [workspaces, setWorkspaces] = useState<{ id: string; name: string }[]>([]);
-  const [viewer, setViewer] = useState<Pick<Viewer, "fullName" | "initials" | "organizationId" | "organizationName" | "role" | "demo">>({
+  const [viewer, setViewer] = useState<Pick<Viewer, "fullName" | "initials" | "organizationId" | "organizationName" | "role" | "demo"> & { industryTemplateKey?: string }>({
     fullName: "User",
     initials: "U",
     organizationId: "",
@@ -97,8 +97,10 @@ export function AppShell({ children, title, industry }: { children: React.ReactN
   const executiveVisible = viewer.role === "platform_owner" || viewer.role === "tenant_admin" || viewer.role === "manager";
   const executiveSettingsVisible = viewer.role === "platform_owner" || viewer.role === "tenant_admin";
   const administratorVisible = viewer.role === "platform_owner" || viewer.role === "tenant_admin";
-  const salesSectionActive = links.some(([, href]) => pathname === href || (href === "/admin" && pathname.startsWith("/admin") && !pathname.startsWith("/admin/growth") && !pathname.startsWith("/admin/executive") && !pathname.startsWith("/admin/sales-results")));
-  return <div className={`shell ${collapsed ? "sidebar-collapsed" : ""} ${industry === "rv" ? "rv-shell" : ""}`}>
+  const isRv = industry === "rv" || viewer.industryTemplateKey === "rv";
+  const visibleLinks = isRv ? links.filter(([label]) => label !== "Write a Text").map(([label, href, Icon]) => label === "Write an Email" ? ["Message Studio", href, Icon] as const : [label, href, Icon] as const) : links;
+  const salesSectionActive = visibleLinks.some(([, href]) => pathname === href || (href === "/email" && pathname === "/text") || (href === "/admin" && pathname.startsWith("/admin") && !pathname.startsWith("/admin/growth") && !pathname.startsWith("/admin/executive") && !pathname.startsWith("/admin/sales-results")));
+  return <div className={`shell ${collapsed ? "sidebar-collapsed" : ""} ${isRv ? "rv-shell" : ""}`}>
     {open && <button className="scrim" aria-label="Close menu" onClick={() => setOpen(false)} />}
     <aside className={`sidebar ${open ? "sidebar-open" : ""}`}>
       <div className="brand-row sidebar-controls"><button className="icon-btn collapse-sidebar" aria-label={collapsed ? "Expand sidebar" : "Collapse sidebar"} onClick={() => setCollapsed((value) => !value)}>{collapsed ? <ChevronsRight size={22}/> : <ChevronsLeft size={22}/>}</button><button className="icon-btn close-nav" aria-label="Close menu" onClick={() => setOpen(false)}><X size={20}/></button></div>
@@ -112,9 +114,9 @@ export function AppShell({ children, title, industry }: { children: React.ReactN
         </details>
         <details className="module-group" key={`sales-${pathname}`} open={salesSectionActive}>
           <summary><span className="module-icon"><Users size={18}/></span><span>Sales Assistant</span><ChevronDown className="module-chevron" size={16}/></summary>
-          <div className="module-links">{links.filter(([label]) => label !== "Admin" || administratorVisible).map(([label, href, Icon]) => {
-            const active = pathname === href || (href === "/admin" && pathname.startsWith("/admin") && !pathname.startsWith("/admin/growth") && !pathname.startsWith("/admin/executive") && !pathname.startsWith("/admin/sales-results"));
-            const visibleLabel = industry === "rv" && label === "Products" ? "RVs & Inventory" : label;
+          <div className="module-links">{visibleLinks.filter(([label]) => label !== "Admin" || administratorVisible).map(([label, href, Icon]) => {
+            const active = pathname === href || (href === "/email" && pathname === "/text") || (href === "/admin" && pathname.startsWith("/admin") && !pathname.startsWith("/admin/growth") && !pathname.startsWith("/admin/executive") && !pathname.startsWith("/admin/sales-results"));
+            const visibleLabel = isRv && label === "Products" ? "RVs & Inventory" : label;
             return <Link className={active ? "active" : ""} href={href} key={href} onClick={() => setOpen(false)}><Icon size={18}/><span>{visibleLabel}</span></Link>;
           })}</div>
         </details>

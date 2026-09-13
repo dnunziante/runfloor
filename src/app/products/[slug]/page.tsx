@@ -26,7 +26,7 @@ export default async function ProductSalesGuidePage({ params }: { params: Promis
   const specifications = [
     ["Frame", product.range], ["Passenger capacity", product.seats], ["Powertrain", product.powertrain], ["Dimensions", product.dimensions], ["Running distance", product.runningDistance], ["Turning radius", product.turningRadius], ["Max load capacity", product.maxLoadCapacity],
     ...Object.entries(product.specifications || {}).map(([key, value]) => [specificationLabel(key), value]),
-  ].filter(([, value]) => Boolean(value?.trim())) as Array<[string, string]>;
+  ].filter(([, value]) => value !== null && value !== undefined && String(value).trim() !== "").map(([label, value]) => [String(label), String(value)]) as Array<[string, string]>;
 
   return <AppShell title="Product Sales Guide">
     <PageHeader eyebrow={competitor ? "Competitor model" : "Approved product guidance"} title={`${product.name} sales guide`} description={`${product.model} · Use this guide to prepare and lead a consistent customer conversation.`} action={<Link className="btn btn-ghost" href={competitor ? "/competitors" : "/products"}><ArrowLeft size={16}/> {competitor ? "Competitor Library" : "Product Library"}</Link>}/>

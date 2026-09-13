@@ -4,7 +4,7 @@ export type ApprovedProduct = {
   range_text: string; seats_text: string; powertrain_text: string; dimensions: string | null;
   running_distance: string | null; turning_radius: string | null; max_load_capacity: string | null;
   highlights: string[]; sales_guide: Record<string, unknown>;
-  specifications?: Record<string, string>;
+  specifications?: Record<string, string | number | boolean | null>;
 };
 
 const ignoredWords = new Set(["a", "about", "and", "are", "can", "do", "for", "have", "how", "i", "in", "is", "it", "me", "of", "on", "price", "tell", "the", "to", "what", "with", "you"]);
@@ -47,7 +47,7 @@ export function formatProductContext(product: ApprovedProduct, priceOverrideCent
     product.powertrain_text && `Powertrain: ${product.powertrain_text}`, product.dimensions && `Dimensions: ${product.dimensions}`,
     product.running_distance && `Running distance: ${product.running_distance}`, product.turning_radius && `Turning radius: ${product.turning_radius}`,
     product.max_load_capacity && `Maximum load: ${product.max_load_capacity}`, product.highlights.length && `Highlights: ${product.highlights.join("; ")}`,
-    ...Object.entries(product.specifications || {}).filter(([, value]) => Boolean(value)).map(([key, value]) => `${key.replace(/([A-Z])/g, " $1")}: ${value}`),
+    ...Object.entries(product.specifications || {}).filter(([, value]) => value !== null && value !== undefined && value !== "").map(([key, value]) => `${key.replace(/([A-Z])/g, " $1")}: ${typeof value === "boolean" ? value ? "Yes" : "No" : value}`),
     ...guideLines(product.sales_guide),
   ].filter(Boolean);
   const sourceLabel = product.product_type === "competitor_product" ? "Competitor reference" : "Product catalog";

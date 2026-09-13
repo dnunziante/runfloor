@@ -322,13 +322,14 @@ export async function updateProduct(
   if (familyId && !family) return { error: "Choose a catalog from this workspace.", success: "" };
 
   const { data: existing } = await supabase.from("products").select("specifications").eq("id", productId).eq("organization_id", viewer.organizationId).maybeSingle();
-  const existingSpecifications = { ...((existing?.specifications || {}) as Record<string, string>) };
-  const specifications = isRv ? normalizeRvSpecifications(existingSpecifications) : normalizeGolfCartSpecifications(existingSpecifications);
+  const existingSpecifications = { ...((existing?.specifications || {}) as Record<string, string | number | boolean | null>) };
+  const specifications = isRv ? normalizeRvSpecifications(existingSpecifications) : normalizeGolfCartSpecifications(existingSpecifications as Record<string, string>);
   for (const [key, value] of formData.entries()) {
     if (!key.startsWith("spec.")) continue;
     const specificationKey = key.slice(5);
     const specificationValue = String(value).trim().slice(0, 4000);
-    if (specificationValue) specifications[specificationKey] = specificationValue;
+    const valueType = String(formData.get(`specType.${specificationKey}`) || typeof existingSpecifications[specificationKey]);
+    if (specificationValue) specifications[specificationKey] = valueType === "number" ? Number(specificationValue) : valueType === "boolean" ? specificationValue === "true" : specificationValue;
     else delete specifications[specificationKey];
   }
   const combinedDimensions = [isRv ? specifications.overallLength : specifications.overallLength, isRv ? specifications.exteriorWidth : specifications.overallWidth, isRv ? specifications.exteriorHeight : specifications.overallHeight].filter(Boolean).join(" × ");

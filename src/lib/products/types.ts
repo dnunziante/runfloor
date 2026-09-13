@@ -25,7 +25,7 @@ export type ProductDTO = {
   productType?: ProductType;
   productCategory?: string;
   salePrice?: number | null;
-  specifications?: Record<string, string>;
+  specifications?: Record<string, string | number | boolean | null>;
   description: string;
   price: number;
   range: string;

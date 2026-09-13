@@ -1,0 +1,44 @@
+"use client";
+
+import { useState, type FormEvent } from "react";
+import { useRouter } from "next/navigation";
+import { AppShell } from "@/components/app-shell";
+import { BarChart3, Copy, FileText, LoaderCircle, Mail, MessageSquare, Printer, Send, Sparkles, UserRound, Zap } from "lucide-react";
+
+type Kind = "email" | "text";
+type Tone = "Professional" | "Friendly" | "Direct" | "Urgency" | "Re-engagement";
+type Draft = { subject?: string; body?: string; message?: string; primaryCallToAction: string };
+const tones: Tone[] = ["Professional", "Friendly", "Direct", "Urgency", "Re-engagement"];
+
+export function RvMessageStudio({ initialKind, productOptions }: { initialKind: Kind; productOptions: string[] }) {
+  const router = useRouter();
+  const [kind, setKind] = useState<Kind>(initialKind);
+  const [form, setForm] = useState({ customerName: "", product: "", leadStage: "New lead", customerNeeds: "", previousConversation: "", objection: "", desiredNextAction: "", tone: "Professional" as Tone, communicationType: "Follow up" });
+  const [draft, setDraft] = useState<Draft | null>(null);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState("");
+  const [copied, setCopied] = useState(false);
+  const update = (field: keyof typeof form, value: string) => setForm((current) => ({ ...current, [field]: value }));
+  const draftText = draft ? (kind === "email" ? `Subject: ${draft.subject}\n\n${draft.body}` : draft.message || "") : "";
+
+  function changeKind(next: Kind) { setKind(next); setDraft(null); setError(""); setCopied(false); router.replace(next === "email" ? "/email" : "/text", { scroll: false }); }
+  async function generate(event: FormEvent) {
+    event.preventDefault(); setLoading(true); setError(""); setCopied(false);
+    try {
+      const response = await fetch(`/api/${kind === "email" ? "email" : "text"}-generator`, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(form) });
+      const data = await response.json();
+      if (!response.ok) throw new Error(data.error || `The ${kind} could not be generated.`);
+      setDraft(data as Draft);
+    } catch (cause) { setError(cause instanceof Error ? cause.message : `The ${kind} could not be generated.`); }
+    finally { setLoading(false); }
+  }
+  async function copyDraft() { if (!draftText) return; await navigator.clipboard?.writeText(draftText); setCopied(true); }
+  function clearAll() { setForm({ customerName: "", product: "", leadStage: "New lead", customerNeeds: "", previousConversation: "", objection: "", desiredNextAction: "", tone: "Professional", communicationType: "Follow up" }); setDraft(null); setError(""); }
+
+  return <AppShell title="Message Studio" industry="rv"><div className="rv-message-studio">
+    <section className="rv-message-hero"><span>AI Message Studio</span><h1>Connect. Follow Up. <em>Sell More RVs.</em></h1><p>Create personalized, professional emails and texts using your approved RunFloor data — designed for RV sales success.</p><div className="rv-message-benefits"><b><Zap/>Save time<small>AI-powered drafts</small></b><b><UserRound/>Personalized<small>Customer-ready content</small></b><b><FileText/>Dealership approved<small>Uses your RunFloor data</small></b><b><BarChart3/>Better results<small>Keep leads engaged</small></b></div><blockquote>More Adventures.<br/>More Sales.</blockquote></section>
+    <div className="rv-message-tabs"><button className={kind === "email" ? "active" : ""} onClick={() => changeKind("email")}><Mail/> <span><strong>Write an Email</strong><small>Create a detailed, professional email</small></span></button><button className={kind === "text" ? "active" : ""} onClick={() => changeKind("text")}><MessageSquare/> <span><strong>Write a Text</strong><small>Create a short, impactful message</small></span></button><label><FileText/><span><strong>Message type</strong><small>Start with the right goal</small></span><select value={form.communicationType} onChange={(event) => update("communicationType", event.target.value)}><option>Follow up</option><option>Product information</option><option>Quote follow-up</option><option>Appointment reminder</option><option>Re-engagement</option></select></label></div>
+    <div className="rv-message-grid"><form className="rv-message-card rv-message-form" onSubmit={generate}><header><h2>Customer &amp; Product Details</h2><p>Add a few details and let AI craft the perfect message.</p></header><div className="grid grid-2"><label><span className="label">Customer name</span><input className="input" required value={form.customerName} onChange={(event) => update("customerName", event.target.value)} placeholder="e.g. Taylor Morgan"/></label><label><span className="label">Product or model</span><input className="input" list="rv-message-products" value={form.product} onChange={(event) => update("product", event.target.value)} placeholder="e.g. Wildwood 26DBUD"/><datalist id="rv-message-products">{productOptions.map((product) => <option value={product} key={product}/>)}</datalist></label></div><div className="grid grid-3"><label><span className="label">Lead stage</span><select className="input" value={form.leadStage} onChange={(event) => update("leadStage", event.target.value)}><option>New lead</option><option>Contacted</option><option>Considering options</option><option>Appointment scheduled</option><option>Quote provided</option><option>Decision pending</option><option>Past customer</option></select></label><label><span className="label">Tone</span><select className="input" value={form.tone} onChange={(event) => update("tone", event.target.value)}>{tones.map((tone) => <option key={tone}>{tone}</option>)}</select></label><label><span className="label">Communication type</span><select className="input" value={form.communicationType} onChange={(event) => update("communicationType", event.target.value)}><option>Follow up</option><option>Product information</option><option>Quote follow-up</option><option>Appointment reminder</option><option>Re-engagement</option></select></label></div><label><span className="label">Customer needs</span><textarea className="input" rows={3} value={form.customerNeeds} onChange={(event) => update("customerNeeds", event.target.value)} placeholder="Passenger capacity, use case, comfort, range, timeline…"/></label><label><span className="label">Previous conversation</span><textarea className="input" rows={3} value={form.previousConversation} onChange={(event) => update("previousConversation", event.target.value)} placeholder="What did you discuss, promise, or agree to follow up on?"/></label><div className="rv-message-context"><strong>Additional context <small>(optional)</small></strong><div><button type="button" onClick={() => update("desiredNextAction", "Include payment options and a clear next step")}>Include payment options</button><button type="button" onClick={() => update("customerNeeds", `${form.customerNeeds}${form.customerNeeds ? "; " : ""}Highlight key features`)}>Highlight key features</button><button type="button" onClick={() => update("desiredNextAction", "Include a clear call to action")}>Include CTA</button><button type="button" onClick={() => update("objection", "Address trade-in options")}>Mention trade-in</button></div></div>{error && <p className="form-error" role="alert">{error}</p>}<div className="rv-message-form-actions"><button className="btn btn-primary" disabled={loading}>{loading ? <><LoaderCircle className="spin"/>Generating…</> : <><Sparkles/>Generate Message</>}</button><button className="btn btn-ghost" type="button" onClick={clearAll}>Clear All</button></div></form>
+    <section className="rv-message-card rv-message-output" aria-live="polite"><header><div><h2>Your AI-Generated Message</h2><p>Review, edit, and send when you&apos;re ready.</p></div><div><button className="btn btn-ghost" disabled={!draft} onClick={copyDraft}><Copy/> {copied ? "Copied" : "Copy"}</button><button className="btn btn-ghost" disabled={!draft} onClick={() => window.print()}><Printer/> Print</button>{draft && <a className="btn btn-primary" href={kind === "email" ? `mailto:?subject=${encodeURIComponent(draft.subject || "")}&body=${encodeURIComponent(draft.body || "")}` : `sms:?body=${encodeURIComponent(draft.message || "")}`}><Send/> Send</a>}</div></header>{loading ? <div className="rv-message-empty"><LoaderCircle className="spin"/><h3>Creating your message…</h3></div> : draft ? <div className="rv-message-draft">{kind === "email" && <div><strong>Subject:</strong> {draft.subject}</div>}<p>{kind === "email" ? draft.body : draft.message}</p><aside><span>Primary next step</span><strong>{draft.primaryCallToAction}</strong></aside></div> : <div className="rv-message-empty"><Sparkles/><h3>Your personalized {kind} will appear here</h3><p>Enter the customer details you know. Product facts come only from approved RunFloor data.</p></div>}</section></div>
+  </div></AppShell>;
+}
