@@ -63,9 +63,17 @@ export async function POST(request: Request, { params }: { params: Promise<{ id:
 
   if (mode === "approve") {
     const importId = text(data.get("importId"));
-    const rawCandidates = text(data.get("candidates"), 200_000);
+    const rawCandidates = String(data.get("candidates") || "");
     if (!validId(importId)) return NextResponse.json({ error: "Invalid import." }, { status: 400 });
-    const candidates = JSON.parse(rawCandidates || "[]") as Array<Record<string, unknown>>;
+    if (rawCandidates.length > 10_000_000) return NextResponse.json({ error: "The selected product data is too large to import at once." }, { status: 413 });
+    let candidates: Array<Record<string, unknown>>;
+    try {
+      const parsed = JSON.parse(rawCandidates || "[]") as unknown;
+      if (!Array.isArray(parsed) || parsed.length > 500) return NextResponse.json({ error: "Select no more than 500 products per import." }, { status: 400 });
+      candidates = parsed as Array<Record<string, unknown>>;
+    } catch {
+      return NextResponse.json({ error: "The selected product data was incomplete. Please review the file again and retry the import." }, { status: 400 });
+    }
     const { data: source } = await db.from("industry_template_product_imports").select("id").eq("id", importId).eq("industry_template_id", templateId).maybeSingle();
     if (!source || !Array.isArray(candidates)) return NextResponse.json({ error: "The import is unavailable." }, { status: 400 });
     let created = 0; let updated = 0; let skipped = 0;

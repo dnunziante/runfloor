@@ -7,9 +7,17 @@ type Candidate = {
   name: string; model: string; manufacturer: string; modelYear: number | null; modelVariant: string; productCategory: string; productType: string; description: string;
   specifications: Record<string, string | number | boolean | null>; duplicateId: string | null; selected: boolean; action: "create" | "update" | "skip"; warnings: string[]; sourceRow: number | null;
 };
+type ImportResponse = { error?: string; candidates?: Array<Omit<Candidate, "selected" | "action">>; importId?: string; totalRows?: number; errors?: string[]; detectedFormat?: string };
 
 function fieldLabel(key: string) {
   return key.replace(/([a-z])([A-Z])/g, "$1 $2").replace(/[_-]+/g, " ").replace(/\b\w/g, (letter) => letter.toUpperCase());
+}
+
+async function responseData(response: Response): Promise<ImportResponse> {
+  const body = await response.text();
+  if (!body) return { error: response.ok ? "The server returned an empty response." : `The server could not complete the request (${response.status}).` };
+  try { return JSON.parse(body) as ImportResponse; }
+  catch { return { error: `The server returned an unreadable response (${response.status}).` }; }
 }
 
 export function TemplateProductImporter({ templateId, isRv = false }: { templateId: string; isRv?: boolean }) {
@@ -45,9 +53,9 @@ export function TemplateProductImporter({ templateId, isRv = false }: { template
     const body = new FormData(form); body.set("mode", "extract"); body.set("file", file);
     try {
       const response = await fetch(`/api/admin/platform/templates/${templateId}/starter-products/import`, { method: "POST", body });
-      const data = await response.json();
-      if (!response.ok) throw new Error(data.error || "Extraction failed.");
-      const candidates = (data.candidates || []).map((item: Omit<Candidate, "selected" | "action">) => ({ ...item, selected: !item.duplicateId, action: item.duplicateId ? "skip" : "create" }));
+      const data = await responseData(response);
+      if (!response.ok) throw new Error(String(data.error || "Extraction failed."));
+      const candidates = (data.candidates || []).map((item: Omit<Candidate, "selected" | "action">): Candidate => ({ ...item, selected: !item.duplicateId, action: item.duplicateId ? "skip" : "create" }));
       setImportId(data.importId || ""); setItems(candidates); setSummary({ totalRows: data.totalRows || candidates.length, errors: data.errors || [], detectedFormat: data.detectedFormat || "" });
       if (!candidates.length) setNotice("No identifiable product models were found in this document.");
     } catch (caught) { setError(caught instanceof Error ? caught.message : "Extraction failed."); } finally { setBusy(false); }
@@ -59,8 +67,8 @@ export function TemplateProductImporter({ templateId, isRv = false }: { template
       const candidates = items.map((item) => ({ ...item, action: item.selected ? item.action : "skip" }));
       const body = new FormData(); body.set("mode", "approve"); body.set("importId", importId); body.set("candidates", JSON.stringify(candidates));
       const response = await fetch(`/api/admin/platform/templates/${templateId}/starter-products/import`, { method: "POST", body });
-      const data = await response.json();
-      if (!response.ok) throw new Error(data.error || "Approval failed.");
+      const data = await responseData(response);
+      if (!response.ok) throw new Error(String(data.error || "Approval failed."));
       window.location.reload();
     } catch (caught) { setError(caught instanceof Error ? caught.message : "Approval failed."); } finally { setBusy(false); }
   }
