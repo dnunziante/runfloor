@@ -52,7 +52,7 @@ const coachLinks = [
   ["My Development", "/coach/development", TrendingUp],
 ] as const;
 
-export function AppShell({ children, title }: { children: React.ReactNode; title: string }) {
+export function AppShell({ children, title, industry }: { children: React.ReactNode; title: string; industry?: "rv" }) {
   const pathname = usePathname();
   const router = useRouter();
   const [open, setOpen] = useState(false);
@@ -98,7 +98,7 @@ export function AppShell({ children, title }: { children: React.ReactNode; title
   const executiveSettingsVisible = viewer.role === "platform_owner" || viewer.role === "tenant_admin";
   const administratorVisible = viewer.role === "platform_owner" || viewer.role === "tenant_admin";
   const salesSectionActive = links.some(([, href]) => pathname === href || (href === "/admin" && pathname.startsWith("/admin") && !pathname.startsWith("/admin/growth") && !pathname.startsWith("/admin/executive") && !pathname.startsWith("/admin/sales-results")));
-  return <div className={`shell ${collapsed ? "sidebar-collapsed" : ""}`}>
+  return <div className={`shell ${collapsed ? "sidebar-collapsed" : ""} ${industry === "rv" ? "rv-shell" : ""}`}>
     {open && <button className="scrim" aria-label="Close menu" onClick={() => setOpen(false)} />}
     <aside className={`sidebar ${open ? "sidebar-open" : ""}`}>
       <div className="brand-row sidebar-controls"><button className="icon-btn collapse-sidebar" aria-label={collapsed ? "Expand sidebar" : "Collapse sidebar"} onClick={() => setCollapsed((value) => !value)}>{collapsed ? <ChevronsRight size={22}/> : <ChevronsLeft size={22}/>}</button><button className="icon-btn close-nav" aria-label="Close menu" onClick={() => setOpen(false)}><X size={20}/></button></div>
@@ -114,7 +114,8 @@ export function AppShell({ children, title }: { children: React.ReactNode; title
           <summary><span className="module-icon"><Users size={18}/></span><span>Sales Assistant</span><ChevronDown className="module-chevron" size={16}/></summary>
           <div className="module-links">{links.filter(([label]) => label !== "Admin" || administratorVisible).map(([label, href, Icon]) => {
             const active = pathname === href || (href === "/admin" && pathname.startsWith("/admin") && !pathname.startsWith("/admin/growth") && !pathname.startsWith("/admin/executive") && !pathname.startsWith("/admin/sales-results"));
-            return <Link className={active ? "active" : ""} href={href} key={href} onClick={() => setOpen(false)}><Icon size={18}/><span>{label}</span></Link>;
+            const visibleLabel = industry === "rv" && label === "Products" ? "RVs & Inventory" : label;
+            return <Link className={active ? "active" : ""} href={href} key={href} onClick={() => setOpen(false)}><Icon size={18}/><span>{visibleLabel}</span></Link>;
           })}</div>
         </details>
         <details className="module-group" key={`operations-${pathname}`} open={operationsSectionActive}>

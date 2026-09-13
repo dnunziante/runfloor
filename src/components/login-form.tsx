@@ -17,8 +17,8 @@ export function LoginForm({ configured, demoMode, nextPath, initialError = "" }:
       {initialError && <p className="form-error" role="alert">{initialError}</p>}
       <button className="signin-submit" disabled={!configured && !demoMode} type="submit">{demoMode ? "Continue to demo" : "Sign in"} <ArrowRight aria-hidden="true" /></button>
     </form>
-    {!demoMode && <><div className="signin-divider"><span>or</span></div><Link className="signin-demo-card" href={`/demo?next=${encodeURIComponent(nextPath)}`}><span className="signin-demo-title"><Play aria-hidden="true" fill="currentColor" /> Explore the demo <ArrowRight aria-hidden="true" /></span><small>See how RunFloor supports a dealership</small></Link></>}
-    <div className="signin-proof"><div><Users aria-hidden="true" /><strong>Built for teams</strong><span>Connected dealership workflows</span></div><div><Lightbulb aria-hidden="true" /><strong>Clear guidance</strong><span>Approved knowledge in context</span></div><div><BarChart3 aria-hidden="true" /><strong>Stronger results</strong><span>Performance in one place</span></div></div>
+    {!demoMode && <><div className="signin-divider"><span>or</span></div><Link className="signin-demo-card" href={`/demo?next=${encodeURIComponent(nextPath)}`}><span className="signin-demo-title"><Play aria-hidden="true" fill="currentColor" /> Explore the demo <ArrowRight aria-hidden="true" /></span><small>See how RunFloor helps RV dealerships</small></Link></>}
+    <div className="signin-proof"><div><Users aria-hidden="true" /><strong>Built for RV Teams</strong><span>Connected dealership workflows</span></div><div><Lightbulb aria-hidden="true" /><strong>Clear Guidance</strong><span>Approved knowledge in context</span></div><div><BarChart3 aria-hidden="true" /><strong>Stronger Results</strong><span>Performance in one place</span></div></div>
     <div className="signin-tagline"><span /> Run your dealership forward <span /></div>
   </div>;
 }

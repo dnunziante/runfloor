@@ -2,12 +2,12 @@ import Link from "next/link";
 import { ArrowRight, ImagePlus, Layers3, PackagePlus, ShieldCheck } from "lucide-react";
 import type { ProductFamilyDTO } from "@/lib/products/types";
 
-export function ProductFamilyLibrary({ families }: { families: ProductFamilyDTO[] }) {
+export function ProductFamilyLibrary({ families, isRv = false }: { families: ProductFamilyDTO[]; isRv?: boolean }) {
   const addOnSlugs = new Set(["accessories", "warranties"]);
   const vehicleFamilies = families.filter((family) => !addOnSlugs.has(family.slug));
   const addOnFamilies = families.filter((family) => addOnSlugs.has(family.slug));
 
-  return <div className="form-stack">
+  return <div className={`form-stack ${isRv ? "rv-product-library" : ""}`}>
     <div className="product-family-grid">
       {vehicleFamilies.map((family) => <Link className="card product-family-card" href={`/products/families/${family.slug}`} key={family.id}>
       <div className={`product-family-cover ${family.imageUrl ? "has-image" : ""}`} style={family.imageUrl ? { backgroundImage: `url(${family.imageUrl})` } : undefined}>

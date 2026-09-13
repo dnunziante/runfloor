@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { BarChart3, BookOpen, Bolt, Lightbulb, MessageCircleMore, ShieldCheck, Sparkles, Users } from "lucide-react";
+import { BarChart3, BookOpen, Bolt, Cloud, Lightbulb, MessageCircleMore, MountainSnow, ShieldCheck, Users, UsersRound } from "lucide-react";
 import { LoginForm } from "@/components/login-form";
 import { BrandLogo } from "@/components/brand-logo";
 import { isLocalDemoMode, isSupabaseConfigured } from "@/lib/supabase/config";
@@ -24,24 +24,29 @@ export default async function Login({ searchParams }: { searchParams?: Promise<{
       <div className="signin-story-shade" />
       <header className="signin-story-header">
         <Link className="signin-logo" href="/" aria-label="RunFloor home"><BrandLogo priority /></Link>
-        <p>People <span /> Process <span /> Performance</p>
       </header>
       <div className="signin-story-content">
-        <h1 id="signin-story-title">Better teams.<br />Smoother operations.<br /><strong>Stronger dealerships.</strong></h1>
-        <p className="signin-story-lede">RunFloor gives your team the knowledge, tools, and confidence to sell more, serve better, and run a more effective dealership—every day.</p>
+        <p className="signin-story-kicker">A stronger RV dealership starts here.</p>
+        <h1 id="signin-story-title">Better teams.<br />Smoother operations.<br /><strong>Happier campers.</strong></h1>
+        <p className="signin-story-lede">RunFloor gives your dealership the tools, knowledge, and confidence to sell more RVs, serve more families, and grow a stronger business—every day.</p>
         <div className="signin-benefits">
           {benefits.map(({ icon: Icon, title, copy }) => <article key={title}><span className="signin-benefit-icon"><Icon aria-hidden="true" /></span><div><h2>{title}</h2><p>{copy}</p></div></article>)}
         </div>
-        <blockquote><span aria-hidden="true">“</span><p>Put your people, processes, and performance on the same page.</p><cite>RunFloor</cite></blockquote>
+        <blockquote><span aria-hidden="true">“</span><p>Same People. Bigger Results.</p><cite>RunFloor</cite></blockquote>
       </div>
       <footer className="signin-trust">
-        <div><ShieldCheck aria-hidden="true" /><span><strong>Tenant protected</strong>Organization-scoped access</span></div>
-        <div><Sparkles aria-hidden="true" /><span><strong>Built to support teams</strong>Sales and operations workflows</span></div>
+        <div><ShieldCheck aria-hidden="true" /><span><strong>Secure &amp; Reliable</strong>Organization-scoped access</span></div>
+        <div><Cloud aria-hidden="true" /><span><strong>Built for RV Dealerships</strong>Sales and operations workflows</span></div>
+        <div><UsersRound aria-hidden="true" /><span><strong>Trusted by Dealers</strong>People. RVs. Profit.</span></div>
       </footer>
     </section>
     <section className="signin-panel">
-      <div className="signin-demo-top"><span>Not a customer yet?</span><Link href={`/demo?next=${encodeURIComponent(nextPath)}`}>Explore the demo <span aria-hidden="true">→</span></Link></div>
-      <div className="signin-card"><LoginForm configured={configured} demoMode={demoMode} nextPath={nextPath} initialError={error === "credentials" ? "The email or password is incorrect." : error === "network" ? "Sign-in could not reach the workspace. Please try again." : ""} /></div>
+      <p className="signin-panel-motto">People <span /> Processes <span /> Profit</p>
+      <div className="signin-card">
+        <MountainSnow className="signin-mountain-mark" aria-hidden="true" />
+        <LoginForm configured={configured} demoMode={demoMode} nextPath={nextPath} initialError={error === "credentials" ? "The email or password is incorrect." : error === "network" ? "Sign-in could not reach the workspace. Please try again." : ""} />
+      </div>
+      <p className="signin-script">More Adventures<br />Together.</p>
     </section>
   </main>;
 }
