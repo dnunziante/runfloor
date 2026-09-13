@@ -19,10 +19,13 @@ const rvAliases: Record<string, string> = {
 };
 const numericKeys = new Set(["dryWeightLb", "gvwrLb", "cargoCapacityLb", "hitchWeightLb", "lengthFt", "widthFt", "exteriorHeightFt", "interiorHeightFt", "freshWaterGal", "grayWaterGal", "blackWaterGal", "sleeps", "axles", "slides", "msrpUsd"]);
 const booleanKeys = new Set(["gvwrDerived", "airConditioner", "refrigerator", "awning"]);
+const expandedRvHeaders = ["model_year", "Manufacturer", "brand", "line", "model", "Description", "model_year_label", "body_type", "dry_weight_lb", "gvwr_lb", "gvwr_derived", "cargo_capacity_lb", "hitch_weight_lb", "hitch_weight_basis", "hitch_kind", "length_ft", "width_ft", "exterior_height_ft", "interior_height_ft", "fresh_water_gal", "grey_water_gal", "black_water_gal", "sleeps", "axles", "slides", "tires", "air_conditioner", "refrigerator", "awning", "primary_bed", "layout", "msrp_usd"];
 const normalizedHeader = (value: unknown) => String(value || "").trim().toLowerCase().replace(/[^a-z0-9]/g, "");
 const clean = (value: unknown, limit = 500) => String(value ?? "").trim().slice(0, limit);
 const additionalKey = (header: string) => header.trim().replace(/[^a-zA-Z0-9]+(.)/g, (_, character: string) => character.toUpperCase()).replace(/^[A-Z]/, (character) => character.toLowerCase()).slice(0, 80);
 const recognized = (header: unknown, industry: ProductExtractionIndustry) => commonAliases[normalizedHeader(header)] || (industry === "rv" ? rvAliases[normalizedHeader(header)] : "");
+const isHeaderlessExpandedRvRow = (row: unknown[]) => industryValue(row[0]) >= 1900 && industryValue(row[0]) <= 2200 && clean(row[2]) !== "" && clean(row[4]) !== "" && clean(row[7]) !== "" && Number.isFinite(industryValue(row[8])) && Number.isFinite(industryValue(row[9]));
+const industryValue = (value: unknown) => Number(String(value ?? "").replace(/[$,]/g, ""));
 
 function typedValue(value: unknown, key: string): SpecificationValue {
   if (value === null || value === undefined || clean(value) === "") return null;
@@ -35,12 +38,17 @@ export async function parseTemplateProductSpreadsheet(file: File, industry: Prod
   const workbook = XLSX.read(await file.arrayBuffer(), { type: "array", cellDates: false });
   const products: SpreadsheetProduct[] = []; const errors: string[] = []; let totalRows = 0; let expanded = false;
   for (const sheetName of workbook.SheetNames) {
-    const matrix = XLSX.utils.sheet_to_json<unknown[]>(workbook.Sheets[sheetName], { header: 1, defval: "", raw: true });
+    const sheet = workbook.Sheets[sheetName];
+    const matrix = XLSX.utils.sheet_to_json<unknown[]>(sheet, { header: 1, defval: "", raw: true });
+    const sheetStartRow = sheet["!ref"] ? XLSX.utils.decode_range(sheet["!ref"]).s.r + 1 : 1;
     const headerMatch = matrix.slice(0, 25).map((row, index) => ({ index, score: row.filter((cell) => recognized(cell, industry)).length })).sort((left, right) => right.score - left.score || left.index - right.index)[0];
-    if (!headerMatch || headerMatch.score < 2) { errors.push(`${sheetName}: no recognizable product header row was found.`); continue; }
-    const headers = matrix[headerMatch.index].map((cell) => clean(cell, 120));
+    const headerlessRv = industry === "rv" && (!headerMatch || headerMatch.score < 2) && matrix.length > 0 && isHeaderlessExpandedRvRow(matrix[0]);
+    if ((!headerMatch || headerMatch.score < 2) && !headerlessRv) { errors.push(`${sheetName}: no recognizable product header row was found.`); continue; }
+    const headerIndex = headerlessRv ? -1 : headerMatch.index;
+    const headers = headerlessRv ? expandedRvHeaders : matrix[headerIndex].map((cell) => clean(cell, 120));
+    if (headerlessRv) errors.push(`${sheetName}: the header row was missing; recognized the expanded RV column order and imported the data rows.`);
     if (headers.some((header) => ["model_year", "body_type", "dry_weight_lb", "msrp_usd"].includes(header.trim().toLowerCase()))) expanded = true;
-    for (let rowIndex = headerMatch.index + 1; rowIndex < matrix.length; rowIndex++) {
+    for (let rowIndex = headerIndex + 1; rowIndex < matrix.length; rowIndex++) {
       const row = matrix[rowIndex]; if (!row.some((value) => clean(value))) continue;
       totalRows++; if (totalRows > 500) throw new Error("A spreadsheet can contain up to 500 populated product rows per import.");
       const values: Record<string, unknown> = {}; const specifications: Record<string, SpecificationValue> = {}; const warnings: string[] = [];
@@ -53,8 +61,9 @@ export async function parseTemplateProductSpreadsheet(file: File, industry: Prod
       if (industry === "rv" && clean(values.category)) specifications.rvType = clean(values.category, 120);
       const brand = clean(specifications.brand, 160); const line = clean(specifications.productLine, 160); const suppliedName = clean(values.name, 180);
       const name = suppliedName || [modelYear, brand || clean(values.manufacturer, 160), line, model].filter(Boolean).join(" ") || model;
-      if (!name) { errors.push(`${sheetName} row ${rowIndex + 1}: Product Name/Model could not be identified.`); continue; }
-      products.push({ name, model: model || name, manufacturer: clean(values.manufacturer || brand, 160), modelYear, modelVariant: line, category: clean(values.category, 120), description: clean(values.description, 4_000), specifications, warnings: Array.from(new Set(warnings)), sourceRow: rowIndex + 1 });
+      const sourceRow = sheetStartRow + rowIndex;
+      if (!name) { errors.push(`${sheetName} row ${sourceRow}: Product Name/Model could not be identified.`); continue; }
+      products.push({ name, model: model || name, manufacturer: clean(values.manufacturer || brand, 160), modelYear, modelVariant: line, category: clean(values.category, 120), description: clean(values.description, 4_000), specifications, warnings: Array.from(new Set(warnings)), sourceRow });
     }
   }
   if (!products.length && !errors.length) throw new Error("No products were found. Include a Product Name or Model column and at least one completed row.");

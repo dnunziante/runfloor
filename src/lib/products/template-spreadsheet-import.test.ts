@@ -49,3 +49,18 @@ test("finds an expanded RV header after a blank row and preserves typed and unkn
   assert.equal(product.specifications.futureField, "future value");
   assert.deepEqual(product.warnings, ["Preserved unmapped column: future_field"]);
 });
+
+test("recognizes a headerless expanded RV worksheet by its guarded column order", async () => {
+  const workbook = XLSX.utils.book_new();
+  const row = [2026, "", "Jayco", "Eagle", "360DBOK", "", "2026 Jayco Eagle", "Fifth Wheel", 12800, 14995, false, 2195, 2695, "dry", "pin", 43.083, 8.083, 12.583, 8.583, 81, 87, 87, 6, "", "", "ST235/80R16'H'", "", "", "", "", "", ""];
+  XLSX.utils.book_append_sheet(workbook, XLSX.utils.aoa_to_sheet([row, row]), "Sheet1");
+  const bytes = XLSX.write(workbook, { bookType: "xlsx", type: "array" });
+  const result = await parseTemplateProductSpreadsheet(new File([bytes], "headerless-rvs.xlsx"), "rv");
+  assert.equal(result.products.length, 2);
+  assert.equal(result.detectedFormat, "expanded");
+  assert.equal(result.products[0].name, "2026 Jayco Eagle 360DBOK");
+  assert.equal(result.products[0].manufacturer, "Jayco");
+  assert.equal(result.products[0].specifications.dryWeightLb, 12800);
+  assert.equal(result.products[0].specifications.gvwrDerived, false);
+  assert.match(result.errors[0], /header row was missing/);
+});
