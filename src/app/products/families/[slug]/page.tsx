@@ -8,12 +8,15 @@ import { CatalogManagementActions } from "@/components/product-catalog-managemen
 import { getTenantProductFamilyBySlug, getTenantProducts } from "@/lib/products/data";
 import { getTenantProductFamilies } from "@/lib/products/data";
 import { getViewer } from "@/lib/auth/viewer";
+import { getViewerIndustryTemplateKey } from "@/lib/organizations/industry";
 
 export default async function ProductFamilyPage({ params }: { params: Promise<{ slug: string }> }) {
   const { slug } = await params;
   const [{ family, error }, allCatalogs, viewer] = await Promise.all([getTenantProductFamilyBySlug(slug), getTenantProductFamilies(), getViewer()]);
   if (!family) notFound();
   const products = await getTenantProducts({ familyId: family.id });
+  const isRv = viewer ? await getViewerIndustryTemplateKey(viewer) === "rv" : false;
+  const visibleProducts = isRv ? products.products.filter((product) => product.productType === "our_product") : products.products;
   const addOnMode = family.slug === "accessories" || family.slug === "warranties";
 
   return <AppShell title={family.name}>
@@ -21,7 +24,7 @@ export default async function ProductFamilyPage({ params }: { params: Promise<{ 
     {Boolean(viewer && !viewer.demo && ["tenant_admin", "manager", "platform_owner"].includes(viewer.role)) && <CatalogManagementActions catalog={family} catalogs={allCatalogs.families}/>}
     {error || products.error
       ? <div className="card error-card"><h2>{addOnMode ? "Add-ons" : "Models"} are not available</h2><p>{error || products.error}</p></div>
-      : <ProductLibrary products={products.products} live={products.source === "supabase"} addOnMode={addOnMode} emptyMessage={addOnMode ? `No published ${family.name.toLowerCase()} have been added yet.` : `No published ${family.name} models or configurations have been added yet.`}/>
+      : <ProductLibrary products={visibleProducts} live={products.source === "supabase"} addOnMode={addOnMode} emptyMessage={addOnMode ? `No published ${family.name.toLowerCase()} have been added yet.` : `No published ${family.name} models or configurations have been added yet.`}/>
     }
   </AppShell>;
 }

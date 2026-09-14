@@ -12,7 +12,7 @@ import { AdminProductCatalogDashboard } from "@/components/admin-product-catalog
 import { Boxes, FileText, Package, Plus, Tags, Upload, Users } from "lucide-react";
 import { RvCatalogCreator } from "@/components/rv-catalog-creator";
 
-export default async function AdminProductsPage({ searchParams }: { searchParams: Promise<{ family?: string; create?: string; tools?: string; q?: string; type?: string; brand?: string; rvType?: string; year?: string; status?: string }> }) {
+export default async function AdminProductsPage({ searchParams }: { searchParams: Promise<{ family?: string; create?: string; tools?: string; q?: string; type?: string; brand?: string; rvType?: string; year?: string; status?: string; sort?: string; direction?: string }> }) {
   const { family: requestedFamilyId = "", create, tools, ...rvFilters } = await searchParams;
   const [result, familyResult, viewer] = await Promise.all([getTenantProducts({ includeDrafts: true }), getTenantProductFamilies(), getViewer()]);
   const supabase = createAdminClient();
