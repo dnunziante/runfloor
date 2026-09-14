@@ -507,6 +507,27 @@ export async function setProductCatalog(formData: FormData) {
   revalidatePath("/competitors");
 }
 
+export async function setProductsCatalog(formData: FormData) {
+  const viewer = await requireCatalogManager();
+  const familyId = String(formData.get("familyId") || "");
+  const productIds = Array.from(new Set(formData.getAll("productIds").map(String)));
+  if (!/^[0-9a-f-]{36}$/i.test(familyId)) throw new Error("Choose a valid catalog.");
+  if (!productIds.length || productIds.length > 500 || productIds.some((id) => !/^[0-9a-f-]{36}$/i.test(id))) throw new Error("Select between 1 and 500 products.");
+
+  const supabase = await createClient();
+  const { data: catalog } = await supabase.from("product_families").select("id").eq("id", familyId).eq("organization_id", viewer.organizationId).maybeSingle();
+  if (!catalog) throw new Error("That catalog is not available in this workspace.");
+
+  const { data, error } = await supabase.from("products").update({ family_id: familyId, updated_at: new Date().toISOString() }).eq("organization_id", viewer.organizationId).in("id", productIds).select("id");
+  if (error || data?.length !== productIds.length) throw new Error("The selected products could not all be added to the catalog.");
+
+  revalidatePath("/products");
+  revalidatePath("/comparisons");
+  revalidatePath("/admin/products");
+  revalidatePath("/admin/competitors");
+  revalidatePath("/competitors");
+}
+
 export async function saveSalesGuide(
   _previousState: SalesGuideActionState,
   formData: FormData,
