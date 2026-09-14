@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import Link from "next/link";
-import { Database, GitCompareArrows, LayoutGrid, List, Search } from "lucide-react";
+import { BedDouble, Database, GitCompareArrows, LayoutGrid, List, Ruler, Search } from "lucide-react";
 import type { ProductDTO } from "@/lib/products/types";
 
 function ProductGallery({ product }: { product: ProductDTO }) {
@@ -26,6 +26,33 @@ export function ProductLibrary({ products, live, emptyMessage, addOnMode = false
   const years = Array.from(new Set(products.map((product) => product.modelYear).filter((value): value is number => Boolean(value)))).sort((a, b) => b - a);
   const filtered = products.filter((product) => `${product.name} ${product.model} ${product.brand || ""} ${product.manufacturer || ""} ${product.modelYear || ""} ${product.modelVariant || ""}`.toLowerCase().includes(query.trim().toLowerCase()) && (!brand || (product.brand || product.manufacturer) === brand) && (!category || product.productCategory === category) && (!year || String(product.modelYear) === year));
   const shown = [...filtered].sort((a, b) => sort === "name" ? a.name.localeCompare(b.name) : sort === "year" ? (b.modelYear || 0) - (a.modelYear || 0) : (a.sortOrder || 0) - (b.sortOrder || 0));
+
+  if (isRv && !addOnMode && !competitorMode) return <div className="rv-inventory-library" id="models">
+    <div className="rv-inventory-toolbar">
+      <label><Search aria-hidden="true"/><input className="input" aria-label="Search inventory" placeholder="Search models, brands, or configurations..." value={query} onChange={(event) => setQuery(event.target.value)}/></label>
+      <select className="input" aria-label="Filter by brand" value={brand} onChange={(event) => setBrand(event.target.value)}><option value="">All brands</option>{brands.map((name) => <option key={name}>{name}</option>)}</select>
+      <select className="input" aria-label="Filter by RV type" value={category} onChange={(event) => setCategory(event.target.value)}><option value="">All RV types</option>{categories.map((name) => <option key={name}>{name}</option>)}</select>
+      <select className="input" aria-label="Filter by model year" value={year} onChange={(event) => setYear(event.target.value)}><option value="">All model years</option>{years.map((value) => <option key={value}>{value}</option>)}</select>
+      <button className="btn btn-ghost" type="button" onClick={() => { setQuery(""); setBrand(""); setCategory(""); setYear(""); }}>Clear</button>
+    </div>
+    <div className="rv-inventory-layout">
+      <aside className="rv-inventory-filters">
+        <h2>RV Type</h2>{categories.map((name) => <button className={category === name ? "active" : ""} type="button" key={name} onClick={() => setCategory(category === name ? "" : name)}><span>{name}</span><small>{products.filter((product) => product.productCategory === name).length}</small></button>)}
+        <h2>Brand</h2>{brands.slice(0, 10).map((name) => <button className={brand === name ? "active" : ""} type="button" key={name} onClick={() => setBrand(brand === name ? "" : name)}><span>{name}</span><small>{products.filter((product) => (product.brand || product.manufacturer) === name).length}</small></button>)}
+        <h2>Model Year</h2>{years.map((value) => <button className={year === String(value) ? "active" : ""} type="button" key={value} onClick={() => setYear(year === String(value) ? "" : String(value))}><span>{value}</span><small>{products.filter((product) => product.modelYear === value).length}</small></button>)}
+        <div className="rv-inventory-callout"><strong>Adventure<br/>Starts Here.</strong><p>Help more families make memories with the right RV.</p></div>
+      </aside>
+      <section className="rv-inventory-results">
+        <header><div><h2>{shown.length} Inventory Model{shown.length === 1 ? "" : "s"}</h2><p>Published dealership products ready for your sales team.</p></div><label>Sort by<select value={sort} onChange={(event) => setSort(event.target.value)}><option value="popular">Most Popular</option><option value="name">Model Name</option><option value="year">Newest Year</option></select></label><div className="rv-view-toggle"><button className={view === "grid" ? "active" : ""} type="button" onClick={() => setView("grid")}><LayoutGrid/>Grid</button><button className={view === "list" ? "active" : ""} type="button" onClick={() => setView("list")}><List/>List</button></div></header>
+        {shown.length ? <div className={`rv-inventory-cards ${view === "list" ? "list" : ""}`}>{shown.map((product) => {
+          const length = product.specifications?.length || product.dimensions;
+          const sleeps = product.specifications?.sleepingCapacity || product.seats;
+          const displayName = product.modelYear && !product.name.startsWith(String(product.modelYear)) ? `${product.modelYear} ${product.name}` : product.name;
+          return <article className="rv-inventory-card" key={product.id}><ProductGallery product={product}/><div className="rv-inventory-card-body"><span className="rv-inventory-brand">{product.brand || product.manufacturer || "RV"}</span><h2>{displayName}</h2><p className="rv-inventory-meta">{[product.productCategory, product.modelVariant || product.model].filter(Boolean).join("  |  ")}</p><div className="rv-inventory-specs">{sleeps && <span><BedDouble/>Sleeps {sleeps}</span>}{length && <span><Ruler/>Length {length}</span>}</div><p>{product.description}</p><Link href={`/products/${product.slug}`}>View product guide <span aria-hidden="true">→</span></Link></div></article>;
+        })}</div> : <div className="card output empty"><div><Search size={32}/><h2>No matching inventory</h2><p>{products.length ? "Try another filter or clear your search." : emptyMessage || "No published dealership products have been added yet."}</p>{(query || brand || category || year) && <button className="btn btn-secondary" onClick={() => {setQuery("");setBrand("");setCategory("");setYear("");}}>Clear filters</button>}</div></div>}
+      </section>
+    </div>
+  </div>;
 
   if (isRv && competitorMode) return <div className="rv-competitor-library">
     <div className="rv-competitor-toolbar">

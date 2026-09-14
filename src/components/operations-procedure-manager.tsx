@@ -13,6 +13,9 @@ import {
   Pencil,
   Plus,
   Search,
+  Settings,
+  BarChart3,
+  Users,
   Trash2,
 
 } from "lucide-react";
@@ -48,6 +51,7 @@ export function OperationsProcedureManager({
   initialError = "",
   canManage = true,
   managementReady = false,
+  isRv = false,
 }: {
   initialProcedures?: OperationsProcedureRecord[];
   initialCategories?: OperationsProcedureCategory[];
@@ -55,6 +59,7 @@ export function OperationsProcedureManager({
   initialError?: string;
   canManage?: boolean;
   managementReady?: boolean;
+  isRv?: boolean;
 }) {
   const [procedures, setProcedures] = useState(initialProcedures);
   const [categories, setCategories] = useState(initialCategories);
@@ -375,14 +380,16 @@ export function OperationsProcedureManager({
     );
   function openProcedure(item: OperationsProcedureRecord) { setSelectedId(item.id); setReadingId(item.id); setEditingId(null); }
   function newProcedure() { clear(); setPanelOpen(true); }
-  return <section className={`${library.library} ${layout.workspace}`} aria-label="Organization procedure library">
-    <header className={library.header}><div className={library.heading}><span className={library.book}><BookOpen size={27} /></span><div><h1>Procedure Templates</h1><p>Standardize operations. Train faster. Deliver a better experience.</p></div></div><div className={library.tools}><label className={library.search}><Search size={18} /><input aria-label="Search procedures" placeholder="Search procedures…" value={search} onChange={event => { setSearch(event.target.value); setSelectedCategory(null); }} /></label>{canManage && <button className="btn btn-primary" onClick={newProcedure}><Plus size={17} /> New Procedure</button>}</div></header>
-    <ProcedureValueBanner />
-    <div className={layout.secondary}><Link className="btn btn-ghost" href="/operations"><ArrowLeft size={15} /> Operations dashboard</Link>{canManage && !managementReady && <div className="button-row"><button className="btn btn-ghost" onClick={() => { setCategoryName(""); setCategoryEditor("new"); setError(""); }}><Plus size={16} /> Add Category</button><button className="btn btn-ghost" aria-pressed={managingCategories} onClick={() => setManagingCategories(!managingCategories)}>{managingCategories ? "Done managing" : "Manage Categories"}</button></div>}</div>
+  return <section className={`${library.library} ${layout.workspace} ${isRv ? layout.rvLibrary : ""}`} aria-label="Organization procedure library">
+    {isRv && <section className={layout.rvHero}><div><span>Operations Assistant</span><h1>Proven Procedures.<br/><em>Stronger Dealerships.</em></h1><p>Standardize. Train. Stay Aligned. Deliver an Exceptional RV Experience.</p><div className={layout.rvHeroBenefits}><b><Settings/>Keep Operations<small>Consistent</small></b><b><Users/>Train Teams<small>Faster</small></b><b><BarChart3/>Deliver a Better<small>Customer Experience</small></b></div></div><blockquote>Great People.<br/>Greater Adventures.</blockquote></section>}
+    <header className={library.header}><div className={library.heading}>{!isRv && <span className={library.book}><BookOpen size={27} /></span>}<div><h1>{isRv ? "Procedure Categories" : "Procedure Templates"}</h1><p>{isRv ? "Choose a category to view, create, or manage procedures." : "Standardize operations. Train faster. Deliver a better experience."}</p></div></div><div className={library.tools}><label className={library.search}><Search size={18} /><input aria-label="Search procedures" placeholder={isRv ? "Search procedures, categories, or keywords…" : "Search procedures…"} value={search} onChange={event => { setSearch(event.target.value); setSelectedCategory(null); }} /></label>{canManage && <button className="btn btn-primary" onClick={newProcedure}><Plus size={17} /> New Procedure</button>}{isRv && canManage && !managementReady && <button className="btn btn-secondary" onClick={() => { setCategoryName(""); setCategoryEditor("new"); setError(""); }}><Plus size={16}/> Add Category</button>}</div></header>
+    {!isRv && <ProcedureValueBanner />}
+    {!isRv && <div className={layout.secondary}><Link className="btn btn-ghost" href="/operations"><ArrowLeft size={15} /> Operations dashboard</Link>{canManage && !managementReady && <div className="button-row"><button className="btn btn-ghost" onClick={() => { setCategoryName(""); setCategoryEditor("new"); setError(""); }}><Plus size={16} /> Add Category</button><button className="btn btn-ghost" aria-pressed={managingCategories} onClick={() => setManagingCategories(!managingCategories)}>{managingCategories ? "Done managing" : "Manage Categories"}</button></div>}</div>}
     {persistence === "demo" && <p className="callout">Demo procedures are separate from organization records.</p>}
     {!panelOpen && error && <p role="alert" className="form-error"><AlertTriangle size={14} /> {error}</p>}
     {message && <p role="status" className="form-success">{message}</p>}
     {!selectedCategory && !search.trim() && <div className={library.categories} aria-label="Procedure categories">{orderedCategories.map(item => <div className={layout.categoryGroup} key={item.id}><ProcedureCategoryCard name={item.name} description={item.description} styleName={item.styleName} count={procedures.filter(procedure => procedure.categoryId === item.id).length} noun="procedures" selected={false} onClick={() => { setSelectedCategory(item.id); setSelectedId(null); }} /><CategoryManagementMenu id={item.id}/>{canManage && !managementReady && managingCategories && <div className={layout.categoryActions}>{item.isDefault ? <small>Default category</small> : <><button className="btn btn-ghost" aria-label={`Rename ${item.name}`} onClick={() => { setCategoryName(item.name); setCategoryEditor(item); setError(""); }}><Pencil size={14}/> Rename</button><button className="btn btn-ghost" aria-label={`Delete ${item.name}`} onClick={() => setDeleting(item)}><Trash2 size={14}/> Delete</button></>}</div>}</div>)}</div>}
+    {isRv && !selectedCategory && !search.trim() && <div className={layout.rvCta}><div><span>Build a Stronger Tomorrow</span><h2>Well-Defined Operations<br/>Keep You Moving Forward.</h2></div><p>Organized procedures create confident teams, happier customers, and a more profitable dealership.</p>{canManage && <button className="btn btn-primary" onClick={newProcedure}>Create a Procedure <ArrowLeft/></button>}</div>}
     {(selectedCategory || search.trim()) && <div className={library.results}><div className={library.panelHeading}><div><button className="btn btn-ghost" onClick={() => { setSelectedCategory(null); setSearch(""); }}><ArrowLeft size={16}/> All categories</button><h2>{category?.name ?? "Search results"}</h2><p>{category ? category.description || procedureCategoryStyle(category.styleName || category.name).description : `Matching “${search}” across your organization's procedures`}</p><p role="status">{filtered.length} {filtered.length === 1 ? "procedure" : "procedures"}</p></div>{canManage && <button className="btn btn-secondary" onClick={newProcedure}><Plus size={16}/> New Procedure</button>}</div>
       {filtered.length ? <div className={library.templates}>{filtered.map((item,index) => <article className={library.template} key={item.id}><div className={library.metadata}><span>{item.category}</span><span>{item.status} · v{item.version}</span><ProcedureManagementMenu id={item.id} onEdit={() => edit(item)}/></div><button className={layout.cardOpen} onClick={() => openProcedure(item)}><strong>{item.title}</strong><p>{item.summary}</p></button><div className={library.metadata}>{item.owner}</div><div className={layout.cardActions}><button className="btn btn-secondary" onClick={() => openProcedure(item)}><Eye size={16}/> Open procedure</button>{canManage && <><button className="btn btn-ghost" aria-label={`Edit ${item.title}`} onClick={() => edit(item)}><FileEdit size={16}/></button>{selectedCategory && !search && <><button className="icon-button" aria-label={`Move ${item.title} up`} disabled={index === 0} onClick={() => moveProcedure(item.id,-1)}><ChevronUp size={16}/></button><button className="icon-button" aria-label={`Move ${item.title} down`} disabled={index === filtered.length-1} onClick={() => moveProcedure(item.id,1)}><ChevronDown size={16}/></button></>}</>}</div></article>)}</div> : <div className={library.empty}><FolderOpen size={30}/><h3>{search ? "No matching procedures" : "Ready for your first procedure"}</h3><p>{search ? "Try another title, category, owner, or keyword." : `Build your team's playbook with a ${category?.name} procedure.`}</p>{canManage && <button className="btn btn-primary" onClick={newProcedure}><Plus size={16}/> New Procedure</button>}</div>}
     </div>}

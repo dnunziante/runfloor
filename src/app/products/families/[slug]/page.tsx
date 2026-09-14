@@ -19,12 +19,17 @@ export default async function ProductFamilyPage({ params }: { params: Promise<{ 
   const visibleProducts = isRv ? products.products.filter((product) => product.productType === "our_product") : products.products;
   const addOnMode = family.slug === "accessories" || family.slug === "warranties";
 
-  return <AppShell title={family.name}>
-    <PageHeader eyebrow={addOnMode ? "Purchase add-ons" : "Product family"} title={family.name} description={family.description} action={<Link className="btn btn-ghost" href="/products"><ArrowLeft size={16}/> {addOnMode ? "Back to products" : "All product families"}</Link>}/>
-    {Boolean(viewer && !viewer.demo && ["tenant_admin", "manager", "platform_owner"].includes(viewer.role)) && <CatalogManagementActions catalog={family} catalogs={allCatalogs.families}/>}
+  const canManage = Boolean(viewer && !viewer.demo && ["tenant_admin", "manager", "platform_owner"].includes(viewer.role));
+
+  return <AppShell title={family.name} industry={isRv ? "rv" : undefined}>
+    {isRv && !addOnMode ? <>
+      <section className="rv-catalog-hero"><div><span>Dealership Catalog</span><h1>{family.name}</h1><h2>Built for Better Adventures</h2><p>{family.description}</p><div className="rv-catalog-stats"><b>{visibleProducts.length}+<small>Inventory models</small></b><b>Live<small>Workspace pricing</small></b><b>Ready<small>For your sales team</small></b></div></div><blockquote>More Adventures.<br/>Together.</blockquote></section>
+      <nav className="rv-product-tabs" aria-label={`${family.name} catalog sections`}><a className="active" href="#models">Models</a><Link href="/products">All Inventory</Link><Link href="/comparisons">Compare Models</Link>{canManage && <><Link href={`/admin/products?family=${family.id}`}>Add Existing Products</Link><Link href={`/admin/products?create=1&family=${family.id}`}>Add Product</Link></>}</nav>
+    </> : <PageHeader eyebrow={addOnMode ? "Purchase add-ons" : "Product family"} title={family.name} description={family.description} action={<Link className="btn btn-ghost" href="/products"><ArrowLeft size={16}/> {addOnMode ? "Back to products" : "All product families"}</Link>}/>}
+    {canManage && (!isRv || addOnMode) && <CatalogManagementActions catalog={family} catalogs={allCatalogs.families}/>}
     {error || products.error
       ? <div className="card error-card"><h2>{addOnMode ? "Add-ons" : "Models"} are not available</h2><p>{error || products.error}</p></div>
-      : <ProductLibrary products={visibleProducts} live={products.source === "supabase"} addOnMode={addOnMode} emptyMessage={addOnMode ? `No published ${family.name.toLowerCase()} have been added yet.` : `No published ${family.name} models or configurations have been added yet.`}/>
+      : <ProductLibrary products={visibleProducts} live={products.source === "supabase"} addOnMode={addOnMode} isRv={isRv} emptyMessage={addOnMode ? `No published ${family.name.toLowerCase()} have been added yet.` : `No published ${family.name} models or configurations have been added yet.`}/>
     }
   </AppShell>;
 }

@@ -1,7 +1,9 @@
 import Link from "next/link";
-import { AlertTriangle, ArrowRight, ArrowRightLeft, Bell, BookOpenCheck, CalendarDays, Check, CheckCircle2, ChevronRight, ClipboardCheck, Clock3, FileWarning, ListChecks, MapPin, Plus, Repeat2, ShieldAlert } from "lucide-react";
+import { AlertTriangle, ArrowRight, ArrowRightLeft, BarChart3, Bell, BookOpenCheck, CalendarDays, Check, CheckCircle2, ChevronRight, ClipboardCheck, Clock3, FileWarning, ListChecks, MapPin, Plus, Repeat2, Settings, ShieldAlert, Star, Users } from "lucide-react";
 import { AppShell } from "@/components/app-shell";
 import { getOperationsWorkspace } from "@/lib/operations/repository";
+import { getViewer } from "@/lib/auth/viewer";
+import { getViewerIndustryTemplateKey } from "@/lib/organizations/industry";
 import styles from "./operations-dashboard.module.css";
 
 const quickActions = [
@@ -12,7 +14,8 @@ const quickActions = [
 const formatDate = (value: string) => new Intl.DateTimeFormat("en-US", { month: "short", day: "numeric" }).format(new Date(`${value}T12:00:00`));
 
 export default async function OperationsPage() {
-  const data = await getOperationsWorkspace();
+  const [data, viewer] = await Promise.all([getOperationsWorkspace(), getViewer()]);
+  const isRv = viewer ? await getViewerIndustryTemplateKey(viewer) === "rv" : false;
   const published = data.procedures.filter((item) => item.status === "Published");
   const activeChecklists = data.checklists.filter((item) => item.steps.some((step) => !step.complete));
   const openAlerts = data.alerts.filter((item) => item.status !== "Resolved");
@@ -22,8 +25,8 @@ export default async function OperationsPage() {
   const upcoming = [...data.schedules].filter((item) => item.status === "Active").sort((a, b) => a.nextRunDate.localeCompare(b.nextRunDate)).slice(0, 3);
   const recent = [...data.procedures].sort((a, b) => b.updatedAt.localeCompare(a.updatedAt)).slice(0, 3);
 
-  return <AppShell title="Operations Assistant"><div className={styles.dashboard}>
-    <section className={styles.hero}><div className={styles.heroCopy}><span className={styles.eyebrow}>Operations assistant</span><h1>Run Better Operations. Every Day.</h1><p>Keep every location aligned, consistent, and accountable.</p></div><div className={styles.heroMark} aria-hidden="true"><CheckCircle2/><span>Consistency<br/>creates freedom.</span></div></section>
+  return <AppShell title="Operations Assistant" industry={isRv ? "rv" : undefined}><div className={`${styles.dashboard} ${isRv ? styles.rv : ""}`}>
+    <section className={styles.hero}><div className={styles.heroCopy}><span className={styles.eyebrow}>Operations assistant</span><h1>{isRv ? <>Run a Smoother Dealership.<br/><em>Every Mile of the Way.</em></> : "Run Better Operations. Every Day."}</h1><p>{isRv ? "Keep every location aligned, consistent, and accountable so your team can focus on what matters — customers." : "Keep every location aligned, consistent, and accountable."}</p>{isRv && <div className={styles.heroBenefits}><b><Settings/>Standardize<small>Operations</small></b><b><Users/>Empower<small>Your Team</small></b><b><BarChart3/>Reduce Risk<small>Stay accountable</small></b><b><Star/>Deliver a Better<small>Customer Experience</small></b></div>}</div><div className={styles.heroMark} aria-hidden="true"><CheckCircle2/><span>{isRv ? <>Great Operations<br/>Lead to Great Adventures.</> : <>Consistency<br/>creates freedom.</>}</span></div></section>
     {data.error && <div className={styles.notice} role="status"><AlertTriangle size={18}/><span>{data.error}</span></div>}
     <section className={styles.metrics} aria-label="Operations overview">
       <Metric href="/operations/checklists" icon={CheckCircle2} tone="green" label="Today’s completion" value={`${completion}%`} detail={`${completedSteps} of ${totalSteps} steps`}/>
