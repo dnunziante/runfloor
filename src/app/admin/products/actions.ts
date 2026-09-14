@@ -528,6 +528,31 @@ export async function setProductsCatalog(formData: FormData) {
   revalidatePath("/competitors");
 }
 
+export async function setProductsAsOurProducts(formData: FormData) {
+  const viewer = await requireCatalogManager();
+  const productIds = Array.from(new Set(formData.getAll("productIds").map(String)));
+  if (!productIds.length || productIds.length > 500 || productIds.some((id) => !/^[0-9a-f-]{36}$/i.test(id))) throw new Error("Select between 1 and 500 products.");
+
+  const supabase = await createClient();
+  const inventoryName = `${viewer.organizationName} Inventory`.slice(0, 120);
+  const inventorySlug = slugify(inventoryName);
+  let { data: inventory } = await supabase.from("product_families").select("id").eq("organization_id", viewer.organizationId).eq("slug", inventorySlug).maybeSingle();
+  if (!inventory) {
+    const { data: lastFamily } = await supabase.from("product_families").select("sort_order").eq("organization_id", viewer.organizationId).order("sort_order", { ascending: false }).limit(1).maybeSingle();
+    const created = await supabase.from("product_families").insert({ organization_id: viewer.organizationId, name: inventoryName, slug: inventorySlug, description: `Current RV inventory available from ${viewer.organizationName}.`, sort_order: (lastFamily?.sort_order ?? 0) + 10 }).select("id").single();
+    if (created.error || !created.data) throw new Error("The dealership inventory catalog could not be created.");
+    inventory = created.data;
+  }
+  const { data, error } = await supabase.from("products").update({ product_type: "our_product", family_id: inventory.id, status: "published", review_status: "approved", updated_at: new Date().toISOString() }).eq("organization_id", viewer.organizationId).in("id", productIds).select("id");
+  if (error || data?.length !== productIds.length) throw new Error("The selected products could not all be added to My Products.");
+
+  revalidatePath("/products");
+  revalidatePath("/comparisons");
+  revalidatePath("/admin/products");
+  revalidatePath("/admin/competitors");
+  revalidatePath("/competitors");
+}
+
 export async function saveSalesGuide(
   _previousState: SalesGuideActionState,
   formData: FormData,

@@ -1,9 +1,9 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { FolderInput } from "lucide-react";
+import { FolderInput, PackagePlus } from "lucide-react";
 import { useFormStatus } from "react-dom";
-import { setProductsCatalog } from "@/app/admin/products/actions";
+import { setProductsAsOurProducts, setProductsCatalog } from "@/app/admin/products/actions";
 import type { ProductFamilyDTO } from "@/lib/products/types";
 
 const formId = "rv-bulk-catalog-form";
@@ -11,6 +11,11 @@ const formId = "rv-bulk-catalog-form";
 function SubmitBulkButton({ count }: { count: number }) {
   const { pending } = useFormStatus();
   return <button className="btn btn-primary" disabled={!count || pending}><FolderInput size={16}/>{pending ? "Adding…" : `Add ${count || "selected"} to Catalog`}</button>;
+}
+
+function AddToMyProductsButton({ count }: { count: number }) {
+  const { pending } = useFormStatus();
+  return <button className="btn btn-secondary" formAction={setProductsAsOurProducts} formNoValidate disabled={!count || pending}><PackagePlus size={16}/>{pending ? "Updating…" : "Add to My Products"}</button>;
 }
 
 export function RvBulkCatalogToolbar({ catalogs, productIds }: { catalogs: ProductFamilyDTO[]; productIds: string[] }) {
@@ -40,5 +45,6 @@ export function RvBulkCatalogToolbar({ catalogs, productIds }: { catalogs: Produ
     <strong>{count} selected</strong>
     <label><span className="visually-hidden">Catalog for selected products</span><select className="input" name="familyId" required defaultValue=""><option value="" disabled>Choose a catalog</option>{catalogs.map((catalog) => <option value={catalog.id} key={catalog.id}>{catalog.name}</option>)}</select></label>
     <SubmitBulkButton count={count}/>
+    <AddToMyProductsButton count={count}/>
   </form>;
 }
