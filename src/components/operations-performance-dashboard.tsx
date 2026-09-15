@@ -1,14 +1,14 @@
 "use client";
 
 import Link from "next/link";
-import { AlertTriangle, BellRing, CheckCircle2, ClipboardCheck, Clock3, LoaderCircle, MapPin } from "lucide-react";
+import { AlertTriangle, BarChart3, BellRing, CheckCircle2, ClipboardCheck, Clock3, Download, LoaderCircle, MapPin, Plus, Search, ShieldCheck, UsersRound } from "lucide-react";
 import { useEffect, useState } from "react";
 import type { OperationsAlertRecord, OperationsChecklistRecord } from "@/lib/operations/data";
 import type { OperationsPersistence } from "@/lib/operations/repository";
 import { calculateOperationsPerformance } from "@/lib/operations/performance";
 import { formatOperationsDate, readOperationsAlerts, readOperationsChecklists } from "@/lib/operations/storage";
 
-export function OperationsPerformanceDashboard({ initialChecklists = [], initialAlerts = [], persistence = "demo", initialError = "" }: { initialChecklists?: OperationsChecklistRecord[]; initialAlerts?: OperationsAlertRecord[]; persistence?: OperationsPersistence; initialError?: string }) {
+export function OperationsPerformanceDashboard({ initialChecklists = [], initialAlerts = [], persistence = "demo", initialError = "", tailored = false }: { initialChecklists?: OperationsChecklistRecord[]; initialAlerts?: OperationsAlertRecord[]; persistence?: OperationsPersistence; initialError?: string; tailored?: boolean }) {
   const [checklists, setChecklists] = useState<OperationsChecklistRecord[] | null>(persistence === "supabase" ? initialChecklists : null);
   const [alerts, setAlerts] = useState<OperationsAlertRecord[] | null>(persistence === "supabase" ? initialAlerts : null);
   const [location, setLocation] = useState("All locations");
@@ -18,7 +18,7 @@ export function OperationsPerformanceDashboard({ initialChecklists = [], initial
 
   if (checklists === null || alerts === null) return <div className="card operations-loading"><LoaderCircle className="spin" size={22}/><div><h2>Loading operations performance</h2><p>Reviewing saved checklists and alert history.</p></div></div>;
   if (error) return <div className="card operations-performance-state"><AlertTriangle size={24}/><div><h2>Performance unavailable</h2><p>{error}</p></div></div>;
-  if (!checklists.length && !alerts.length) return <div className="card output empty"><div><ClipboardCheck size={28}/><h2>No operations data yet</h2><p>Create a checklist or alert to begin measuring execution.</p></div></div>;
+  if (!tailored && !checklists.length && !alerts.length) return <div className="card output empty"><div><ClipboardCheck size={28}/><h2>No operations data yet</h2><p>Create a checklist or alert to begin measuring execution.</p></div></div>;
 
   const visibleChecklists = location === "All locations" ? checklists : checklists.filter((item) => item.location === location || item.location === "All locations");
   const visibleAlerts = location === "All locations" ? alerts : alerts.filter((item) => item.location === location || item.location === "All locations");
@@ -29,6 +29,19 @@ export function OperationsPerformanceDashboard({ initialChecklists = [], initial
     ...visibleChecklists.filter((item) => item.dueDate < today && item.steps.some((step) => !step.complete)).map((item) => ({ id: `checklist-${item.id}`, type: "Checklist", title: item.title, location: item.location, dueDate: item.dueDate, href: "/operations/checklists" })),
     ...visibleAlerts.filter((item) => item.status !== "Resolved" && (item.dueDate < today || item.severity === "Critical" || item.severity === "High")).map((item) => ({ id: `alert-${item.id}`, type: "Alert", title: item.title, location: item.location, dueDate: item.dueDate, href: "/operations/alerts" })),
   ];
+
+  if (tailored) return <div className="operations-performance-stack operations-performance-tailored">
+    <section className="grid grid-4 operations-performance-metrics" aria-label="Operations performance summary">
+      <div className="card"><div className="metric-row"><span>On-time Completion</span><span className="metric-icon"><CheckCircle2 size={18}/></span></div><div className="metric">{performance.completion}%</div><span className="delta">{performance.completedSteps} of {performance.totalSteps} tasks</span></div>
+      <div className={`card ${performance.overdueItems?"performance-attention":""}`}><div className="metric-row"><span>Overdue Work</span><span className="metric-icon"><Clock3 size={18}/></span></div><div className="metric">{performance.overdueItems}</div><span className="delta">Requires attention</span></div>
+      <div className="card"><div className="metric-row"><span>Total Tasks</span><span className="metric-icon"><ClipboardCheck size={18}/></span></div><div className="metric">{performance.totalSteps}</div><span className="delta">Across all locations</span></div>
+      <div className="card"><div className="metric-row"><span>Active Locations</span><span className="metric-icon"><UsersRound size={18}/></span></div><div className="metric">{Math.max(locations.length,1)}</div><span className="delta">Reporting operations</span></div>
+    </section>
+    <div className="operations-performance-toolbar"><label><span>View by</span><select className="input"><option>Location</option><option>Work type</option></select></label><label><span>Time period</span><select className="input"><option>Last 30 Days</option><option>Last 90 Days</option></select></label><div><button className="btn btn-secondary"><Download size={16}/> Export</button><Link className="btn btn-primary" href="/operations/checklists"><Plus size={16}/> Create task or alert</Link></div></div>
+    <section className="operations-performance-charts"><div className="card operations-performance-trend"><h2>Task Completion Trend</h2><div className="operations-chart-empty"><BarChart3 size={30}/><strong>No data yet</strong><span>Create tasks or alerts to see performance trends.</span></div><div className="operations-chart-axis"><span>Sep 1</span><span>Sep 8</span><span>Sep 15</span><span>Sep 22</span><span>Sep 30</span></div></div><div className="card operations-status-breakdown"><h2>Task Status Breakdown</h2><div><span className="operations-donut"><b>{performance.totalSteps}</b><small>Total</small></span><ul><li><i className="green"/>Completed <b>{performance.completedSteps}</b></li><li><i className="blue"/>In Progress <b>0</b></li><li><i className="red"/>Overdue <b>{performance.overdueItems}</b></li><li><i/>Not Started <b>{Math.max(0,performance.totalSteps-performance.completedSteps)}</b></li></ul></div></div></section>
+    <section className="operations-performance-grid"><div className="card"><div className="performance-card-heading"><div><h2>Performance by Location</h2><p>Compare task completion and overdue work across all locations.</p></div></div>{performance.byLocation.length?<div className="operations-location-list">{performance.byLocation.map(item=><article key={item.location}><strong>{item.location}</strong><span>{item.totalSteps} tasks</span><span>{item.completedSteps} completed</span><span>{item.overdueItems} overdue</span><div className="operations-location-progress"><div className="progress"><span style={{width:`${item.completion}%`}}/></div><b>{item.completion}%</b></div></article>)}</div>:<div className="operations-location-list"><article><strong>Main Location</strong><span>0 tasks</span><span>0 completed</span><span>0 overdue</span><div className="operations-location-progress"><div className="progress"><span style={{width:"0%"}}/></div><b>0%</b></div></article></div>}</div><div className="card"><div className="performance-card-heading"><div><h2>Top Areas Needing Attention</h2><p>Based on overdue tasks and recent alerts.</p></div><AlertTriangle size={20}/></div>{attentionItems.length?<div className="operations-attention-list">{attentionItems.map(item=><Link href={item.href} key={item.id}><span className="badge amber">{item.type}</span><div><strong>{item.title}</strong><small>{item.location} · Due {formatOperationsDate(item.dueDate)}</small></div></Link>)}</div>:<div className="performance-empty-result"><Search size={28}/><strong>No data yet</strong><p>As tasks and alerts are created, we’ll show key areas that need attention here.</p></div>}</div></section>
+    <section className="operations-performance-promise"><blockquote>A Smoother Operation<br/>Leads to Happier Customers.</blockquote><div><span><ShieldCheck/><strong>Fewer Issues</strong><small>Catch problems early.</small></span><span><UsersRound/><strong>Stronger Team</strong><small>Keep everyone aligned.</small></span><span><BarChart3/><strong>Better Results</strong><small>More time for what matters.</small></span></div></section>
+  </div>;
 
   return <div className="operations-performance-stack">
     <div className="operations-performance-toolbar"><div><h2>Execution overview</h2><p>Calculated from saved checklist steps and alert status history.</p></div><label><span className="label">Location</span><select className="input" value={location} onChange={(event) => setLocation(event.target.value)}><option>All locations</option>{locations.map((item) => <option key={item}>{item}</option>)}</select></label></div>
