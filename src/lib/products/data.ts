@@ -141,22 +141,31 @@ export async function getTenantProducts(options: { includeDrafts?: boolean; fami
   }
 
   const supabase = await createClient();
-  let query = supabase
-    .from("products")
-    .select("id, family_id, name, slug, model, brand, manufacturer, model_year, model_variant, product_type, product_category, sale_price_cents, specifications, description, base_price_cents, range_text, seats_text, powertrain_text, dimensions, running_distance, turning_radius, max_load_capacity, sort_order, highlights, visual_theme, image_path, image_paths, sales_guide, status")
-    .eq("organization_id", viewer.organizationId)
-    .order("sort_order")
-    .order("name");
+  const pageSize = 1000;
+  const rows: ProductRow[] = [];
 
-  if (!options.includeDrafts) query = query.eq("status", "published");
-  if (options.familyId) query = query.eq("family_id", options.familyId);
+  for (let from = 0; ; from += pageSize) {
+    let query = supabase
+      .from("products")
+      .select("id, family_id, name, slug, model, brand, manufacturer, model_year, model_variant, product_type, product_category, sale_price_cents, specifications, description, base_price_cents, range_text, seats_text, powertrain_text, dimensions, running_distance, turning_radius, max_load_capacity, sort_order, highlights, visual_theme, image_path, image_paths, sales_guide, status")
+      .eq("organization_id", viewer.organizationId)
+      .order("sort_order")
+      .order("name")
+      .order("id")
+      .range(from, from + pageSize - 1);
 
-  const { data, error } = await query;
-  if (error) {
-    return { products: [], source: "supabase", error: "Products could not be loaded from the workspace." };
+    if (!options.includeDrafts) query = query.eq("status", "published");
+    if (options.familyId) query = query.eq("family_id", options.familyId);
+
+    const { data, error } = await query;
+    if (error) {
+      return { products: [], source: "supabase", error: "Products could not be loaded from the workspace." };
+    }
+
+    const page = (data ?? []) as ProductRow[];
+    rows.push(...page);
+    if (page.length < pageSize) break;
   }
-
-  const rows = data as ProductRow[];
   const paths = Array.from(new Set(rows.flatMap((row) => row.image_paths?.length ? row.image_paths : row.image_path ? [row.image_path] : [])));
   const imageUrls = new Map<string, string>();
 
