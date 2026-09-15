@@ -1,0 +1,66 @@
+.calendarExperience {
+  padding-top: 2px;
+}
+
+.calendarExperience :global(.page-header) {
+  margin-bottom: 26px;
+}
+
+.calendarExperience :global(.page-header .eyebrow) {
+  color: #fb4d12;
+  letter-spacing: .16em;
+}
+
+.calendarExperience :global(.page-header h1) {
+  max-width: 940px;
+  font-size: clamp(32px, 3.4vw, 42px);
+  font-weight: 500;
+}
+
+.calendarExperience :global(.page-header p) {
+  max-width: 840px;
+  font-size: 16px;
+}
+
+.calendarExperience :global(.operations-disclaimer) {
+  padding: 18px 17px;
+  border-color: #ffc5b2;
+  background: #fff7f3;
+}
+
+.calendarExperience :global(.operations-disclaimer > svg) {
+  color: #fb4d12;
+}
+
+.calendarExperience :global(.operations-calendar-tailored) {
+  gap: 16px;
+}
+
+.calendarExperience :global(.operations-calendar-tailored .operations-calendar-metrics .card) {
+  min-height: 162px;
+  padding: 20px;
+}
+
+.calendarExperience :global(.operations-calendar-tailored .metric-icon) {
+  background: #fff0eb;
+  color: #fb4d12;
+}
+
+.calendarExperience :global(.operations-calendar-tailored .operations-calendar-controls) {
+  min-height: 108px;
+  padding: 20px;
+}
+
+.calendarExperience :global(.operations-calendar-tailored .operations-calendar) {
+  border-radius: 14px;
+}
+
+@media (max-width: 760px) {
+  .calendarExperience :global(.page-header h1) {
+    font-size: 31px;
+  }
+
+  .calendarExperience :global(.page-header p) {
+    font-size: 14px;
+  }
+}

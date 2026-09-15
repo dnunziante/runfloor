@@ -14,7 +14,7 @@ function ProductGallery({ product }: { product: ProductDTO }) {
   </div>;
 }
 
-export function ProductLibrary({ products, live, emptyMessage, addOnMode = false, competitorMode = false, isRv = false }: { products: ProductDTO[]; live: boolean; emptyMessage?: string; addOnMode?: boolean; competitorMode?: boolean; isRv?: boolean }) {
+export function ProductLibrary({ products, live, emptyMessage, addOnMode = false, competitorMode = false, isRv = false, showInventoryNavigation = false }: { products: ProductDTO[]; live: boolean; emptyMessage?: string; addOnMode?: boolean; competitorMode?: boolean; isRv?: boolean; showInventoryNavigation?: boolean }) {
   const [query, setQuery] = useState("");
   const [brand, setBrand] = useState("");
   const [category, setCategory] = useState("");
@@ -27,7 +27,9 @@ export function ProductLibrary({ products, live, emptyMessage, addOnMode = false
   const filtered = products.filter((product) => `${product.name} ${product.model} ${product.brand || ""} ${product.manufacturer || ""} ${product.modelYear || ""} ${product.modelVariant || ""}`.toLowerCase().includes(query.trim().toLowerCase()) && (!brand || (product.brand || product.manufacturer) === brand) && (!category || product.productCategory === category) && (!year || String(product.modelYear) === year));
   const shown = [...filtered].sort((a, b) => sort === "name" ? a.name.localeCompare(b.name) : sort === "year" ? (b.modelYear || 0) - (a.modelYear || 0) : (a.sortOrder || 0) - (b.sortOrder || 0));
 
-  if (isRv && !addOnMode && !competitorMode) return <div className="rv-inventory-library" id="models">
+  if (isRv && !addOnMode && !competitorMode) return <>
+    {showInventoryNavigation && <nav className="rv-product-tabs" aria-label="Product inventory navigation"><button type="button" className={!brand ? "active" : undefined} aria-current={!brand ? "page" : undefined} onClick={() => setBrand("")}>Full Inventory</button>{brands.map((name) => <button type="button" className={brand === name ? "active" : undefined} aria-current={brand === name ? "page" : undefined} onClick={() => setBrand(name)} key={name}>{name}</button>)}<Link href="/comparisons">Compare Models</Link></nav>}
+    <div className="rv-inventory-library" id="models">
     <div className="rv-inventory-toolbar">
       <label><Search aria-hidden="true"/><input className="input" aria-label="Search inventory" placeholder="Search models, brands, or configurations..." value={query} onChange={(event) => setQuery(event.target.value)}/></label>
       <select className="input" aria-label="Filter by brand" value={brand} onChange={(event) => setBrand(event.target.value)}><option value="">All brands</option>{brands.map((name) => <option key={name}>{name}</option>)}</select>
@@ -52,7 +54,8 @@ export function ProductLibrary({ products, live, emptyMessage, addOnMode = false
         })}</div> : <div className="card output empty"><div><Search size={32}/><h2>No matching inventory</h2><p>{products.length ? "Try another filter or clear your search." : emptyMessage || "No published dealership products have been added yet."}</p>{(query || brand || category || year) && <button className="btn btn-secondary" onClick={() => {setQuery("");setBrand("");setCategory("");setYear("");}}>Clear filters</button>}</div></div>}
       </section>
     </div>
-  </div>;
+    </div>
+  </>;
 
   if (isRv && competitorMode) return <div className="rv-competitor-library">
     <div className="rv-competitor-toolbar">

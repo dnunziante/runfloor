@@ -1,0 +1,35 @@
+.handoffExperience { margin: -30px; padding-bottom: 30px; background: #f7f6f3; min-height: calc(100vh - 60px); }
+.hero { min-height: 258px; padding: 38px 28px 68px; display: flex; align-items: center; justify-content: space-between; color: #fff; background: linear-gradient(90deg, rgba(3,10,12,.92), rgba(3,10,12,.7) 52%, rgba(3,10,12,.28)), url('/brand/rv-hero-v2.png') center 48%/cover; }
+.hero > div { max-width: 700px; }
+.eyebrow { color: #ff571e; font-size: 12px; font-weight: 800; letter-spacing: .17em; text-transform: uppercase; }
+.hero h1 { margin: 8px 0 5px; font-size: clamp(38px, 4vw, 55px); line-height: .98; letter-spacing: -.045em; }
+.hero h1 em { color: #ff571e; font-style: normal; }
+.hero p { max-width: 610px; margin: 0; font-size: 16px; line-height: 1.45; }
+.hero blockquote { margin: 0 20px 0 40px; font-size: 25px; font-style: italic; font-weight: 700; line-height: 1.15; transform: rotate(-5deg); text-align: center; }
+.handoffExperience :global(.operations-handoff-tailored) { position: relative; z-index: 1; gap: 14px; margin: -45px 14px 0; }
+.handoffExperience :global(.operations-handoff-overview) { grid-template-columns: repeat(3, minmax(0, 1fr)) minmax(260px, 1.2fr); gap: 12px; }
+.handoffExperience :global(.operations-handoff-overview > .card) { min-height: 104px; padding: 18px; }
+.handoffExperience :global(.operations-handoff-overview .metric) { font-size: 30px; }
+.handoffExperience :global(.operations-handoff-overview .metric-icon) { background: #fff0e9; color: #ff5219; }
+.handoffExperience :global(.operations-handoff-value) { display: flex; align-items: center; gap: 16px; background: linear-gradient(120deg,#fff 55%,#fff5ee); color: #ff5219; }
+.handoffExperience :global(.operations-handoff-value strong) { color: #151515; }
+.handoffExperience :global(.operations-handoff-value p) { margin: 5px 0 0; color: #64707d; font-size: 11px; }
+.handoffExperience :global(.operations-handoff-layout) { grid-template-columns: minmax(390px, .78fr) minmax(520px, 1.12fr); gap: 12px; }
+.handoffExperience :global(.operations-handoff-form), .handoffExperience :global(.operations-handoff-history) { border: 1px solid #e5e2dd; border-radius: 13px; background: #fff; padding: 20px; }
+.handoffExperience :global(.operations-handoff-form h2), .handoffExperience :global(.operations-handoff-toolbar h2) { margin: 0; font-size: 19px; }
+.handoffExperience :global(.operations-handoff-form > p) { margin: 2px 0 16px; color: #65707c; }
+.handoffExperience :global(.operations-handoff-form .metric-icon) { background: #ff5219; color: white; }
+.handoffExperience :global(.operations-handoff-form .btn-primary) { width: 100%; justify-content: center; }
+.handoffExperience :global(.operations-handoff-toolbar) { grid-template-columns: 1fr 165px 165px; margin-bottom: 12px; }
+.handoffExperience :global(.operations-handoff-history .empty) { min-height: 360px; border: 0; background: linear-gradient(rgba(255,255,255,.82),rgba(255,255,255,.82)), url('/brand/rv-results-v2.png') center/cover; }
+.handoffExperience :global(.operations-handoff-history .empty > div) { max-width: 360px; }
+.handoffExperience :global(.operations-handoff-history .empty svg) { color: #ff5219; }
+.handoffExperience :global(.operations-handoff-history .empty .btn) { margin: 16px auto 0; width: max-content; }
+.handoffExperience :global(.operations-handoff-promise) { display: grid; grid-template-columns: 1fr 1.35fr; overflow: hidden; border: 1px solid #eadfd6; border-radius: 13px; background: linear-gradient(110deg,#fff7f0,#fff); }
+.handoffExperience :global(.operations-handoff-promise blockquote) { margin: 0; padding: 28px; font-size: 19px; font-weight: 700; }
+.handoffExperience :global(.operations-handoff-promise > div) { display: grid; grid-template-columns: repeat(3,1fr); }
+.handoffExperience :global(.operations-handoff-promise span) { display: flex; min-height: 112px; padding: 17px; align-items: center; justify-content: center; flex-direction: column; gap: 4px; border-left: 1px solid #e7ded7; text-align: center; }
+.handoffExperience :global(.operations-handoff-promise svg) { color: #ff5219; }
+.handoffExperience :global(.operations-handoff-promise small) { color: #596574; }
+@media (max-width: 1400px) { .hero blockquote { display: none; } .handoffExperience :global(.operations-handoff-overview) { grid-template-columns: repeat(2,minmax(0,1fr)); } .handoffExperience :global(.operations-handoff-layout) { grid-template-columns: 1fr; } }
+@media (max-width: 760px) { .handoffExperience { margin: -20px; } .hero { min-height: 280px; padding: 34px 20px 74px; } .hero h1 { font-size: 38px; } .handoffExperience :global(.operations-handoff-tailored) { margin-inline: 10px; } .handoffExperience :global(.operations-handoff-overview) { grid-template-columns: 1fr; } .handoffExperience :global(.operations-handoff-toolbar) { grid-template-columns: 1fr; } .handoffExperience :global(.operations-handoff-promise) { grid-template-columns: 1fr; } .handoffExperience :global(.operations-handoff-promise > div) { grid-template-columns: 1fr; } .handoffExperience :global(.operations-handoff-promise span) { border-left: 0; border-top: 1px solid #e7ded7; } }

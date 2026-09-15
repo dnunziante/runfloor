@@ -1,0 +1,33 @@
+.incidentExperience { margin: -30px; padding-bottom: 30px; background: #f7f6f3; min-height: calc(100vh - 60px); }
+.hero { min-height: 250px; padding: 35px 28px 65px; display: flex; align-items: center; justify-content: space-between; color: #fff; background: linear-gradient(90deg,rgba(4,10,12,.88),rgba(4,10,12,.48) 62%,rgba(4,10,12,.28)),url('/brand/rv-platform-v2.png') center 44%/cover; }
+.hero > div { max-width: 850px; }
+.eyebrow { color: #ff571e; font-size: 12px; font-weight: 800; letter-spacing: .17em; text-transform: uppercase; }
+.hero h1 { margin: 10px 0 7px; font-size: clamp(34px,3.5vw,49px); line-height: 1.02; letter-spacing: -.035em; }
+.hero h1 em { color: #ff571e; font-style: normal; }
+.hero p { margin: 0; font-size: 16px; }
+.hero blockquote { margin: 0 22px; font-size: 24px; font-weight: 800; font-style: italic; line-height: 1.08; text-align: center; transform: rotate(-5deg); }
+.incidentExperience :global(.operations-incident-tailored) { position: relative; z-index: 1; gap: 14px; margin: -42px 14px 0; }
+.incidentExperience :global(.operations-incident-overview) { grid-template-columns: repeat(4,minmax(0,1fr)); gap: 12px; }
+.incidentExperience :global(.operations-incident-overview > .card) { min-height: 105px; padding: 17px; }
+.incidentExperience :global(.operations-incident-overview .metric) { font-size: 29px; }
+.incidentExperience :global(.operations-incident-overview .metric-icon) { color: #ff5219; background: #fff0e9; }
+.incidentExperience :global(.operations-incident-layout) { grid-template-columns: minmax(400px,.72fr) minmax(560px,1.3fr); gap: 12px; }
+.incidentExperience :global(.operations-incident-form), .incidentExperience :global(.operations-incident-register) { padding: 20px; border: 1px solid #e5e2dd; border-radius: 13px; background: #fff; }
+.incidentExperience :global(.operations-incident-form h2), .incidentExperience :global(.operations-incident-toolbar h2) { margin: 0; font-size: 19px; }
+.incidentExperience :global(.operations-incident-form > p), .incidentExperience :global(.operations-incident-toolbar p) { margin: 3px 0 15px; color: #65707c; font-size: 12px; }
+.incidentExperience :global(.operations-incident-form .metric-icon) { color: #fff; background: #ff5219; }
+.incidentExperience :global(.operations-incident-form .btn-primary) { width: 100%; justify-content: center; }
+.incidentExperience :global(.operations-incident-toolbar) { grid-template-columns: 1fr 170px 140px 140px; gap: 10px; }
+.incidentExperience :global(.operations-incident-search) { position: relative; }
+.incidentExperience :global(.operations-incident-search svg) { position: absolute; z-index: 1; left: 12px; top: 50%; transform: translateY(-50%); color: #718096; }
+.incidentExperience :global(.operations-incident-search input) { padding-left: 36px; }
+.incidentExperience :global(.operations-incident-register .empty) { min-height: 340px; border: 0; background: linear-gradient(rgba(255,255,255,.84),rgba(255,255,255,.84)),url('/brand/rv-results-v2.png') center/cover; }
+.incidentExperience :global(.operations-incident-register .empty svg) { color: #ff5219; }
+.incidentExperience :global(.operations-incident-promise) { display: grid; grid-template-columns: 1.35fr .75fr; overflow: hidden; min-height: 168px; border: 1px solid #e4ddd6; border-radius: 13px; background: linear-gradient(90deg,rgba(255,255,255,.12),rgba(255,239,226,.74)),url('/brand/rv-hero-v2.png') center/cover; }
+.incidentExperience :global(.operations-incident-promise blockquote) { display: flex; align-items: center; justify-content: center; margin: 0; padding: 24px; font-size: 25px; font-weight: 800; font-style: italic; text-align: center; }
+.incidentExperience :global(.operations-incident-promise > div) { display: grid; grid-template-rows: repeat(3,1fr); padding: 13px 20px; background: rgba(255,255,255,.92); }
+.incidentExperience :global(.operations-incident-promise span) { display: grid; grid-template-columns: 34px 1fr; align-content: center; column-gap: 10px; }
+.incidentExperience :global(.operations-incident-promise svg) { grid-row: 1/3; color: #ff5219; }
+.incidentExperience :global(.operations-incident-promise small) { color: #65707c; }
+@media (max-width: 1400px) { .hero blockquote { display: none; } .incidentExperience :global(.operations-incident-overview) { grid-template-columns: repeat(2,minmax(0,1fr)); } .incidentExperience :global(.operations-incident-layout) { grid-template-columns: 1fr; } }
+@media (max-width: 760px) { .incidentExperience { margin: -20px; } .hero { min-height: 290px; padding: 34px 20px 72px; } .hero h1 { font-size: 35px; } .incidentExperience :global(.operations-incident-tailored) { margin-inline: 10px; } .incidentExperience :global(.operations-incident-overview) { grid-template-columns: 1fr; } .incidentExperience :global(.operations-incident-toolbar) { grid-template-columns: 1fr; } .incidentExperience :global(.operations-incident-promise) { grid-template-columns: 1fr; } }
