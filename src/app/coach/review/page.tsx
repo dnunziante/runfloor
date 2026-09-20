@@ -3,9 +3,21 @@ import { ArrowRight, CheckCircle2, RefreshCw, Target, Trophy } from "lucide-reac
 import { AppShell } from "@/components/app-shell";
 import { PageHeader } from "@/components/page-header";
 import { getCoachReview } from "@/lib/coach/data";
+import { getCoachReviewHistory } from "@/lib/coach/data";
+import { getViewer } from "@/lib/auth/viewer";
+import { getViewerIndustryTemplateKey } from "@/lib/organizations/industry";
+import { TailoredCoachReview } from "@/components/tailored-coach-review";
 
 export default async function CoachReviewPage({ searchParams }: { searchParams: Promise<{ session?: string }> }) {
   const { session: sessionId } = await searchParams;
+  const viewer = await getViewer();
+  const templateKey = viewer ? await getViewerIndustryTemplateKey(viewer) : null;
+  const workspace = viewer?.organizationName.trim().toLowerCase() || "";
+  const tailored = Boolean(viewer && (templateKey === "rv" || workspace === "runfloor demo" || workspace === "runfloor rv" || workspace === "rayne rv"));
+  if (tailored) {
+    const history = await getCoachReviewHistory();
+    return <TailoredCoachReview sessions={history.sessions} selectedId={sessionId} error={history.error}/>;
+  }
   const result = await getCoachReview(sessionId);
   if (!result.review) return <AppShell title="Session Review"><PageHeader eyebrow="Practice history" title="No completed sessions yet" description={result.error || "Complete a practice scenario to create your first saved review."} action={<Link className="btn btn-primary" href="/coach/scenarios"><RefreshCw size={16}/> Start practice</Link>}/><div className="output empty"><div><h2>Your reviews will appear here</h2><p>Scores and feedback are saved after each completed session.</p></div></div></AppShell>;
 

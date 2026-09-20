@@ -179,3 +179,7 @@ export async function getCoachReview(sessionId?: string): Promise<{ review: Coac
   const result = await getCompletedSessions(50);
   return { review: result.sessions.find((session) => session.id === sessionId) || result.sessions[0] || null, error: result.error, source: "supabase" };
 }
+
+export async function getCoachReviewHistory() {
+  return getCompletedSessions(50);
+}

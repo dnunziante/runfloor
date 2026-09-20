@@ -1,0 +1,25 @@
+import Link from "next/link";
+import { ArrowRight, BarChart3, BookOpen, Check, Clock3, Lightbulb, Play, Target, Trophy } from "lucide-react";
+import { AppShell } from "@/components/app-shell";
+import type { CoachSessionSummary } from "@/lib/coach/types";
+import styles from "@/app/coach/review/review.module.css";
+
+export function TailoredCoachReview({ sessions, selectedId, error }: { sessions: CoachSessionSummary[]; selectedId?: string; error?: string }) {
+  const review = sessions.find((session) => session.id === selectedId) || (selectedId ? null : sessions[0]) || null;
+  const average = sessions.length ? Math.round(sessions.reduce((sum, session) => sum + session.score, 0) / sessions.length) : 0;
+  const scenarioCount = new Set(sessions.filter((session) => session.scenarioTitle !== "Practice scenario").map((session) => session.scenarioSlug)).size;
+  return <AppShell title="Session Review" industry="rv"><main className={styles.experience}>
+    <section className={styles.hero}><div><span>Practice history</span><h1>Learn. Improve. <em>Close More.</em></h1><p>Every conversation you practice gets you closer to your next big win.</p></div><blockquote>Same Roads.<br/>Bigger Opportunities.</blockquote></section>
+    <div className={styles.body}>
+      {error && <p className={styles.error} role="alert">{error}</p>}
+      <div className={styles.topRow}><div className={styles.metrics}>
+        <article><Target className={styles.orange}/><div><strong>{sessions.length === 50 ? "50+" : sessions.length}</strong><span>Sessions Completed</span><small>{sessions.length ? "Recent saved sessions" : "Start your first practice session!"}</small></div></article>
+        <article><BarChart3 className={styles.green}/><div><strong>{average}{sessions.length ? "%" : ""}</strong><span>Average Score</span><small>{sessions.length ? "Across recent sessions" : "Scores update after each session."}</small></div></article>
+        <article><Clock3 className={styles.blue}/><div><strong>{sessions.length ? "—" : "0m"}</strong><span>Total Practice Time</span><small>{sessions.length ? "Time tracking is not available yet." : "Time invested in your growth."}</small></div></article>
+        <article><Trophy className={styles.purple}/><div><strong>{scenarioCount}</strong><span>Scenarios Completed</span><small>Build your skills, one scenario at a time.</small></div></article>
+      </div><div className={styles.actions}><Link href="/coach/session"><Play size={17} fill="currentColor"/>Start Practice</Link><Link href="/coach/scenarios"><BookOpen size={17}/>Browse Scenarios</Link></div></div>
+      {review ? <section className={styles.review}><div className={styles.reviewHeading}><div><span>Latest practice review</span><h2>{review.scenarioTitle}</h2><p>{new Date(review.completedAt).toLocaleDateString("en-US", { month: "long", day: "numeric", year: "numeric" })} · {review.difficulty}</p></div><strong>{review.score}%<small>Score</small></strong></div><p>{review.summary}</p><div className={styles.reviewNotes}><div><h3>What worked well</h3><p>{review.strength}</p></div><div><h3>Focus next</h3><p>{review.improvement}</p></div></div>{sessions.length > 1 && <div className={styles.history}><h3>Recent sessions</h3>{sessions.slice(0, 10).map((session) => <Link key={session.id} href={`/coach/review?session=${session.id}`} aria-current={session.id === review.id ? "page" : undefined}>{session.scenarioTitle}<span>{session.score}% <ArrowRight size={15}/></span></Link>)}</div>}</section> : <section className={styles.empty}><div className={styles.emptyVisual} aria-hidden="true"><div><span>Practice</span><span>Progress</span><span>Results</span></div></div><div className={styles.emptyCopy}><h2>{selectedId && sessions.length ? "Session not found" : "No completed sessions yet"}</h2><p>{selectedId && sessions.length ? "This session is not available in your visible practice history." : "Jump into a practice scenario to create your first review. Your scores, feedback, and key takeaways will appear here after each session."}</p><Link href="/coach/session"><Play size={17} fill="currentColor"/>Start Your First Practice</Link><Link href="/coach/scenarios"><BookOpen size={17}/>Explore Scenarios</Link></div></section>}
+      <div className={styles.bottom}><article className={styles.tip}><Lightbulb/><div><h2>Pro Tip</h2><p>“Short, consistent practice sessions create big results over time.”</p><small>— RUNFLOOR</small></div></article><article className={styles.explain}><BarChart3/><div><h2>What You’ll See Here</h2>{["Your session scores and feedback", "Key strengths and areas to improve", "Trends in your progress over time", "Personalized coaching recommendations"].map((item) => <p key={item}><Check size={16}/>{item}</p>)}</div></article><article className={styles.keep}><Target/><div><h2>Keep Going</h2><p>The more you practice, the more confident you’ll be on the sales floor.</p><Link href="/coach/session">Start a Practice Session</Link></div></article></div>
+    </div>
+  </main></AppShell>;
+}
