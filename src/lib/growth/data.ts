@@ -53,6 +53,12 @@ export const growthOpportunities: GrowthOpportunity[] = [
   { slug: "mobile-service-feasibility", title: "Assess mobile service demand", category: "Expansion", summary: "Validate whether a limited mobile-service pilot could improve convenience and generate repeat business.", rationale: "This is a discovery opportunity only; demand, staffing, economics, and service boundaries require validation.", impact: "Medium", effort: "High", timeframe: "60 days", status: "Exploring", actions: ["Interview recent service customers", "Estimate a viable service radius", "Model staffing and vehicle costs", "Define pilot success criteria"], measures: ["Customer interest", "Estimated margin per visit", "Repeat-service potential"], score: { impact: 3, effort: 5, confidence: 2, cost: 5, risk: 4, alignment: 3 } },
 ];
 
+export const rvGrowthOpportunities: GrowthOpportunity[] = growthOpportunities.map((item) => {
+  if (item.slug === "community-demo-days") return { ...item, summary: "Test small, location-led events that give nearby shoppers a low-pressure way to explore RVs.", rationale: "This sample idea calls for a pilot location, local outreach, and a way to measure visits and follow-up appointments." };
+  if (item.slug === "local-partner-network") return { ...item, rationale: "Local organizations may be useful referral partners. Validate the fit, audience, and value of each relationship before investing." };
+  return item;
+});
+
 export const growthScoreWeights = { impact: 25, effort: 10, confidence: 20, cost: 15, risk: 10, alignment: 20 } as const;
 
 export function calculateGrowthPriority(score: GrowthScore, weights: GrowthScoreWeights = growthScoreWeights) {
