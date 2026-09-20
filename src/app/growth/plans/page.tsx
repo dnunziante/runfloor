@@ -1,11 +1,25 @@
-import Link from "next/link";
-import { ArrowLeft } from "lucide-react";
+import { BarChart3, ClipboardList, Target, Trophy } from "lucide-react";
 import { AppShell } from "@/components/app-shell";
 import { GrowthPlanList } from "@/components/growth-plan-list";
-import { PageHeader } from "@/components/page-header";
 import { getGrowthPlans } from "@/lib/growth/plans";
+import styles from "./plans.module.css";
 
 export default async function GrowthPlansPage() {
   const data = await getGrowthPlans();
-  return <AppShell title="Growth Action Plans"><PageHeader eyebrow={data.persistence === "demo" ? "Local prototype" : "Shared workspace"} title="Keep growth work accountable" description="Track owners, target dates, measures, and validation steps for opportunities you choose to explore." action={<Link className="btn btn-ghost" href="/growth"><ArrowLeft size={16}/> Opportunities</Link>}/><div className="callout growth-disclaimer"><div><strong>{data.persistence === "demo" ? "Saved only in this browser" : "Protected organization workspace"}</strong><p>{data.persistence === "demo" ? "These prototype plans are not shared with other users. Clearing browser data will remove them." : "Plans are stored in Supabase and visible only to authorized members of this organization."}</p></div></div><div className="section-heading"><h2>Active plans</h2></div><GrowthPlanList initialPlans={data.plans} persistence={data.persistence} initialError={data.error}/></AppShell>;
+  return <AppShell title="Growth Action Plans">
+    <div className={styles.page}>
+      <section className={styles.hero} aria-labelledby="plans-title">
+        <p className={styles.kicker}>{data.persistence === "demo" ? "Local prototype" : "Shared workspace"}</p>
+        <h1 id="plans-title">Keep growth work<br /><span>accountable.</span></h1>
+        <p className={styles.heroIntro}>Turn opportunities into clear action plans, track progress, and make bigger things happen.</p>
+        <div className={styles.heroSteps} aria-label="Action planning steps">
+          <span><ClipboardList aria-hidden="true" />Set clear<br />next steps</span>
+          <span><Target aria-hidden="true" />Assign<br />owners</span>
+          <span><BarChart3 aria-hidden="true" />Track<br />progress</span>
+          <span><Trophy aria-hidden="true" />Turn ideas<br />into results</span>
+        </div>
+      </section>
+      <GrowthPlanList initialPlans={data.plans} persistence={data.persistence} initialError={data.error} />
+    </div>
+  </AppShell>;
 }
