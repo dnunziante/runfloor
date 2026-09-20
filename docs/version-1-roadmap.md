@@ -76,6 +76,7 @@ Version 1 is ready for a controlled pilot when a company can securely onboard, m
 ## Business Growth Advisor prototype
 
 - Redesigned the shared Growth Opportunities page for RV workspaces with a visual overview, category chips, search, sorting, status filters, and direct paths to opportunity review, action plans, priority scoring, and administrator creation. The RV template and its RunFloor RV and Rayne RV workspaces use this same interface while keeping each organization's saved records separate.
+- Redesigned Growth Priority Scoring around the configured factor weights, a ranked score matrix, category and sort controls, and clear paths to details, opportunities, plans, and administrator settings. The shared page applies to both RV workspaces and uses each organization's own scoring configuration.
 - Until a workspace publishes its own opportunities, RV workspaces use RV-appropriate planning examples. Priority scores remain estimates, not verified demand or projected revenue. The growth read path uses columns available in the current production schema; the detail page directs progress tracking to working action plans instead of the unavailable opportunity-progress fields.
 
 - Added a mock-data opportunity dashboard with category and search filters.
