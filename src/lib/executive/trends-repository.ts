@@ -5,9 +5,10 @@ import { getViewer } from "@/lib/auth/viewer";
 import { buildExecutiveTrends, calculateTrendChange, compareExecutiveTrendPeriods, type ExecutiveTrendSourceRow } from "@/lib/executive/trends";
 import { createClient } from "@/lib/supabase/server";
 
-type TrendQuery = { months?: string; location?: string; from?: string; to?: string };
+type TrendQuery = { months?: string; location?: string; from?: string; to?: string; start?: string; end?: string };
 type TrendRow = ExecutiveTrendSourceRow & { locationName: string };
-const validRange = (value?: string) => value === "12" ? 12 : 6;
+const validRange = (value?: string) => value === "24" ? 24 : value === "12" ? 12 : 6;
+const validMonth = (value?: string) => value && /^\d{4}-(0[1-9]|1[0-2])$/.test(value) ? value : undefined;
 const monthKey = (date: Date) => date.toISOString().slice(0, 7);
 const periodStart = (months: number) => { const date = new Date(); date.setUTCDate(1); date.setUTCMonth(date.getUTCMonth() - months + 1); return `${monthKey(date)}-01`; };
 const relatedName = (value: { name: string } | { name: string }[] | null) => Array.isArray(value) ? value[0]?.name ?? "Unknown location" : value?.name ?? "Unknown location";
@@ -22,20 +23,22 @@ const demoRows = (): TrendRow[] => {
 
 function finishWorkspace(rows: TrendRow[], completedPeriods: string[], query: TrendQuery, persistence: "demo" | "supabase", error = "") {
   const months = validRange(query.months);
+  const start = validMonth(query.start);
+  const end = validMonth(query.end);
   const locations = [...new Map(rows.map((row) => [row.locationId, { id: row.locationId, name: row.locationName }])).values()].sort((a, b) => a.name.localeCompare(b.name));
   const selectedLocation = locations.some((item) => item.id === query.location) ? query.location! : "all";
-  const filteredRows = selectedLocation === "all" ? rows : rows.filter((row) => row.locationId === selectedLocation);
+  const filteredRows = rows.filter((row) => (selectedLocation === "all" || row.locationId === selectedLocation) && (!start || row.periodStart.slice(0, 7) >= start) && (!end || row.periodStart.slice(0, 7) <= end));
   const periods = buildExecutiveTrends(filteredRows, completedPeriods);
-  return { canView: true, persistence, months, periods, locations, selectedLocation, change: calculateTrendChange(periods), comparison: compareExecutiveTrendPeriods(periods, query.from, query.to), error };
+  return { canView: true, persistence, months, start, end, periods, locations, selectedLocation, change: calculateTrendChange(periods), comparison: compareExecutiveTrendPeriods(periods, query.from, query.to), error };
 }
 
 export async function getExecutiveTrends(query: TrendQuery = {}) {
   const months = validRange(query.months);
   const viewer = await getViewer();
-  if (!viewer || !canViewExecutive(viewer.role)) return { canView: false, persistence: "supabase" as const, months, periods: [], locations: [], selectedLocation: "all", change: null, comparison: null, error: "" };
+  if (!viewer || !canViewExecutive(viewer.role)) return { canView: false, persistence: "supabase" as const, months, start: undefined, end: undefined, periods: [], locations: [], selectedLocation: "all", change: null, comparison: null, error: "" };
   if (viewer.demo) return finishWorkspace(demoRows().slice(-(months * 2)), [monthKey(new Date())], query, "demo");
   const supabase = await createClient();
-  const start = periodStart(months);
+  const start = validMonth(query.start) ? `${validMonth(query.start)}-01` : periodStart(months);
   const [salesResult, completionsResult] = await Promise.all([
     supabase.from("sales_results").select("period_start,location_id,revenue_target,revenue_actual,units_target,units_actual,leads,appointments,locations(name)").eq("organization_id", viewer.organizationId).eq("status", "approved").gte("period_start", start).order("period_start"),
     supabase.from("executive_monthly_review_completions").select("reporting_period").eq("organization_id", viewer.organizationId).gte("reporting_period", start).order("reporting_period"),
