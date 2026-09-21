@@ -1,13 +1,16 @@
 "use client";
 
-import { CheckCircle2, Printer } from "lucide-react";
-import { useActionState } from "react";
+import { ArrowRight, CheckCircle2, Printer, Save, StickyNote, Target } from "lucide-react";
+import { useActionState, useState } from "react";
 import { completeMonthlyLeadershipReview, type ReviewCompletionState } from "@/app/executive/review/actions";
+import styles from "@/app/executive/review/review.module.css";
 
 export function MonthlyReviewControls({ period, initial }: { period: string; initial: ReviewCompletionState }) {
   const [state, action, pending] = useActionState(completeMonthlyLeadershipReview, initial);
-  return <section className="card monthly-review-controls print-hide">
-    <div><span className={`badge ${state.completedAt ? "blue" : "amber"}`}>{state.completedAt ? "Review completed" : "Completion pending"}</span><h2>Close the leadership review</h2><p>{state.completedAt ? `Completed by ${state.completedBy} on ${new Date(state.completedAt).toLocaleString()}.` : "Record completion after the leadership team has reviewed the agenda, accountability items, and decisions."}</p></div>
-    <form action={action}><input type="hidden" name="period" value={period}/><label><span className="label">Review notes <small>Optional</small></span><textarea className="input" name="notes" rows={3} maxLength={2000} defaultValue={state.notes} placeholder="Record agreements, follow-up context, or meeting notes."/></label>{state.error && <p className="form-error">{state.error}</p>}<div className="monthly-review-actions"><button className="btn btn-primary" type="submit" disabled={pending}><CheckCircle2 size={16}/>{pending ? "Saving…" : state.completedAt ? "Update completion" : "Mark review complete"}</button><button className="btn btn-secondary" type="button" onClick={() => window.print()}><Printer size={16}/> Print review</button></div></form>
-  </section>;
+  const [notes, setNotes] = useState(initial.notes);
+  return <form className={styles.reviewForm} action={action}>
+    <input type="hidden" name="period" value={period}/>
+    <article className={styles.panel}><div className={styles.panelHead}><span className={styles.panelIcon}><StickyNote size={24}/></span><div><h2>Review Notes</h2><p>Capture discussion points, agreements, and follow-ups.</p></div></div><label className="sr-only" htmlFor="monthly-review-notes">Review notes</label><textarea id="monthly-review-notes" name="notes" maxLength={2000} value={notes} onChange={(event) => setNotes(event.target.value)} placeholder="Write your review notes here…"/><div className={styles.noteTools}><span>{notes.length} / 2000 characters</span><button type="button" onClick={() => setNotes("")}>Clear</button></div>{state.error && <p className="form-error" role="alert">{state.error}</p>}<button className={styles.saveButton} type="submit" disabled={pending}><Save size={16}/>{pending ? "Saving…" : "Save notes and complete review"}</button></article>
+    <footer className={styles.completion}><Target size={44}/><div><h2>{state.completedAt ? "Review completed" : "Close the loop. Turn insights into action."}</h2><p>{state.completedAt ? `Completed by ${state.completedBy} on ${new Date(state.completedAt).toLocaleString()}.` : "Complete this review, record key decisions, and keep your leadership team aligned."}</p></div><button type="button" className={styles.printButton} onClick={() => window.print()}><Printer size={16}/>Print</button><button type="submit" disabled={pending}><CheckCircle2 size={17}/>{pending ? "Saving…" : state.completedAt ? "Update completion" : "Mark review complete"}<ArrowRight size={17}/></button></footer>
+  </form>;
 }
