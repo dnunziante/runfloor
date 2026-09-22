@@ -3,6 +3,7 @@
 import {
   useActionState,
   useDeferredValue,
+  useEffect,
   useMemo,
   useRef,
   useState,
@@ -34,6 +35,8 @@ import {
   type ContentActionState,
 } from "@/app/admin/content/actions";
 import { TextTemplateImporter } from "@/components/text-template-importer";
+import { getTemplatePage } from "@/app/admin/content/template-query";
+import { TEMPLATE_PAGE_SIZE, type TemplatePage } from "@/lib/content/template-pagination";
 
 type Item = {
   id: string;
@@ -71,12 +74,14 @@ const categoryIcons = [
 
 export function TextTemplateManager({
   contentType,
-  items,
+  initialPage,
+  facets,
   categories,
   canManage,
 }: {
   contentType: "text_template" | "email_template";
-  items: Item[];
+  initialPage: TemplatePage;
+  facets: { categoryCounts: Record<string, number>; tags: string[]; total: number };
   categories: Category[];
   canManage: boolean;
 }) {
@@ -94,6 +99,9 @@ export function TextTemplateManager({
     [status, setStatus] = useState("all"),
     [sort, setSort] = useState("updated"),
     [page, setPage] = useState(1);
+  const [pageData, setPageData] = useState(initialPage);
+  const [loading, setLoading] = useState(false);
+  const firstLoad = useRef(true);
   const [title, setTitle] = useState(""),
     [body, setBody] = useState(""),
     [editorCategory, setEditorCategory] = useState("New Lead"),
@@ -119,44 +127,25 @@ export function TextTemplateManager({
   const availableCategories = activeCategories.length
     ? activeCategories
     : [{ id: "", name: "General", position: 0, archived: false }];
-  const allTags = useMemo(
-    () => Array.from(new Set(items.flatMap((item) => item.tags))).sort(),
-    [items],
-  );
-  const filtered = useMemo(() => {
-    const needle = deferredQuery.trim().toLowerCase();
-    return items
-      .filter(
-        (item) =>
-          (category === "All Templates" ||
-            (item.category || "General") === category) &&
-          (tag === "all" || item.tags.includes(tag)) &&
-          (status === "all" || item.status === status) &&
-          (!needle ||
-            `${item.title} ${item.body} ${item.category} ${item.tags.join(" ")}`
-              .toLowerCase()
-              .includes(needle)),
-      )
-      .toSorted((a, b) =>
-        sort === "oldest"
-          ? a.updatedAt.localeCompare(b.updatedAt)
-          : sort === "az"
-            ? a.title.localeCompare(b.title)
-            : sort === "za"
-              ? b.title.localeCompare(a.title)
-              : b.updatedAt.localeCompare(a.updatedAt),
-      );
-  }, [items, category, tag, status, sort, deferredQuery]);
-  const pages = Math.max(1, Math.ceil(filtered.length / 10)),
-    shown = filtered.slice((page - 1) * 10, page * 10);
+  useEffect(() => {
+    if (firstLoad.current) { firstLoad.current = false; return; }
+    let cancelled = false;
+    setLoading(true);
+    void getTemplatePage({ contentType, category, tag, status, sort, query: deferredQuery, page }).then((result) => {
+      if (!cancelled) { setPageData(result); setLoading(false); if (result.page !== page) setPage(result.page); }
+    }).catch(() => { if (!cancelled) { setPageData({ rows: [], total: 0, page: 1, error: "Templates could not be loaded." }); setLoading(false); } });
+    return () => { cancelled = true; };
+  }, [contentType, category, tag, status, sort, deferredQuery, page, initialPage]);
+  const pages = Math.max(1, Math.ceil(pageData.total / TEMPLATE_PAGE_SIZE)),
+    shown = pageData.rows;
   const editorOpen = creating || Boolean(selected),
     smsSegments = body.length
       ? Math.ceil(body.length / (/[^\x00-\x7f]/.test(body) ? 70 : 160))
       : 0;
   const categoryCount = (name: string) =>
     name === "All Templates"
-      ? items.length
-      : items.filter((item) => (item.category || "General") === name).length;
+      ? facets.total
+      : facets.categoryCounts[name] || 0;
   const choose = (item: Item) => {
     setSelected(item);
     setCreating(false);
@@ -266,7 +255,7 @@ export function TextTemplateManager({
           }}
           type="button"
         >
-          <Upload /> All Templates <span>{items.length}</span>
+          <Upload /> All Templates <span>{facets.total}</span>
         </button>
         {activeCategories.slice(0, 7).map((item, index) => {
           const Icon = categoryIcons[index % categoryIcons.length];
@@ -289,7 +278,7 @@ export function TextTemplateManager({
             More <ChevronDown />
             <select
               aria-label="More categories"
-              onChange={(event) => setCategory(event.target.value)}
+              onChange={(event) => { setCategory(event.target.value); setPage(1); }}
               value={
                 activeCategories.slice(7).some((item) => item.name === category)
                   ? category
@@ -329,7 +318,7 @@ export function TextTemplateManager({
             value={tag}
           >
             <option value="all">All tags</option>
-            {allTags.map((name) => (
+            {facets.tags.map((name) => (
               <option key={name}>{name}</option>
             ))}
           </select>
@@ -348,7 +337,7 @@ export function TextTemplateManager({
           </select>
           <select
             aria-label="Sort templates"
-            onChange={(event) => setSort(event.target.value)}
+            onChange={(event) => { setSort(event.target.value); setPage(1); }}
             value={sort}
           >
             <option value="updated">Recently updated</option>
@@ -378,7 +367,8 @@ export function TextTemplateManager({
             <button onClick={() => setChecked([])}>Clear</button>
           </div>
         )}
-        <div className="template-table-wrap">
+        {pageData.error && <p className="form-error" role="alert">{pageData.error}</p>}
+        <div className="template-table-wrap" aria-busy={loading}>
           <table className="template-table">
             <thead>
               <tr>
@@ -554,7 +544,7 @@ export function TextTemplateManager({
               <Send />
               <h2>No matching templates</h2>
               <p>
-                {items.length
+                {facets.total
                   ? "Adjust your search or filters."
                   : "Create a template or import an existing collection."}
               </p>
@@ -570,8 +560,8 @@ export function TextTemplateManager({
         </div>
         <footer className="template-pagination">
           <span>
-            Showing {shown.length ? (page - 1) * 10 + 1 : 0}–
-            {Math.min(page * 10, filtered.length)} of {filtered.length}{" "}
+            Showing {shown.length ? (pageData.page - 1) * TEMPLATE_PAGE_SIZE + 1 : 0}–
+            {Math.min(pageData.page * TEMPLATE_PAGE_SIZE, pageData.total)} of {pageData.total}{" "}
             templates
           </span>
           <div>

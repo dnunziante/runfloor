@@ -4,15 +4,16 @@ import { useActionState, useState } from "react";
 import { Save, Plus, Pencil } from "lucide-react";
 import { saveSalesContent, type ContentActionState } from "@/app/admin/content/actions";
 import { TextTemplateManager } from "@/components/text-template-manager";
+import type { TemplatePage } from "@/lib/content/template-pagination";
 
 export type SalesContentItem = { id: string; title: string; body: string; status: "draft" | "published" | "archived"; category: string; tags: string[]; updatedAt: string };
 const initialState: ContentActionState = { error: "", success: "" };
 
-export function SalesContentManager({ contentType, label, items, categories = [], canManage }: { contentType: string; label: string; items: SalesContentItem[]; categories?: Array<{ id: string; name: string; position: number; archived: boolean }>; canManage: boolean }) {
+export function SalesContentManager({ contentType, label, items, categories = [], canManage, initialTemplatePage, templateFacets }: { contentType: string; label: string; items: SalesContentItem[]; categories?: Array<{ id: string; name: string; position: number; archived: boolean }>; canManage: boolean; initialTemplatePage?: TemplatePage; templateFacets?: { categoryCounts: Record<string, number>; tags: string[]; total: number } }) {
   const [selected, setSelected] = useState<SalesContentItem | null>(null);
   const [state, action, pending] = useActionState(saveSalesContent, initialState);
   const beginNew = () => setSelected(null);
-  if (contentType === "text_template" || contentType === "email_template") return <TextTemplateManager contentType={contentType} items={items} categories={categories} canManage={canManage} />;
+  if (contentType === "text_template" || contentType === "email_template") return <TextTemplateManager contentType={contentType} initialPage={initialTemplatePage ?? { rows: [], total: 0, page: 1, error: "" }} facets={templateFacets ?? { categoryCounts: {}, tags: [], total: 0 }} categories={categories} canManage={canManage} />;
   return <div className="sales-content-workspace">
     <section className="card sales-content-editor">
       <div className="metric-row"><div><span className="badge blue">Shared workspace</span><h2>{selected ? "Edit content" : `New ${label.toLowerCase()}`}</h2></div><div className="sales-content-actions"><button className="btn btn-secondary" type="button" onClick={beginNew}><Plus size={16}/> New</button></div></div>
