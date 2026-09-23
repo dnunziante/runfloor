@@ -7,6 +7,7 @@ import { getViewer } from "@/lib/auth/viewer";
 import { getDashboardData } from "@/lib/dashboard/data";
 import { getViewerIndustryTemplateKey } from "@/lib/organizations/industry";
 import { HomeTools } from "@/components/home-tools";
+import { GolfCartHome } from "@/components/golf-cart-home";
 import "./home-page.css";
 
 export default async function Home({ searchParams }: { searchParams: Promise<{ view?: string; locationId?: string; employeeId?: string }> }) {
@@ -16,8 +17,10 @@ export default async function Home({ searchParams }: { searchParams: Promise<{ v
   if (!viewer) redirect("/login");
   const [data, templateKey] = await Promise.all([getDashboardData({}), getViewerIndustryTemplateKey(viewer)]);
   const isRv = templateKey === "rv";
+  const isGolfCart = templateKey === "golf-cart";
   const admin = ["tenant_admin", "platform_owner"].includes(viewer.role);
   const team = admin || viewer.role === "manager";
+  if (isGolfCart) return <AppShell title="Home" industry="golf-cart"><GolfCartHome firstName={viewer.fullName.split(" ")[0]} organizationName={viewer.organizationName} data={data} /></AppShell>;
   const metrics = [[Bot,"Questions answered",data.metrics.questions,"orange","/assistant"],[MessageSquare,"Messages created",data.metrics.messages,"blue","/email"],[GraduationCap,"Training completed",`${data.metrics.training}%`,"purple","/training"],[Users,"Team confidence",data.metrics.confidence,"green","/dashboard/performance"]] as const;
   const activity = data.employees.filter((employee)=>employee.lastActivity && employee.lastActivity!=="—").slice(0,4);
   return <AppShell title="Home" industry={isRv ? "rv" : undefined}><div className={`rf-home ${isRv ? "rv-home" : ""}`}>

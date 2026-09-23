@@ -9,7 +9,9 @@ const addOnFamilySlugs = new Set(["accessories", "warranties"]);
 
 export default async function PricingCalculatorPage() {
   const [result, familyResult, locationResult, viewer] = await Promise.all([getTenantProducts(), getTenantProductFamilies(), getOrganizationLocations(), getViewer()]);
-  const isRv = viewer ? await getViewerIndustryTemplateKey(viewer) === "rv" : false;
+  const templateKey = viewer ? await getViewerIndustryTemplateKey(viewer) : null;
+  const isRv = templateKey === "rv";
+  const isGolfCart = templateKey === "golf-cart";
   const addOnFamilyIds = new Set(familyResult.families.filter((family) => addOnFamilySlugs.has(family.slug)).map((family) => family.id));
   const accessoryFamilyIds = new Set(familyResult.families.filter((family) => family.slug === "accessories").map((family) => family.id));
   const warrantyFamilyIds = new Set(familyResult.families.filter((family) => family.slug === "warranties").map((family) => family.id));
@@ -23,7 +25,7 @@ export default async function PricingCalculatorPage() {
     });
   const accessories = result.products.filter((product) => product.familyId && accessoryFamilyIds.has(product.familyId));
   const warranties = result.products.filter((product) => product.familyId && warrantyFamilyIds.has(product.familyId));
-  return <AppShell title="Quote & Financing Calculator" industry={isRv ? "rv" : undefined}>
-    {result.error || familyResult.error || locationResult.error ? <div className="card error-card"><h2>Calculator unavailable</h2><p>{result.error || familyResult.error || locationResult.error}</p></div> : <CombinedCalculator vehicles={vehicles} accessories={accessories} warranties={warranties} locations={locationResult.locations} isRv={isRv}/>}
+  return <AppShell title="Quote & Financing Calculator" industry={isRv ? "rv" : isGolfCart ? "golf-cart" : undefined}>
+    {result.error || familyResult.error || locationResult.error ? <div className="card error-card"><h2>Calculator unavailable</h2><p>{result.error || familyResult.error || locationResult.error}</p></div> : <CombinedCalculator vehicles={vehicles} accessories={accessories} warranties={warranties} locations={locationResult.locations} isRv={isRv} isGolfCart={isGolfCart}/>}
   </AppShell>;
 }

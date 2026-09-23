@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import Link from "next/link";
-import { BedDouble, Database, GitCompareArrows, LayoutGrid, List, Ruler, Search } from "lucide-react";
+import { ArrowRight, BedDouble, Car, Database, GitCompareArrows, LayoutGrid, List, Ruler, Search, Users, Zap } from "lucide-react";
 import type { ProductDTO } from "@/lib/products/types";
 
 function ProductGallery({ product }: { product: ProductDTO }) {
@@ -14,7 +14,7 @@ function ProductGallery({ product }: { product: ProductDTO }) {
   </div>;
 }
 
-export function ProductLibrary({ products, live, emptyMessage, addOnMode = false, competitorMode = false, isRv = false, showInventoryNavigation = false }: { products: ProductDTO[]; live: boolean; emptyMessage?: string; addOnMode?: boolean; competitorMode?: boolean; isRv?: boolean; showInventoryNavigation?: boolean }) {
+export function ProductLibrary({ products, live, emptyMessage, addOnMode = false, competitorMode = false, isRv = false, isGolfCart = false, showInventoryNavigation = false }: { products: ProductDTO[]; live: boolean; emptyMessage?: string; addOnMode?: boolean; competitorMode?: boolean; isRv?: boolean; isGolfCart?: boolean; showInventoryNavigation?: boolean }) {
   const [query, setQuery] = useState("");
   const [brand, setBrand] = useState("");
   const [category, setCategory] = useState("");
@@ -26,6 +26,22 @@ export function ProductLibrary({ products, live, emptyMessage, addOnMode = false
   const years = Array.from(new Set(products.map((product) => product.modelYear).filter((value): value is number => Boolean(value)))).sort((a, b) => b - a);
   const filtered = products.filter((product) => `${product.name} ${product.model} ${product.brand || ""} ${product.manufacturer || ""} ${product.modelYear || ""} ${product.modelVariant || ""}`.toLowerCase().includes(query.trim().toLowerCase()) && (!brand || (product.brand || product.manufacturer) === brand) && (!category || product.productCategory === category) && (!year || String(product.modelYear) === year));
   const shown = [...filtered].sort((a, b) => sort === "name" ? a.name.localeCompare(b.name) : sort === "year" ? (b.modelYear || 0) - (a.modelYear || 0) : (a.sortOrder || 0) - (b.sortOrder || 0));
+
+  if (isGolfCart && !addOnMode && !competitorMode) return <section className="golf-cart-product-library" id="models">
+    <div className="golf-cart-product-toolbar">
+      <label><Search aria-hidden="true"/><input className="input" aria-label="Search golf carts and LSVs" placeholder="Search models, brands, or features..." value={query} onChange={(event) => setQuery(event.target.value)}/></label>
+      <select className="input" aria-label="Filter by brand" value={brand} onChange={(event) => setBrand(event.target.value)}><option value="">All brands</option>{brands.map((name) => <option key={name}>{name}</option>)}</select>
+      <select className="input" aria-label="Filter by product category" value={category} onChange={(event) => setCategory(event.target.value)}><option value="">All categories</option>{categories.map((name) => <option key={name}>{name}</option>)}</select>
+      <button className="btn btn-ghost" type="button" onClick={() => { setQuery(""); setBrand(""); setCategory(""); setYear(""); }}>Clear filters</button>
+      <div className="golf-cart-view-toggle"><button className={view === "grid" ? "active" : ""} type="button" onClick={() => setView("grid")}><LayoutGrid/>Grid</button><button className={view === "list" ? "active" : ""} type="button" onClick={() => setView("list")}><List/>List</button></div>
+    </div>
+    <header className="golf-cart-product-heading"><div><h2>Featured Models</h2><p>{shown.length} published golf cart and LSV model{shown.length === 1 ? "" : "s"} ready for your team.</p></div><span className={`badge ${live ? "" : "amber"}`}><Database size={13}/>{live ? "Live workspace data" : "Demo data"}</span></header>
+    {shown.length ? <div className={`golf-cart-product-cards ${view === "list" ? "list" : ""}`}>{shown.map((product) => <article className="golf-cart-product-card" key={product.id}>
+      <ProductGallery product={product}/>
+      <div className="golf-cart-product-card-body"><span className="golf-cart-product-brand">{product.brand || product.manufacturer || "Golf Cart"}</span><h2>{product.name}</h2><p>{product.description}</p><div className="golf-cart-product-specs">{product.seats && <span><Users/>{product.seats}</span>}{product.powertrain && <span><Zap/>{product.powertrain}</span>}{product.productCategory && <span><Car/>{product.productCategory}</span>}</div><small>Starting at</small><strong>{product.price ? `$${product.price.toLocaleString()}` : "Contact for pricing"}</strong><div className="golf-cart-product-actions"><Link href={`/products/${product.slug}`}>View model <ArrowRight/></Link><Link href="/comparisons"><GitCompareArrows/>Compare</Link></div></div>
+    </article>)}</div> : <div className="card output empty"><div><Search size={32}/><h2>No matching models</h2><p>{products.length ? "Try another filter or clear your search." : emptyMessage}</p>{(query || brand || category || year) && <button className="btn btn-secondary" onClick={() => { setQuery(""); setBrand(""); setCategory(""); setYear(""); }}>Clear filters</button>}</div></div>}
+    <aside className="golf-cart-product-cta"><Car/><div><strong>Help More People Get Where They Want to Go.</strong><span>Reliable products, approved details, and customer-ready comparisons.</span></div><Link href="/comparisons">Compare models <ArrowRight/></Link></aside>
+  </section>;
 
   if (isRv && !addOnMode && !competitorMode) return <>
     {showInventoryNavigation && <nav className="rv-product-tabs" aria-label="Product inventory navigation"><button type="button" className={!brand ? "active" : undefined} aria-current={!brand ? "page" : undefined} onClick={() => setBrand("")}>Full Inventory</button>{brands.map((name) => <button type="button" className={brand === name ? "active" : undefined} aria-current={brand === name ? "page" : undefined} onClick={() => setBrand(name)} key={name}>{name}</button>)}<Link href="/comparisons">Compare Models</Link></nav>}

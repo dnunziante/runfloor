@@ -20,6 +20,12 @@ A company can organize its approved sales knowledge in one place and make it imm
 5. Administrators must be able to understand and control what the assistant uses.
 6. Automation supports the representative; it does not impersonate them or make unsupported claims.
 
+## Industry template experiences
+
+- A tenant inherits its primary workspace experience from its assigned industry template, not from tenant-name checks.
+- The `golf-cart` template uses golf cart and LSV-focused Home, Business Assistant, Team Performance, Quote & Financing, and Product Library experiences with industry terminology, navigation labels, guided prompts, and approved workspace knowledge.
+- BGC Dealerships uses the `golf-cart` template, so it receives the same maintained experience as future Golf Cart template tenants while all tenant data remains isolated.
+
 ## Version 1 success signals
 
 - Representatives can find an approved answer faster than searching scattered documents.
