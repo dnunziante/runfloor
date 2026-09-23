@@ -37,10 +37,12 @@ import {
 import { TextTemplateImporter } from "@/components/text-template-importer";
 import { getTemplatePage } from "@/app/admin/content/template-query";
 import { TEMPLATE_PAGE_SIZE, type TemplatePage } from "@/lib/content/template-pagination";
+import type { ManagedContentType } from "@/lib/content/template-pagination";
 
 type Item = {
   id: string;
   title: string;
+  objection: string;
   body: string;
   status: "draft" | "published" | "archived";
   category: string;
@@ -79,13 +81,18 @@ export function TextTemplateManager({
   categories,
   canManage,
 }: {
-  contentType: "text_template" | "email_template";
+  contentType: ManagedContentType;
   initialPage: TemplatePage;
   facets: { categoryCounts: Record<string, number>; tags: string[]; total: number };
   categories: Category[];
   canManage: boolean;
 }) {
   const isEmail = contentType === "email_template";
+  const isScript = contentType === "sales_script";
+  const isObjection = contentType === "objection_response";
+  const itemName = isScript ? "script" : isObjection ? "response" : "template";
+  const itemNamePlural = isScript ? "scripts" : isObjection ? "responses" : "templates";
+  const allLabel = isScript ? "All Scripts" : isObjection ? "All Responses" : "All Templates";
   const router = useRouter(),
     messageRef = useRef<HTMLTextAreaElement>(null);
   const [selected, setSelected] = useState<Item | null>(null),
@@ -94,7 +101,7 @@ export function TextTemplateManager({
     [menuId, setMenuId] = useState("");
   const [query, setQuery] = useState(""),
     deferredQuery = useDeferredValue(query),
-    [category, setCategory] = useState("All Templates"),
+    [category, setCategory] = useState(allLabel),
     [tag, setTag] = useState("all"),
     [status, setStatus] = useState("all"),
     [sort, setSort] = useState("updated"),
@@ -103,6 +110,7 @@ export function TextTemplateManager({
   const [loading, setLoading] = useState(false);
   const firstLoad = useRef(true);
   const [title, setTitle] = useState(""),
+    [objection, setObjection] = useState(""),
     [body, setBody] = useState(""),
     [editorCategory, setEditorCategory] = useState("New Lead"),
     [editorStatus, setEditorStatus] = useState<Item["status"]>("draft"),
@@ -143,13 +151,14 @@ export function TextTemplateManager({
       ? Math.ceil(body.length / (/[^\x00-\x7f]/.test(body) ? 70 : 160))
       : 0;
   const categoryCount = (name: string) =>
-    name === "All Templates"
+    name === allLabel
       ? facets.total
       : facets.categoryCounts[name] || 0;
   const choose = (item: Item) => {
     setSelected(item);
     setCreating(false);
     setTitle(item.title);
+    setObjection(item.objection);
     setBody(item.body);
     setEditorCategory(item.category || availableCategories[0].name);
     setEditorStatus(item.status);
@@ -160,6 +169,7 @@ export function TextTemplateManager({
     setSelected(null);
     setCreating(true);
     setTitle("");
+    setObjection("");
     setBody("");
     setEditorCategory(availableCategories[0].name);
     setEditorStatus("draft");
@@ -190,7 +200,7 @@ export function TextTemplateManager({
     let extra: Record<string, unknown> = {};
     if (actionName === "move") {
       const value = window.prompt(
-        "Move selected templates to which category?",
+        `Move selected ${itemNamePlural} to which category?`,
         availableCategories[0].name,
       );
       if (!value) return;
@@ -234,28 +244,28 @@ export function TextTemplateManager({
       <div className="text-template-titlebar">
         <div>
           <span className="eyebrow">Sales content</span>
-          <h1>{isEmail ? "Email Templates" : "Text Templates"}</h1>
+          <h1>{isScript ? "Sales Scripts" : isObjection ? "Objection Responses" : isEmail ? "Email Templates" : "Text Templates"}</h1>
           <p>
-            Create, organize, and manage approved customer {isEmail ? "email " : ""}messaging.
+            {isScript ? "Create, organize, import, and manage approved sales conversations and talk tracks." : isObjection ? "Create, organize, import, and manage approved responses to common customer objections." : <>Create, organize, and manage approved customer {isEmail ? "email " : ""}messaging.</>}
           </p>
         </div>
         <div className="text-template-primary-actions">
-          <TextTemplateImporter contentType={contentType} />
+          <TextTemplateImporter contentType={contentType} categories={activeCategories.map((item) => item.name)} />
           <button className="btn btn-primary" onClick={beginNew} type="button">
-            <Plus /> New template
+            <Plus /> New {isScript ? "Script" : isObjection ? "Response" : "template"}
           </button>
         </div>
       </div>
       <nav aria-label="Template categories" className="template-category-tabs">
         <button
-          className={category === "All Templates" ? "active" : ""}
+          className={category === allLabel ? "active" : ""}
           onClick={() => {
-            setCategory("All Templates");
+            setCategory(allLabel);
             setPage(1);
           }}
           type="button"
         >
-          <Upload /> All Templates <span>{facets.total}</span>
+          <Upload /> {allLabel} <span>{facets.total}</span>
         </button>
         {activeCategories.slice(0, 7).map((item, index) => {
           const Icon = categoryIcons[index % categoryIcons.length];
@@ -295,17 +305,17 @@ export function TextTemplateManager({
           </label>
         )}
       </nav>
-      <section className="template-catalog" aria-label={`Saved ${isEmail ? "email" : "text"} templates`}>
+      <section className="template-catalog" aria-label={`Saved ${isScript ? "sales scripts" : isObjection ? "objection responses" : `${isEmail ? "email" : "text"} templates`}`}>
         <div className="template-catalog-tools">
           <label>
             <Search />
             <input
-              aria-label="Search templates"
+              aria-label={`Search ${itemNamePlural}`}
               onChange={(event) => {
                 setQuery(event.target.value);
                 setPage(1);
               }}
-              placeholder="Search templates…"
+              placeholder={`Search ${itemNamePlural}…`}
               value={query}
             />
           </label>
@@ -374,7 +384,7 @@ export function TextTemplateManager({
               <tr>
                 <th>
                   <input
-                    aria-label="Select visible templates"
+                    aria-label={`Select visible ${itemNamePlural}`}
                     checked={
                       shown.length > 0 &&
                       shown.every((item) => checked.includes(item.id))
@@ -396,10 +406,11 @@ export function TextTemplateManager({
                     type="checkbox"
                   />
                 </th>
-                <th>Template name</th>
+                <th>{isScript ? "Script name" : isObjection ? "Response name" : "Template name"}</th>
                 <th>Category</th>
                 <th>Tags</th>
-                <th>{isEmail ? "Email preview" : "Message preview"}</th>
+                {isObjection && <th>Objection preview</th>}
+                <th>{isScript ? "Script preview" : isObjection ? "Response preview" : isEmail ? "Email preview" : "Message preview"}</th>
                 <th>Status</th>
                 <th>Updated</th>
                 <th>
@@ -440,11 +451,13 @@ export function TextTemplateManager({
                       ))}
                     </div>
                   </td>
-                  <td data-label="Preview">
+                  {isObjection && <td data-label="Objection preview">{item.objection.length > 64 ? `${item.objection.slice(0, 64)}…` : item.objection}</td>}
+                  {isObjection && <td data-label="Response preview">
                     {item.body.length > 76
                       ? `${item.body.slice(0, 76)}…`
                       : item.body}
-                  </td>
+                  </td>}
+                  {!isObjection && <td data-label="Preview">{item.body.length > 76 ? `${item.body.slice(0, 76)}…` : item.body}</td>}
                   <td data-label="Status">
                     <span className={`status-pill ${item.status}`}>
                       <i />
@@ -542,18 +555,18 @@ export function TextTemplateManager({
           {shown.length === 0 && (
             <div className="template-empty">
               <Send />
-              <h2>No matching templates</h2>
+              <h2>No matching {itemNamePlural}</h2>
               <p>
                 {facets.total
                   ? "Adjust your search or filters."
-                  : "Create a template or import an existing collection."}
+                  : `Create a ${itemName} or import an existing collection.`}
               </p>
               <button
                 className="btn btn-primary"
                 onClick={beginNew}
                 type="button"
               >
-                <Plus /> New template
+                <Plus /> New {itemName}
               </button>
             </div>
           )}
@@ -562,7 +575,7 @@ export function TextTemplateManager({
           <span>
             Showing {shown.length ? (pageData.page - 1) * TEMPLATE_PAGE_SIZE + 1 : 0}–
             {Math.min(pageData.page * TEMPLATE_PAGE_SIZE, pageData.total)} of {pageData.total}{" "}
-            templates
+            {itemNamePlural}
           </span>
           <div>
             <button
@@ -588,10 +601,10 @@ export function TextTemplateManager({
       {editorOpen && (
         <aside
           className="template-editor-drawer"
-          aria-label={creating ? "New template" : "Edit template"}
+          aria-label={creating ? `New ${itemName}` : `Edit ${itemName}`}
         >
           <header>
-            <h2>{creating ? "New Template" : "Edit Template"}</h2>
+            <h2>{creating ? `New ${isScript ? "Script" : isObjection ? "Response" : "Template"}` : `Edit ${isScript ? "Script" : isObjection ? "Response" : "Template"}`}</h2>
             <button
               aria-label="Close editor"
               onClick={closeEditor}
@@ -606,7 +619,7 @@ export function TextTemplateManager({
               <input name="contentType" type="hidden" value={contentType} />
               <input name="tags" type="hidden" value={tags} />
               <label>
-                Template name <span>*</span>
+                {isScript ? "Script" : isObjection ? "Response" : "Template"} name <span>*</span>
                 <input
                   maxLength={160}
                   minLength={2}
@@ -628,6 +641,7 @@ export function TextTemplateManager({
                       <option key={item.id || item.name}>{item.name}</option>
                     ))}
                   </select>
+                  <button className="text-button" onClick={() => setManageOpen(true)} type="button"><Plus /> Add category</button>
                 </label>
                 <label>
                   Status
@@ -644,13 +658,17 @@ export function TextTemplateManager({
                   </select>
                 </label>
               </div>
+              {isObjection && <label>
+                Customer objection <span>*</span>
+                <textarea maxLength={4000} minLength={2} name="objection" onChange={(event) => setObjection(event.target.value)} required rows={4} value={objection} />
+              </label>}
               <div className="template-message-label">
                 <strong>
-                  {isEmail ? "Email body" : "Message"} <span>*</span>
+                  {isScript ? "Script content" : isObjection ? "Approved response" : isEmail ? "Email body" : "Message"} <span>*</span>
                 </strong>
                 <span>
                   {body.length} characters
-                  {!isEmail && ` · ${smsSegments} SMS segment${smsSegments === 1 ? "" : "s"}`}
+                  {!isEmail && !isScript && ` · ${smsSegments} SMS segment${smsSegments === 1 ? "" : "s"}`}
                 </span>
               </div>
               <textarea
@@ -663,7 +681,7 @@ export function TextTemplateManager({
                 rows={9}
                 value={body}
               />
-              <div className="template-variables">
+              {!isScript && <div className="template-variables">
                 <strong>Quick variables</strong>
                 <div>
                   {quickVariables.map((variable) => (
@@ -676,7 +694,7 @@ export function TextTemplateManager({
                     </button>
                   ))}
                 </div>
-              </div>
+              </div>}
               <label>
                 Tags
                 <input
@@ -685,16 +703,16 @@ export function TextTemplateManager({
                   value={tags}
                 />
               </label>
-              <div className={`template-sms-preview ${isEmail ? "email-preview" : ""}`}>
+              <div className={`template-sms-preview ${isEmail || isScript || isObjection ? "email-preview" : ""}`}>
                 <div className="template-phone-top">
-                  {isEmail ? "Email preview" : "9:41"} <span>RunFloor</span>
+                  {isScript ? "Script preview" : isObjection ? "Approved response preview" : isEmail ? "Email preview" : "9:41"} <span>RunFloor</span>
                 </div>
                 <div className="template-message-bubble">
                   {body
                     .replaceAll("{{first_name}}", "John")
                     .replaceAll("{{last_name}}", "Smith")
                     .replaceAll("{{sales_rep}}", "Derrick")
-                    .replaceAll("{{store_name}}", "BGC Dealerships")
+                    .replaceAll("{{store_name}}", "your dealership")
                     .replaceAll("{{product}}", "your vehicle")
                     .replaceAll("{{phone}}", "our main line") ||
                     "Your message preview will appear here."}
@@ -737,14 +755,14 @@ export function TextTemplateManager({
                   {pending
                     ? "Saving…"
                     : selected
-                      ? "Update template"
-                      : "Publish template"}
+                      ? `Update ${itemName}`
+                      : `Publish ${itemName}`}
                 </button>
               </footer>
             </form>
           ) : (
             <p className="form-error">
-              Sign in as a tenant administrator to manage shared templates.
+              Sign in as a tenant administrator to manage shared {itemNamePlural}.
             </p>
           )}
         </aside>
@@ -752,7 +770,7 @@ export function TextTemplateManager({
       {manageOpen && (
         <div className="template-import-backdrop">
           <section
-            aria-label="Manage template categories"
+            aria-label={`Manage ${itemName} categories`}
             aria-modal="true"
             className="category-manager"
             role="dialog"
@@ -763,7 +781,7 @@ export function TextTemplateManager({
                 <h2>Manage categories</h2>
                 <p>
                   Rename, reorder, archive, or restore categories without
-                  deleting templates.
+                  deleting {itemNamePlural}.
                 </p>
               </div>
               <button
@@ -807,6 +825,7 @@ export function TextTemplateManager({
                 >
                   <span className="category-drag">⋮⋮</span>
                   <strong>{item.name}</strong>
+                  <small>{categoryCount(item.name)} {categoryCount(item.name) === 1 ? itemName : itemNamePlural}</small>
                   <button
                     onClick={() => {
                       const name = window.prompt("Rename category", item.name);

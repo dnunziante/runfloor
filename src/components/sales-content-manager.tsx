@@ -13,7 +13,7 @@ export function SalesContentManager({ contentType, label, items, categories = []
   const [selected, setSelected] = useState<SalesContentItem | null>(null);
   const [state, action, pending] = useActionState(saveSalesContent, initialState);
   const beginNew = () => setSelected(null);
-  if (contentType === "text_template" || contentType === "email_template") return <TextTemplateManager contentType={contentType} initialPage={initialTemplatePage ?? { rows: [], total: 0, page: 1, error: "" }} facets={templateFacets ?? { categoryCounts: {}, tags: [], total: 0 }} categories={categories} canManage={canManage} />;
+  if (contentType === "sales_script" || contentType === "objection_response" || contentType === "text_template" || contentType === "email_template") return <TextTemplateManager contentType={contentType} initialPage={initialTemplatePage ?? { rows: [], total: 0, page: 1, error: "" }} facets={templateFacets ?? { categoryCounts: {}, tags: [], total: 0 }} categories={categories} canManage={canManage} />;
   return <div className="sales-content-workspace">
     <section className="card sales-content-editor">
       <div className="metric-row"><div><span className="badge blue">Shared workspace</span><h2>{selected ? "Edit content" : `New ${label.toLowerCase()}`}</h2></div><div className="sales-content-actions"><button className="btn btn-secondary" type="button" onClick={beginNew}><Plus size={16}/> New</button></div></div>

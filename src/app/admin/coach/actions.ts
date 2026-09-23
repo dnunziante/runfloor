@@ -65,6 +65,7 @@ export async function createCoachScenario(_previousState: CoachScenarioActionSta
   const roundThreePrompt = String(formData.get("roundThreePrompt") || "").trim();
   const status = formData.get("status") === "published" ? "published" : "draft";
   const skills = String(formData.get("skills") || "").split(",").map((item) => item.trim()).filter(Boolean).slice(0, 8);
+  const tags = String(formData.get("tags") || "").split(",").map((item) => item.trim()).filter(Boolean).slice(0, 20);
   const responseOptions = String(formData.get("responseOptions") || "").split(/\r?\n/).map((item) => item.trim()).filter(Boolean).slice(0, 6);
   const rubricWeights = Object.fromEntries(["Clarify", "Listen", "Open", "Solve", "Explain", "Recommend"].map((skill) => [skill, Number(formData.get(`weight${skill}`))]));
   const weightTotal = Object.values(rubricWeights).reduce((total, value) => total + value, 0);
@@ -89,6 +90,7 @@ export async function createCoachScenario(_previousState: CoachScenarioActionSta
     goal,
     opening,
     skills,
+    tags,
     response_options: responseOptions,
     preferred_option_indices: [0],
     rubric_weights: rubricWeights,

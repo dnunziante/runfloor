@@ -22,11 +22,13 @@ export type CoachScenario = {
   goal: string;
   opening: string;
   skills: string[];
+  tags?: string[];
   responseOptions: string[];
   preferredOptionIndices: number[];
   rubricWeights: Record<string, number>;
   rounds: CoachRound[];
   status: CoachScenarioStatus;
+  updatedAt?: string;
 };
 
 export type CoachScenarioResult = {

@@ -30,6 +30,7 @@ export async function saveSalesContent(
   const contentType = String(formData.get("contentType") || "");
   const title = String(formData.get("title") || "").trim();
   const body = String(formData.get("body") || "").trim();
+  const objection = String(formData.get("objection") || "").trim().slice(0, 4000);
   const status = String(
     formData.get("statusTarget") || formData.get("status") || "draft",
   );
@@ -46,6 +47,7 @@ export async function saveSalesContent(
     (id && !/^[0-9a-f-]{36}$/i.test(id)) ||
     title.length < 2 ||
     title.length > 160 ||
+    (contentType === "objection_response" && objection.length < 2) ||
     body.length < 2 ||
     body.length > 12000 ||
     !["draft", "published", "archived"].includes(status)
@@ -59,6 +61,7 @@ export async function saveSalesContent(
     organization_id: viewer.organizationId,
     content_type: contentType,
     title,
+    objection: contentType === "objection_response" ? objection : "",
     body,
     status,
     category,
@@ -80,5 +83,5 @@ export async function saveSalesContent(
     };
   revalidatePath(`/admin/content/${contentType}`);
   revalidatePath("/admin/content");
-  return { error: "", success: "Saved to the shared BGC workspace." };
+  return { error: "", success: "Saved to the shared workspace." };
 }

@@ -35,14 +35,15 @@ export async function POST(request: Request) {
   > | null;
   const action = String(body?.action || ""),
     organizationId = current.viewer.organizationId,
-    contentType = body?.contentType === "email_template" ? "email_template" : "text_template";
+    contentType = body?.contentType === "sales_script" ? "sales_script" : body?.contentType === "objection_response" ? "objection_response" : body?.contentType === "email_template" ? "email_template" : "text_template";
+  const contentGroup = contentType === "sales_script" ? "sales_script" : contentType === "objection_response" ? "objection_response" : "message_template";
   if (action === "duplicate") {
     const id = validIds([body?.id])[0];
     if (!id)
       return NextResponse.json({ error: "Invalid template." }, { status: 400 });
     const { data } = await current.db
       .from("sales_content_items")
-      .select("title,body,status,category,tags")
+      .select("title,objection,body,status,category,tags")
       .eq("id", id)
       .eq("organization_id", organizationId)
       .eq("content_type", contentType)
@@ -89,6 +90,7 @@ export async function POST(request: Request) {
         .insert({
           organization_id: organizationId,
           name,
+          content_group: contentGroup,
           position: Number(body?.position) || 999,
         });
       return error
@@ -111,6 +113,7 @@ export async function POST(request: Request) {
         .select("name")
         .eq("id", categoryId)
         .eq("organization_id", organizationId)
+        .eq("content_group", contentGroup)
         .single();
       if (!old)
         return NextResponse.json(
@@ -121,13 +124,14 @@ export async function POST(request: Request) {
         .from("text_template_categories")
         .update({ name, updated_at: new Date().toISOString() })
         .eq("id", categoryId)
-        .eq("organization_id", organizationId);
+        .eq("organization_id", organizationId)
+        .eq("content_group", contentGroup);
       if (!error)
         await current.db
           .from("sales_content_items")
           .update({ category: name, updated_at: new Date().toISOString() })
           .eq("organization_id", organizationId)
-          .in("content_type", ["text_template", "email_template"])
+          .in("content_type", contentType === "sales_script" ? ["sales_script"] : contentType === "objection_response" ? ["objection_response"] : ["text_template", "email_template"])
           .eq("category", old.name);
       return error
         ? NextResponse.json(
@@ -153,7 +157,8 @@ export async function POST(request: Request) {
       .from("text_template_categories")
       .update({ ...updates, updated_at: new Date().toISOString() })
       .eq("id", categoryId)
-      .eq("organization_id", organizationId);
+      .eq("organization_id", organizationId)
+      .eq("content_group", contentGroup);
     return error
       ? NextResponse.json(
           { error: "The category could not be updated." },

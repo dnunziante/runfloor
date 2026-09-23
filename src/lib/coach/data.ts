@@ -16,7 +16,7 @@ type RoundRow = {
   skill_impacts: string[] | null;
 };
 
-type ScenarioRow = {
+export type ScenarioRow = {
   id: string;
   slug: string;
   title: string;
@@ -27,11 +27,13 @@ type ScenarioRow = {
   goal: string;
   opening: string;
   skills: string[] | null;
+  tags: string[] | null;
   response_options: string[] | null;
   preferred_option_indices: number[] | null;
   rubric_weights: Record<string, number> | null;
   coach_scenario_rounds: RoundRow[] | null;
   status: "draft" | "published" | "archived";
+  updated_at: string;
 };
 
 type SessionRow = {
@@ -58,7 +60,7 @@ const statusLabels: Record<ScenarioRow["status"], CoachScenarioStatus> = {
   archived: "Archived",
 };
 
-function toScenario(row: ScenarioRow): CoachScenario {
+export function toScenario(row: ScenarioRow): CoachScenario {
   const rounds: CoachRound[] = (row.coach_scenario_rounds || []).map((round) => ({
     id: round.id,
     roundNumber: round.round_number,
@@ -79,11 +81,13 @@ function toScenario(row: ScenarioRow): CoachScenario {
     goal: row.goal,
     opening: row.opening,
     skills: row.skills || [],
+    tags: row.tags || [],
     responseOptions: row.response_options || [],
     preferredOptionIndices: row.preferred_option_indices || [],
     rubricWeights: row.rubric_weights || { Clarify: 20, Listen: 20, Open: 15, Solve: 15, Explain: 15, Recommend: 15 },
     rounds,
     status: statusLabels[row.status],
+    updatedAt: row.updated_at,
   };
 }
 
@@ -117,7 +121,7 @@ export async function getCoachScenarios(options: { includeDrafts?: boolean } = {
   const supabase = await createClient();
   let query = supabase
     .from("coach_scenarios")
-    .select("id, slug, title, category, difficulty, duration_minutes, customer_persona, goal, opening, skills, response_options, preferred_option_indices, rubric_weights, status, coach_scenario_rounds(id, round_number, customer_prompt, response_options, preferred_option_indices, skill_impacts)")
+    .select("id, slug, title, category, difficulty, duration_minutes, customer_persona, goal, opening, skills, tags, response_options, preferred_option_indices, rubric_weights, status, updated_at, coach_scenario_rounds(id, round_number, customer_prompt, response_options, preferred_option_indices, skill_impacts)")
     .eq("organization_id", viewer.organizationId)
     .order("created_at");
 

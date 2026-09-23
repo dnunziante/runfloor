@@ -1,6 +1,5 @@
 import { notFound } from "next/navigation";
 import { AppShell } from "@/components/app-shell";
-import { PageHeader } from "@/components/page-header";
 import { SalesContentManager, type SalesContentItem } from "@/components/sales-content-manager";
 import { getViewer } from "@/lib/auth/viewer";
 import { createClient } from "@/lib/supabase/server";
@@ -26,10 +25,10 @@ export default async function SalesContentTypePage({ params }: { params: Promise
   let facets: Awaited<ReturnType<typeof getTemplateFacets>> | undefined;
   if (viewer?.organizationId && !viewer.demo) {
     const supabase = await createClient();
-    const templateType = type === "email_template" || type === "text_template" ? type : null;
+    const templateType = type === "sales_script" || type === "objection_response" || type === "email_template" || type === "text_template" ? type : null;
     const [{ data }, { data: categoryRows }, templatePage, templateFacets] = await Promise.all([
       templateType ? Promise.resolve({ data: [] }) : supabase.from("sales_content_items").select("id, title, body, status, category, tags, updated_at").eq("organization_id", viewer.organizationId).eq("content_type", type).order("updated_at", { ascending: false }),
-      ["text_template", "email_template"].includes(type) ? supabase.from("text_template_categories").select("id,name,position,archived").eq("organization_id", viewer.organizationId).order("position") : Promise.resolve({ data: [] }),
+      templateType ? supabase.from("text_template_categories").select("id,name,position,archived").eq("organization_id", viewer.organizationId).eq("content_group", type === "sales_script" ? "sales_script" : type === "objection_response" ? "objection_response" : "message_template").order("position") : Promise.resolve({ data: [] }),
       templateType ? getTemplatePage({ contentType: templateType, category: "All Templates", tag: "all", status: "all", sort: "updated", query: "", page: 1 }) : Promise.resolve(undefined),
       templateType ? getTemplateFacets(templateType) : Promise.resolve(undefined),
     ]);
@@ -38,5 +37,5 @@ export default async function SalesContentTypePage({ params }: { params: Promise
     initialTemplatePage = templatePage;
     facets = templateFacets;
   }
-  return <AppShell title={`Admin · ${config.label}`}>{!["text_template", "email_template"].includes(type) && <PageHeader eyebrow="Sales content" title={config.label} description={config.description}/>}<SalesContentManager contentType={type} label={config.label} items={items} categories={categories} canManage={canManage} initialTemplatePage={initialTemplatePage} templateFacets={facets}/></AppShell>;
+  return <AppShell title={`Admin · ${config.label}`}><SalesContentManager contentType={type} label={config.label} items={items} categories={categories} canManage={canManage} initialTemplatePage={initialTemplatePage} templateFacets={facets}/></AppShell>;
 }
