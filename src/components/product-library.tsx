@@ -14,7 +14,7 @@ function ProductGallery({ product }: { product: ProductDTO }) {
   </div>;
 }
 
-export function ProductLibrary({ products, live, emptyMessage, addOnMode = false, competitorMode = false, isRv = false, isGolfCart = false, showInventoryNavigation = false }: { products: ProductDTO[]; live: boolean; emptyMessage?: string; addOnMode?: boolean; competitorMode?: boolean; isRv?: boolean; isGolfCart?: boolean; showInventoryNavigation?: boolean }) {
+export function ProductLibrary({ products, live, emptyMessage, addOnMode = false, competitorMode = false, isRv = false, isGolfCart = false, showInventoryNavigation = false, canManage = false }: { products: ProductDTO[]; live: boolean; emptyMessage?: string; addOnMode?: boolean; competitorMode?: boolean; isRv?: boolean; isGolfCart?: boolean; showInventoryNavigation?: boolean; canManage?: boolean }) {
   const [query, setQuery] = useState("");
   const [brand, setBrand] = useState("");
   const [category, setCategory] = useState("");
@@ -41,6 +41,37 @@ export function ProductLibrary({ products, live, emptyMessage, addOnMode = false
       <div className="golf-cart-product-card-body"><span className="golf-cart-product-brand">{product.brand || product.manufacturer || "Golf Cart"}</span><h2>{product.name}</h2><p>{product.description}</p><div className="golf-cart-product-specs">{product.seats && <span><Users/>{product.seats}</span>}{product.powertrain && <span><Zap/>{product.powertrain}</span>}{product.productCategory && <span><Car/>{product.productCategory}</span>}</div><small>Starting at</small><strong>{product.price ? `$${product.price.toLocaleString()}` : "Contact for pricing"}</strong><div className="golf-cart-product-actions"><Link href={`/products/${product.slug}`}>View model <ArrowRight/></Link><Link href="/comparisons"><GitCompareArrows/>Compare</Link></div></div>
     </article>)}</div> : <div className="card output empty"><div><Search size={32}/><h2>No matching models</h2><p>{products.length ? "Try another filter or clear your search." : emptyMessage}</p>{(query || brand || category || year) && <button className="btn btn-secondary" onClick={() => { setQuery(""); setBrand(""); setCategory(""); setYear(""); }}>Clear filters</button>}</div></div>}
     <aside className="golf-cart-product-cta"><Car/><div><strong>Help More People Get Where They Want to Go.</strong><span>Reliable products, approved details, and customer-ready comparisons.</span></div><Link href="/comparisons">Compare models <ArrowRight/></Link></aside>
+  </section>;
+
+  if (isGolfCart && competitorMode) return <section className="golf-cart-competitor-library" id="competitor-models">
+    <div className="golf-cart-competitor-toolbar">
+      <label className="golf-cart-competitor-search"><Search aria-hidden="true"/><input className="input" aria-label="Search competitor golf carts" placeholder="Search models or configurations" value={query} onChange={(event) => setQuery(event.target.value)}/></label>
+      <select className="input" aria-label="Filter by competitor brand" value={brand} onChange={(event) => setBrand(event.target.value)}><option value="">All brands</option>{brands.map((name) => <option key={name}>{name}</option>)}</select>
+      <select className="input" aria-label="Filter by product category" value={category} onChange={(event) => setCategory(event.target.value)}><option value="">All categories</option>{categories.map((name) => <option key={name}>{name}</option>)}</select>
+      <span className={`badge ${live ? "" : "amber"}`}><Database size={13}/>{live ? "Live workspace data" : "Demo data"}</span>
+      <Link className="btn btn-secondary" href="/comparisons"><GitCompareArrows size={16}/> Compare models</Link>
+      {canManage && <Link className="btn btn-primary golf-cart-add-competitor" href="/admin/competitors">+ Add competitor</Link>}
+    </div>
+    <nav className="golf-cart-competitor-brands" aria-label="Filter competitors by brand"><button className={!brand ? "active" : ""} type="button" onClick={() => setBrand("")}><LayoutGrid/><strong>All brands</strong></button>{brands.slice(0, 10).map((name) => <button className={brand === name ? "active" : ""} type="button" key={name} onClick={() => setBrand(name)}><b>{name.replace(/[^A-Za-z0-9]/g, "").slice(0, 3).toUpperCase()}</b><span>{name}</span></button>)}</nav>
+    <header className="golf-cart-competitor-results-heading">
+      <div><h2>{shown.length} competitor model{shown.length === 1 ? "" : "s"}</h2><p>Published golf carts and LSVs ready for side-by-side research.</p></div>
+      <div className="golf-cart-competitor-controls">
+        <label>Sort by<select value={sort} onChange={(event) => setSort(event.target.value)}><option value="popular">Recommended</option><option value="name">Model name</option><option value="year">Newest year</option></select></label>
+        <div className="golf-cart-view-toggle" aria-label="Choose product view"><button className={view === "grid" ? "active" : ""} type="button" onClick={() => setView("grid")} aria-pressed={view === "grid"}><LayoutGrid/>Grid</button><button className={view === "list" ? "active" : ""} type="button" onClick={() => setView("list")} aria-pressed={view === "list"}><List/>List</button></div>
+      </div>
+    </header>
+    {shown.length ? <div className={`golf-cart-competitor-cards ${view === "list" ? "list" : ""}`}>{shown.map((product) => {
+      const facts = [product.range, product.seats, product.powertrain].filter(Boolean).slice(0, 3);
+      return <article className="golf-cart-competitor-card" key={product.id}>
+        <ProductGallery product={product}/>
+        <div className="golf-cart-competitor-card-body">
+          <div className="golf-cart-competitor-title"><div><span>{product.brand || product.manufacturer || "Competitor"}</span><h2>{product.name}</h2><p>{[product.brand || product.manufacturer, product.modelYear, product.modelVariant || product.model].filter(Boolean).join(" / ")}</p></div><strong>{product.price ? `$${product.price.toLocaleString()}` : "Price not provided"}</strong></div>
+          {product.description && <p className="golf-cart-competitor-description">{product.description}</p>}
+          {facts.length > 0 && <div className="golf-cart-competitor-specs">{facts.map((fact, index) => <span key={`${product.id}-${index}`}>{fact}</span>)}</div>}
+          <div className="golf-cart-competitor-actions"><Link href={`/products/${product.slug}`}>View product guide <ArrowRight/></Link><Link href="/comparisons"><GitCompareArrows/>Compare</Link></div>
+        </div>
+      </article>;
+    })}</div> : <div className="card output empty"><div><Search size={32}/><h2>No matching competitor models</h2><p>{products.length ? "Try another search or clear the active filters." : emptyMessage}</p>{(query || brand || category || year) && <button className="btn btn-secondary" onClick={() => {setQuery("");setBrand("");setCategory("");setYear("");}}>Clear filters</button>}</div></div>}
   </section>;
 
   if (isRv && !addOnMode && !competitorMode) return <>

@@ -86,3 +86,23 @@
 @media(max-width:1200px){.gc-hero{grid-template-columns:1fr}.gc-hero-promise{display:none}.gc-focus-strip{grid-template-columns:repeat(3,1fr)}.gc-main-grid{grid-template-columns:1fr}.gc-side-column{grid-template-columns:1.1fr .9fr}.gc-topics>div{grid-template-columns:repeat(5,minmax(145px,1fr));overflow-x:auto;padding-bottom:4px}}
 @media(max-width:820px){.gc-hero-copy{padding:30px 22px}.gc-focus-strip{grid-template-columns:1fr 1fr}.gc-prompt-row{grid-template-columns:1fr 1fr}.gc-side-column{grid-template-columns:1fr}.gc-assistant-message{max-width:100%}}
 @media(max-width:560px){.content:has(.gc-home){padding-inline:10px}.gc-hero{margin-inline:-10px;min-height:380px;background-position:62% center}.gc-hero::before{background:linear-gradient(90deg,rgba(2,10,7,.96),rgba(2,10,7,.58)),linear-gradient(0deg,rgba(1,7,5,.72),transparent)}.gc-hero-copy h1{font-size:38px}.gc-hero-actions a{width:100%}.gc-focus-strip{grid-template-columns:1fr}.gc-focus{min-height:62px}.gc-assistant-card>header{align-items:flex-start}.gc-assistant-card header em{display:none}.gc-prompt-row{grid-template-columns:1fr}.gc-topics>div{grid-template-columns:repeat(5,155px)}.gc-performance{align-items:flex-start;flex-direction:column}.gc-question-box>span{max-width:230px}.gc-promo-card{min-height:250px}}
+
+/* RunFloor orange theme for the golf-cart workspace. */
+.gc-home{--gc:#f15a24}
+.gc-hero-copy>span,.gc-hero-copy h1 em{color:#ff7042}
+.gc-hero-actions a.gc-primary{border-color:#ff7a4d;background:linear-gradient(135deg,#ff7a42,#f15a24)}
+.gc-focus>span,.gc-tools-card>a>span,.gc-topics>div>a>span{background:#fff0e9;color:#f15a24}
+.gc-assistant-card>header{background:linear-gradient(105deg,#24120c,#9a3412 55%,#180b07)}
+.gc-assistant-card>header>span{background:linear-gradient(135deg,#ff7a42,#f15a24)}
+.gc-assistant-card header p i{background:#ff7042}
+.gc-assistant-card header em svg,.gc-assistant-message>span,.gc-prompt-row svg{color:#f15a24}
+.gc-assistant-message>span,.gc-prompt-row a{border-color:#ffd0bd;background:#fff5f0}
+.gc-question-box>i{background:linear-gradient(135deg,#ff7a42,#f15a24)}
+.gc-topics header>a,.gc-tools-card header>a,.gc-performance>a,.gc-promo-card>div>span{color:#c94719}
+.gc-performance{background:linear-gradient(110deg,#fff4ef,#fff)}
+.gc-performance>div>span{background:#ffe1d5;color:#f15a24}
+.gc-promo-card li svg{background:#f15a24}
+.golf-cart-shell .sidebar{background:linear-gradient(180deg,#120a07,#070302)}
+.golf-cart-shell .workspace{border-color:#5d2b19;background:#1a0d08}
+.golf-cart-shell .nav a.active,.golf-cart-shell .module-group[open]>summary{background:linear-gradient(90deg,rgba(241,90,36,.24),rgba(241,90,36,.04));box-shadow:inset 3px 0 #f15a24}
+.golf-cart-shell .nav .module-icon,.golf-cart-shell .nav>a>svg,.golf-cart-shell .sidebar-footer>a>svg{color:#ff6a21}

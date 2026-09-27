@@ -12,7 +12,8 @@ const coreFields: Array<[string, (p: ProductDTO) => string]> = [
 const comparisonSections = [[LayoutDashboard,"Overview"],[Ruler,"Floorplan"],[Settings2,"Specifications"],[Sofa,"Features"],[Weight,"Weights & Capacity"],[Images,"Images & Media"],[CircleDollarSign,"Pricing"]] as const;
 const display = (value: string) => value.trim() || "Not provided";
 
-export function ProductComparison({ products, isRv = false }: { products: ProductDTO[]; isRv?: boolean }) {
+export function ProductComparison({ products, isRv = false, isGolfCart = false }: { products: ProductDTO[]; isRv?: boolean; isGolfCart?: boolean }) {
+  void isGolfCart;
   const ours = useMemo(() => products.filter(p => (p.productType || "our_product") === "our_product" && p.modelYear !== null), [products]);
   const competitors = useMemo(() => products.filter(p => p.productType === "competitor_product"), [products]);
   const [ourId, setOurId] = useState(ours[0]?.id || "");

@@ -14,3 +14,10 @@ export async function getViewerIndustryTemplateKey(viewer: Viewer) {
   const template = data?.industry_template as unknown as { template_key?: string } | null;
   return template?.template_key ?? null;
 }
+
+export async function getViewerIndustryTemplateId(viewer: Viewer) {
+  if (viewer.demo) return null;
+  const db = await createClient();
+  const { data } = await db.from("organizations").select("industry_template_id").eq("id", viewer.organizationId).maybeSingle();
+  return data?.industry_template_id ?? null;
+}

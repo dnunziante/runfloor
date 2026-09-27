@@ -4,6 +4,7 @@ import { createEmbeddings, createSalesEmail, type SalesEmailInput } from "@/lib/
 import { formatProductContext, selectRelevantProducts, type ApprovedProduct } from "@/lib/rag/product-context";
 import { createClient } from "@/lib/supabase/server";
 import { getCommunicationContext } from "@/lib/rag/communication-context";
+import { getViewerIndustryTemplateId } from "@/lib/organizations/industry";
 
 type SearchChunk = { document_name: string; content: string; section: string | null; page_number: number | null; similarity: number };
 const tones = new Set<SalesEmailInput["tone"]>(["Professional", "Friendly", "Direct", "Urgency", "Re-engagement"]);
@@ -26,6 +27,15 @@ export async function POST(request: Request) {
 
   try {
     const supabase = await createClient();
+    const templateId = text(body.templateId, 36);
+    if (templateId) {
+      const industryTemplateId = await getViewerIndustryTemplateId(viewer);
+      const scope = industryTemplateId ? `organization_id.eq.${viewer.organizationId},industry_template_id.eq.${industryTemplateId}` : `organization_id.eq.${viewer.organizationId}`;
+      const { data: template } = await supabase.from("sales_content_items").select("title,body").eq("id", templateId).or(scope).eq("content_type", "email_template").eq("status", "published").maybeSingle();
+      if (!template) return NextResponse.json({ error: "That email template is not available in this workspace." }, { status: 404 });
+      input.templateTitle = template.title;
+      input.templateContent = text(body.templateContent, 12000) || template.body;
+    }
     const { data: membership } = await supabase.from("organization_memberships").select("location_id").eq("organization_id", viewer.organizationId).eq("user_id", viewer.id).eq("status", "active").maybeSingle();
     const retrievalText = [input.product, input.customerNeeds, input.previousConversation, input.objection].filter(Boolean).join("\n");
     const [embedding] = await createEmbeddings([retrievalText]);
