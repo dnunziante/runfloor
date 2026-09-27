@@ -27,7 +27,7 @@ import type { DashboardData } from "@/lib/dashboard/data";
 const focusAreas = [
   { icon: Boxes, title: "Golf Carts & LSVs", copy: "Move more units", href: "/products", tone: "green" },
   { icon: Wrench, title: "Service & Parts", copy: "Keep customers rolling", href: "/operations/procedures", tone: "blue" },
-  { icon: Megaphone, title: "Marketing", copy: "Bring in more buyers", href: "/email", tone: "orange" },
+  { icon: Megaphone, title: "Marketing", copy: "Bring in more buyers", href: "/messages", tone: "orange" },
   { icon: Settings, title: "Operations", copy: "Run more efficiently", href: "/operations", tone: "purple" },
   { icon: DollarSign, title: "Finance", copy: "Increase profitability", href: "/pricing-calculator", tone: "red" },
 ] as const;
@@ -35,7 +35,7 @@ const focusAreas = [
 const tools = [
   { icon: Boxes, title: "Product Library", copy: "Compare golf carts and LSVs", href: "/products", tone: "teal" },
   { icon: BookOpenCheck, title: "Procedure Library", copy: "Service, delivery, and setup guides", href: "/operations/procedures", tone: "blue" },
-  { icon: Mail, title: "Email & Text Generator", copy: "Create customer-ready messages", href: "/email", tone: "purple" },
+  { icon: Mail, title: "Message Center", copy: "Create customer-ready emails and texts", href: "/messages", tone: "purple" },
   { icon: ClipboardCheck, title: "Checklists & Templates", copy: "Sales, service, and operations", href: "/operations/checklists", tone: "red" },
   { icon: BarChart3, title: "Data & Analytics", copy: "Track performance and trends", href: "/analytics", tone: "green" },
 ] as const;
@@ -43,7 +43,7 @@ const tools = [
 const topics = [
   { icon: TrendingUp, title: "Increase Sales", copy: "Proven strategies for golf carts and LSVs", href: "/assistant", tone: "green" },
   { icon: Wrench, title: "Improve Service", copy: "Boost retention and parts revenue", href: "/operations/procedures", tone: "blue" },
-  { icon: Megaphone, title: "Marketing Ideas", copy: "Attract customers in your local market", href: "/email", tone: "orange" },
+  { icon: Megaphone, title: "Marketing Ideas", copy: "Attract customers in your local market", href: "/messages", tone: "orange" },
   { icon: Users, title: "Fleet & Community Sales", copy: "HOAs, rentals, and commercial accounts", href: "/training", tone: "purple" },
   { icon: DollarSign, title: "Profitability Tips", copy: "Improve margins across departments", href: "/growth", tone: "green" },
 ] as const;
@@ -95,7 +95,7 @@ export function GolfCartHome({
               <div className="gc-assistant-message"><span><Bot /></span><p>Hi {firstName}—I&apos;m here to help with sales, service, marketing, operations, finance, and more.<strong>What would you like to work on today?</strong></p></div>
               <div className="gc-prompt-row">
                 <Link href="/comparisons"><Boxes /> Compare models</Link>
-                <Link href="/email"><Mail /> Create a sales email</Link>
+                <Link href="/messages"><Mail /> Open Message Center</Link>
                 <Link href="/coach"><Users /> Build a training plan</Link>
                 <Link href="/dashboard/performance"><BarChart3 /> Analyze performance</Link>
               </div>

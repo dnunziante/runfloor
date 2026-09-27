@@ -3,7 +3,7 @@
 import { useMemo, useRef, useState, useTransition } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { BookOpenCheck, FileText, LoaderCircle, Pencil, RefreshCw, Search, Trash2, Upload } from "lucide-react";
+import { BarChart3, BookOpenCheck, FileText, GraduationCap, Megaphone, Settings, ShieldCheck, LoaderCircle, Pencil, RefreshCw, Search, Trash2, Upload, Users } from "lucide-react";
 import { deleteKnowledgeDocument, reindexKnowledgeDocument, updateKnowledgeDocumentCollection } from "@/app/knowledge-base/actions";
 import { KNOWLEDGE_COLLECTIONS } from "@/lib/knowledge/collections";
 import type { KnowledgeDocumentDTO } from "@/lib/knowledge/types";
@@ -12,7 +12,7 @@ function formatBytes(bytes: number) {
   return bytes < 1024 * 1024 ? `${Math.max(1, Math.round(bytes / 1024))} KB` : `${(bytes / 1024 / 1024).toFixed(1)} MB`;
 }
 
-export function KnowledgeManager({ documents, canManage, locations = [], products = [], isRv = false }: { documents: KnowledgeDocumentDTO[]; canManage: boolean; locations?: { id: string; name: string }[]; products?: { id: string; name: string }[]; isRv?: boolean }) {
+export function KnowledgeManager({ documents, canManage, locations = [], products = [], isRv = false, isGolfCart = false }: { documents: KnowledgeDocumentDTO[]; canManage: boolean; locations?: { id: string; name: string }[]; products?: { id: string; name: string }[]; isRv?: boolean; isGolfCart?: boolean }) {
   const router = useRouter();
   const formRef = useRef<HTMLFormElement>(null);
   const [query, setQuery] = useState("");
@@ -138,8 +138,10 @@ export function KnowledgeManager({ documents, canManage, locations = [], product
     });
   }
 
-  return <div className={isRv ? "rv-knowledge-manager" : undefined}>
-    {canManage && <form className={`card knowledge-upload ${isRv ? "rv-knowledge-upload" : ""}`} ref={formRef} onSubmit={uploadDocument}>
+  const categoryIcons = [FileText, BookOpenCheck, Users, Megaphone, Settings, BarChart3, GraduationCap, ShieldCheck];
+  return <div className={isRv ? "rv-knowledge-manager" : isGolfCart ? "gck-manager" : undefined}>
+    {isGolfCart && <section className="gck-categories" aria-labelledby="knowledge-categories"><h2 id="knowledge-categories">Browse by category</h2><div><button className={collectionFilter === "All Collections" ? "active" : ""} onClick={() => setCollectionFilter("All Collections")}><FileText/><span><strong>All</strong><small>{documents.length} files</small></span></button>{KNOWLEDGE_COLLECTIONS.slice(0, 7).map((collection, index) => { const Icon = categoryIcons[index + 1]; const count = documents.filter((document) => document.collection === collection).length; return <button className={collectionFilter === collection ? "active" : ""} key={collection} onClick={() => setCollectionFilter(collection)}><Icon/><span><strong>{collection}</strong><small>{count} files</small></span></button>; })}</div></section>}
+    {canManage && <form id="knowledge-upload" className={`card knowledge-upload ${isRv ? "rv-knowledge-upload" : isGolfCart ? "gck-upload" : ""}`} ref={formRef} onSubmit={uploadDocument}>
       <div><h2>{isRv ? "Add Knowledge to Your Library" : "Upload a document"}</h2><p>{isRv ? "Upload product guides, spec sheets, videos, training documents, and more. All files stay private and power approved answers." : "Original files stay private. Supported documents are indexed for grounded Sales Assistant answers."}</p></div>
       <div><label className="label" htmlFor="document-title">Title</label><input className="input" id="document-title" name="title" required maxLength={140} placeholder="2026 product guide"/></div>
       <div><label className="label" htmlFor="document-collection">Collection</label><select className="input" id="document-collection" name="collection">{KNOWLEDGE_COLLECTIONS.map((collection) => <option key={collection}>{collection}</option>)}</select></div>
@@ -155,7 +157,7 @@ export function KnowledgeManager({ documents, canManage, locations = [], product
       <button className="btn btn-primary" disabled={uploading} type="submit">{uploading ? <><LoaderCircle className="spin" size={16}/> Uploading…</> : <><Upload size={16}/> Upload securely</>}</button>
       {message && <p className={message.type === "error" ? "form-error" : "form-success"} role="status">{message.text}</p>}
     </form>}
-    <div className={`card ${isRv ? "rv-knowledge-library" : ""}`} style={{marginTop:18}}>
+    <div className={`card ${isRv ? "rv-knowledge-library" : isGolfCart ? "gck-library" : ""}`} style={{marginTop:18}}>
       {isRv && <nav className="rv-knowledge-tabs" aria-label="Knowledge library sections"><a className="active" href="#documents"><FileText/>Documents</a><a href="#documents"><BookOpenCheck/>Collections</a><Link href="/training"><BookOpenCheck/>Training Modules</Link></nav>}
       <div className="metric-row knowledge-table-head" id="documents"><div><h2>Documents</h2><p style={{fontSize:12,margin:0}}>Stored privately in the active workspace.</p></div><div className="knowledge-list-controls"><label className="knowledge-filter"><span>Collection</span><select className="input" value={collectionFilter} onChange={(event) => setCollectionFilter(event.target.value)}><option>All Collections</option>{KNOWLEDGE_COLLECTIONS.map((collection) => <option key={collection}>{collection}</option>)}</select></label><div style={{position:"relative",width:300,maxWidth:"100%"}}><Search size={15} style={{position:"absolute",left:11,top:12,color:"#68738a"}}/><input className="input" style={{paddingLeft:34}} value={query} onChange={(event)=>setQuery(event.target.value)} placeholder="Search knowledge"/></div></div></div>
       {canManage ? <div className="knowledge-module-toolbar"><span>{selectedDocuments.length ? `${selectedDocuments.length} knowledge upload${selectedDocuments.length === 1 ? "" : "s"} selected` : "Select indexed knowledge uploads to build a module."}</span>{selectedDocuments.length ? <button className="btn btn-primary" type="button" disabled={isBuildingModule} onClick={buildModuleFromSelections}>{isBuildingModule ? <><LoaderCircle className="spin" size={16}/> Preparing lessons...</> : <><BookOpenCheck size={16}/> Build module with selected</>}</button> : null}</div> : null}

@@ -1,1 +1,1 @@
-import { redirect } from "next/navigation"; export default function Generator(){redirect("/email")}
+import { redirect } from "next/navigation"; export default function Generator(){redirect("/messages")}

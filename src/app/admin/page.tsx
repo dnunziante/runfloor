@@ -1,106 +1,54 @@
 import Link from "next/link";
-import {
-  AlertTriangle,
-  BarChart3,
-  BookOpen,
-  Boxes,
-  Building2,
-  CheckCircle2,
-  ChevronRight,
-  Circle,
-  Crown,
-  GraduationCap,
-  Settings,
-  Users,
-} from "lucide-react";
+import type React from "react";
+import { AlertTriangle, BarChart3, BookOpen, Boxes, CheckCircle2, ChevronRight, Circle, Crown, GraduationCap, LayoutGrid, List, MapPin, Search, Settings, ShieldCheck, TrendingUp, Users } from "lucide-react";
 import { AppShell } from "@/components/app-shell";
 import { PageHeader } from "@/components/page-header";
 import { getExecutiveReadiness } from "@/lib/executive/readiness-repository";
 import { buildExecutiveSetupSequence } from "@/lib/executive/setup-sequence";
 import { getViewer } from "@/lib/auth/viewer";
+import { getViewerIndustryTemplateKey } from "@/lib/organizations/industry";
 
-export default async function Admin() {
-  const [readiness, viewer] = await Promise.all([getExecutiveReadiness(), getViewer()]);
+type AdminSearchParams = Promise<{ module?: string; layout?: string }>;
+
+export default async function Admin({ searchParams }: { searchParams: AdminSearchParams }) {
+  const [readiness, viewer, query] = await Promise.all([getExecutiveReadiness(), getViewer(), searchParams]);
+  const templateKey = viewer ? await getViewerIndustryTemplateKey(viewer) : null;
+  const isGolfCart = templateKey === "golf-cart";
   const workspaceName = viewer?.organizationName || "workspace";
   const setupSteps = buildExecutiveSetupSequence(readiness.checks);
   const currentStep = setupSteps.find((step) => step.state === "current");
   const setupHref = `/admin/executive/setup?period=${readiness.reportingPeriod}`;
   const readinessHref = `/executive/readiness?period=${readiness.reportingPeriod}`;
   const items = [
-    ...(viewer?.role === "platform_owner" ? [[Crown, "Platform Admin", "Manage tenants, demos, and industry templates across RunFloor.", "/admin/platform"] as const] : []),
-    [Boxes, "Products & pricing", "Manage models, positioning, prices, and visibility.", "/admin/products"],
-    [Boxes, "Competitor products & pricing", "Upload and manage competitor models, images, prices, and visibility.", "/admin/competitors"],
-    [Boxes, "Competitor sources", "Check public competitor product pages and review updates before importing them.", "/admin/competitor-sources"],
-    [BarChart3, "Sales results", "Review and approve monthly results used by the Executive Advisor.", "/admin/sales-results"],
-    [GraduationCap, "Coach scenarios", "Create and publish tenant-specific practice conversations.", "/admin/coach"],
-    [GraduationCap, "Training modules", "Combine knowledge lessons into ordered learning paths.", "/admin/training"],
-    [BookOpen, "Sales content", "Manage scripts, objections, templates, and training.", "/admin/content"],
-    [Building2, "Locations", `Manage ${workspaceName} locations and local information.`, "/admin/settings"],
-    [Users, "Team members", `Invite users and assign ${workspaceName} roles and locations.`, "/admin/users"],
-    [Settings, "Workspace settings", "Control branding and assistant behavior.", "/admin/settings"],
+    ...(viewer?.role === "platform_owner" ? [[Crown, "Platform Admin", "Manage tenants, demos, and industry templates across RunFloor.", "/admin/platform", "Templates and tenants", "orange"] as const] : []),
+    [Boxes, "Products & Pricing", "Manage models, positioning, prices, and visibility.", "/admin/products", "Catalog and pricing", "blue"],
+    [TrendingUp, "Competitor Products & Pricing", "Review competing models, pricing, images, and visibility.", "/admin/competitors", "Competitive library", "purple"],
+    [ShieldCheck, "Competitor Sources", "Review public product sources before importing updates.", "/admin/competitor-sources", "Source approvals", "teal"],
+    [BarChart3, "Sales Results", "Review and approve monthly results for the Executive Advisor.", "/admin/sales-results", "Reports and approvals", "green"],
+    [GraduationCap, "Coach Scenarios", "Create and publish tenant-specific practice conversations.", "/admin/coach", "Practice and coaching", "gold"],
+    [GraduationCap, "Training Modules", "Combine knowledge lessons into ordered learning paths.", "/admin/training", "Lessons and paths", "rose"],
+    [BookOpen, "Sales Content", "Manage scripts, objections, templates, and approved content.", "/admin/content", "Scripts and templates", "blue"],
+    [MapPin, "Locations", `Manage ${workspaceName} locations and local information.`, "/admin/settings", "Locations and coverage", "purple"],
+    [Users, "Team Members", `Invite users and assign ${workspaceName} roles and locations.`, "/admin/users", "Users and roles", "green"],
+    [Settings, "Workspace Settings", "Control branding, permissions, and assistant behavior.", "/admin/settings", "Branding and access", "rose"],
+    [BookOpen, "Knowledge Base", "Manage documents, guides, and approved team knowledge.", "/knowledge-base", "Documents and collections", "teal"],
   ] as const;
+  const moduleQuery = query.module?.trim().toLowerCase() ?? "";
+  const filteredItems = items.filter(([, title, copy]) => `${title} ${copy}`.toLowerCase().includes(moduleQuery));
+  const listView = query.layout === "list";
+  const querySuffix = moduleQuery ? `&module=${encodeURIComponent(query.module ?? "")}` : "";
 
-  return (
-    <AppShell title="Admin">
-      <PageHeader eyebrow="Workspace administration" title={`Manage ${workspaceName}`} description="A simple control center for approved content, users, and workspace settings." />
+  if (!isGolfCart) return <AppShell title="Admin"><PageHeader eyebrow="Workspace administration" title={`Manage ${workspaceName}`} description="A simple control center for approved content, users, and workspace settings."/><AdminReadiness readiness={readiness} setupSteps={setupSteps} currentStep={currentStep} setupHref={setupHref} readinessHref={readinessHref}/><div className="card admin-settings-list">{items.map(([Icon,title,copy,href]) => <Link className="activity-row" href={href} key={title}><span className="metric-icon"><Icon size={18}/></span><div style={{flex:1}}><strong>{title}</strong><p style={{margin:2,fontSize:12}}>{copy}</p></div><ChevronRight size={18}/></Link>)}</div></AppShell>;
 
-      {readiness.canManageSetup ? (
-        <section className="card admin-launch-card" aria-labelledby="executive-launch-title">
-          <div className="admin-launch-summary">
-            <div>
-              <span className={`badge ${readiness.score === 100 ? "" : "amber"}`}>Executive launch</span>
-              <h2 id="executive-launch-title">Reporting foundation</h2>
-              <p>{readiness.readyRequired} of {readiness.requiredTotal} required setup steps are ready for {readiness.reportingPeriod}.</p>
-            </div>
-            <strong aria-label={`${readiness.score} percent ready`}>{readiness.score}%</strong>
-          </div>
+  return <AppShell title="Admin" industry="golf-cart"><main className="golf-cart-admin">
+    <section className="gca-admin-hero"><div><span>Workspace administration</span><h1>Manage {workspaceName}<br/><em>All in one place.</em></h1><p>Control your content, users, locations, and settings to keep your team informed, consistent, and selling more golf carts.</p><div><b><Settings/>Streamline operations<small>Keep everything organized</small></b><b><Users/>Empower your team<small>Give access to the right tools</small></b><b><BarChart3/>Drive more sales<small>Consistent, up-to-date info</small></b><b><ShieldCheck/>Stay in control<small>Manage with confidence</small></b></div></div><blockquote>SAME<br/>TEAM.<br/>BIGGER<br/>SALES.</blockquote></section>
+    <AdminReadiness readiness={readiness} setupSteps={setupSteps} currentStep={currentStep} setupHref={setupHref} readinessHref={readinessHref} golfCart/>
+    <section className="gca-admin-tools" aria-labelledby="administration-tools-title"><header><div><h2 id="administration-tools-title">Administration Tools</h2><p>Manage every part of your {workspaceName} workspace.</p></div><form method="get" role="search"><Search/><label className="sr-only" htmlFor="admin-module-search">Search administration tools</label><input id="admin-module-search" name="module" defaultValue={query.module ?? ""} placeholder="Search modules…"/><input type="hidden" name="layout" value={listView ? "list" : "grid"}/></form><nav aria-label="Administration tool layout"><Link className={!listView ? "active" : ""} href={`/admin?layout=grid${querySuffix}`} aria-label="Grid view"><LayoutGrid/> <span>Grid</span></Link><Link className={listView ? "active" : ""} href={`/admin?layout=list${querySuffix}`} aria-label="List view"><List/> <span>List</span></Link></nav></header><div className={listView ? "gca-admin-module-grid list" : "gca-admin-module-grid"}>{filteredItems.map(([Icon,title,copy,href,meta,tone]) => <Link href={href} className={`gca-admin-module ${tone}`} key={title}><span><Icon/></span><div><strong>{title}</strong><p>{copy}</p><small>{meta}</small></div><ChevronRight/></Link>)}</div>{filteredItems.length === 0 && <div className="gca-admin-empty"><Search/><h3>No administration tools found</h3><p>Try a broader search or view every module.</p><Link href="/admin">Clear search</Link></div>}</section>
+  </main></AppShell>;
+}
 
-          <div className="progress admin-launch-progress" aria-hidden="true">
-            <span style={{ width: `${readiness.score}%` }} />
-          </div>
-
-          {readiness.error ? (
-            <div className="admin-launch-alert" role="status">
-              <AlertTriangle size={18} />
-              <span>Some live setup checks are temporarily unavailable. Open the setup guide for details.</span>
-            </div>
-          ) : null}
-
-          <div className="admin-launch-steps" aria-label="Executive setup progress">
-            {setupSteps.map((step) => (
-              <span className={step.ready ? "ready" : ""} key={step.id}>
-                {step.ready ? <CheckCircle2 size={16} aria-hidden="true" /> : <Circle size={16} aria-hidden="true" />}
-                {step.title}
-              </span>
-            ))}
-          </div>
-
-          <div className="admin-launch-next">
-            <div>
-              <small>{currentStep ? "Next blocking step" : "Foundation ready"}</small>
-              <strong>{currentStep?.title ?? "Continue to the monthly leadership review"}</strong>
-              <p>{currentStep?.explanation ?? "All required source checks are complete for this reporting period."}</p>
-            </div>
-            <div className="admin-launch-actions">
-              <Link className="btn btn-primary" href={currentStep ? setupHref : `/executive/review?period=${readiness.reportingPeriod}`}>
-                {currentStep ? "Continue setup" : "Open review"}
-                <ChevronRight size={17} />
-              </Link>
-              <Link className="btn btn-ghost" href={readinessHref}>View readiness</Link>
-            </div>
-          </div>
-        </section>
-      ) : null}
-
-      <div className="card admin-settings-list">
-        {items.map(([Icon, title, copy, href]) => (
-          <Link className="activity-row" href={href} key={title}>
-            <span className="metric-icon"><Icon size={18} /></span>
-            <div style={{ flex: 1 }}><strong>{title}</strong><p style={{ margin: 2, fontSize: 12 }}>{copy}</p></div>
-            <ChevronRight size={18} />
-          </Link>
-        ))}
-      </div>
-    </AppShell>
-  );
+function AdminReadiness({ readiness, setupSteps, currentStep, setupHref, readinessHref, golfCart = false }: { readiness: Awaited<ReturnType<typeof getExecutiveReadiness>>; setupSteps: ReturnType<typeof buildExecutiveSetupSequence>; currentStep: ReturnType<typeof buildExecutiveSetupSequence>[number] | undefined; setupHref: string; readinessHref: string; golfCart?: boolean }) {
+  if (!readiness.canManageSetup) return null;
+  if (!golfCart) return <section className="card admin-launch-card" aria-labelledby="executive-launch-title"><div className="admin-launch-summary"><div><span className={`badge ${readiness.score === 100 ? "" : "amber"}`}>Executive launch</span><h2 id="executive-launch-title">Reporting foundation</h2><p>{readiness.readyRequired} of {readiness.requiredTotal} required setup steps are ready for {readiness.reportingPeriod}.</p></div><strong aria-label={`${readiness.score} percent ready`}>{readiness.score}%</strong></div><div className="progress admin-launch-progress" aria-hidden="true"><span style={{width:`${readiness.score}%`}}/></div>{readiness.error ? <div className="admin-launch-alert" role="status"><AlertTriangle/><span>Some live setup checks are temporarily unavailable. Open the setup guide for details.</span></div> : null}<div className="admin-launch-steps" aria-label="Executive setup progress">{setupSteps.map((step) => <span className={step.ready ? "ready" : ""} key={step.id}>{step.ready ? <CheckCircle2 aria-hidden="true"/> : <Circle aria-hidden="true"/>}{step.title}</span>)}</div><div className="admin-launch-next"><div><small>{currentStep ? "Next blocking step" : "Foundation ready"}</small><strong>{currentStep?.title ?? "Continue to the monthly leadership review"}</strong><p>{currentStep?.explanation ?? "All required source checks are complete for this reporting period."}</p></div><div className="admin-launch-actions"><Link className="btn btn-primary" href={currentStep ? setupHref : `/executive/review?period=${readiness.reportingPeriod}`}>{currentStep ? "Continue setup" : "Open review"}<ChevronRight/></Link><Link className="btn btn-ghost" href={readinessHref}>View readiness</Link></div></div></section>;
+  return <section className={`card admin-launch-card ${golfCart ? "gca-admin-readiness" : ""}`} aria-labelledby="executive-launch-title"><header><h2 id="executive-launch-title">Executive Launch Setup</h2>{golfCart && <div className="admin-launch-actions"><Link className="btn btn-primary" href={currentStep ? setupHref : `/executive/review?period=${readiness.reportingPeriod}`}>{currentStep ? "Continue setup" : "Open review"}<ChevronRight/></Link><Link className="btn btn-ghost" href={readinessHref}><BarChart3/> View readiness</Link></div>}</header><div className="gca-readiness-body"><strong className="gca-readiness-score" style={{"--score":readiness.score} as React.CSSProperties}>{readiness.score}%</strong><div className="gca-readiness-copy"><h3>Reporting foundation</h3><p>{readiness.readyRequired} of {readiness.requiredTotal} required setup steps are ready for {readiness.reportingPeriod}.</p></div><div className="admin-launch-steps" aria-label="Executive setup progress">{setupSteps.map((step) => <span className={step.ready ? "ready" : step.state === "current" ? "current" : ""} key={step.id}>{step.ready ? <CheckCircle2 aria-hidden="true"/> : <Circle aria-hidden="true"/>}<b>{step.title}</b><small>{step.ready ? "Complete" : step.state === "current" ? "In progress" : "Not started"}</small></span>)}</div></div>{readiness.error ? <div className="admin-launch-alert" role="status"><AlertTriangle/><span>Some live setup checks are temporarily unavailable. Open the setup guide for details.</span></div> : null}{!golfCart && <div className="admin-launch-next"><div><small>{currentStep ? "Next blocking step" : "Foundation ready"}</small><strong>{currentStep?.title ?? "Continue to the monthly leadership review"}</strong><p>{currentStep?.explanation ?? "All required source checks are complete for this reporting period."}</p></div><div className="admin-launch-actions"><Link className="btn btn-primary" href={currentStep ? setupHref : `/executive/review?period=${readiness.reportingPeriod}`}>{currentStep ? "Continue setup" : "Open review"}<ChevronRight/></Link><Link className="btn btn-ghost" href={readinessHref}>View readiness</Link></div></div>}</section>;
 }

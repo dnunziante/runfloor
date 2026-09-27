@@ -15,8 +15,7 @@ const links = [
   ["Products", "/products", Boxes],
   ["Competitors", "/competitors", Scale],
   ["Comparisons", "/comparisons", GitCompareArrows],
-  ["Write an Email", "/email", Mail],
-  ["Write a Text", "/text", MessagesSquare],
+  ["Message Center", "/messages", Mail],
   ["Knowledge Base", "/knowledge-base", BookOpen],
   ["Analytics", "/analytics", BarChart3],
   ["Admin", "/admin", ShieldCheck],
@@ -99,8 +98,8 @@ export function AppShell({ children, title, industry }: { children: React.ReactN
   const administratorVisible = viewer.role === "platform_owner" || viewer.role === "tenant_admin";
   const isRv = industry === "rv" || viewer.industryTemplateKey === "rv";
   const isGolfCart = industry === "golf-cart" || viewer.industryTemplateKey === "golf-cart";
-  const visibleLinks = isRv ? links.filter(([label]) => label !== "Write a Text").map(([label, href, Icon]) => label === "Write an Email" ? ["Message Studio", href, Icon] as const : [label, href, Icon] as const) : links;
-  const salesSectionActive = visibleLinks.some(([, href]) => pathname === href || (href === "/email" && pathname === "/text") || (href === "/admin" && pathname.startsWith("/admin") && !pathname.startsWith("/admin/growth") && !pathname.startsWith("/admin/executive") && !pathname.startsWith("/admin/sales-results")));
+  const visibleLinks = links;
+  const salesSectionActive = visibleLinks.some(([, href]) => pathname === href || (href === "/messages" && (pathname === "/email" || pathname === "/text")) || (href === "/admin" && pathname.startsWith("/admin") && !pathname.startsWith("/admin/growth") && !pathname.startsWith("/admin/executive") && !pathname.startsWith("/admin/sales-results")));
   return <div className={`shell ${collapsed ? "sidebar-collapsed" : ""} ${isRv ? "rv-shell" : ""} ${isGolfCart ? "golf-cart-shell" : ""}`}>
     {open && <button className="scrim" aria-label="Close menu" onClick={() => setOpen(false)} />}
     <aside className={`sidebar ${open ? "sidebar-open" : ""}`}>
@@ -116,8 +115,8 @@ export function AppShell({ children, title, industry }: { children: React.ReactN
         <details className="module-group" key={`sales-${pathname}`} open={salesSectionActive}>
           <summary><span className="module-icon"><Users size={18}/></span><span>Sales Assistant</span><ChevronDown className="module-chevron" size={16}/></summary>
           <div className="module-links">{visibleLinks.filter(([label]) => label !== "Admin" || administratorVisible).map(([label, href, Icon]) => {
-            const active = pathname === href || (href === "/email" && pathname === "/text") || (href === "/admin" && pathname.startsWith("/admin") && !pathname.startsWith("/admin/growth") && !pathname.startsWith("/admin/executive") && !pathname.startsWith("/admin/sales-results"));
-            const visibleLabel = isRv && label === "Products" ? "RVs & Inventory" : isGolfCart && label === "Products" ? "Golf Carts & LSVs" : isGolfCart && label === "Write an Email" ? "Email Generator" : label;
+            const active = pathname === href || (href === "/messages" && (pathname === "/email" || pathname === "/text")) || (href === "/admin" && pathname.startsWith("/admin") && !pathname.startsWith("/admin/growth") && !pathname.startsWith("/admin/executive") && !pathname.startsWith("/admin/sales-results"));
+            const visibleLabel = isRv && label === "Products" ? "RVs & Inventory" : isGolfCart && label === "Products" ? "Golf Carts & LSVs" : label;
             return <Link className={active ? "active" : ""} href={href} key={href} onClick={() => setOpen(false)}><Icon size={18}/><span>{visibleLabel}</span></Link>;
           })}</div>
         </details>

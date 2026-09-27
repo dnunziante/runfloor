@@ -21,7 +21,7 @@ export default async function Home({ searchParams }: { searchParams: Promise<{ v
   const admin = ["tenant_admin", "platform_owner"].includes(viewer.role);
   const team = admin || viewer.role === "manager";
   if (isGolfCart) return <AppShell title="Home" industry="golf-cart"><GolfCartHome firstName={viewer.fullName.split(" ")[0]} organizationName={viewer.organizationName} data={data} /></AppShell>;
-  const metrics = [[Bot,"Questions answered",data.metrics.questions,"orange","/assistant"],[MessageSquare,"Messages created",data.metrics.messages,"blue","/email"],[GraduationCap,"Training completed",`${data.metrics.training}%`,"purple","/training"],[Users,"Team confidence",data.metrics.confidence,"green","/dashboard/performance"]] as const;
+  const metrics = [[Bot,"Questions answered",data.metrics.questions,"orange","/assistant"],[MessageSquare,"Messages created",data.metrics.messages,"blue","/messages"],[GraduationCap,"Training completed",`${data.metrics.training}%`,"purple","/training"],[Users,"Team confidence",data.metrics.confidence,"green","/dashboard/performance"]] as const;
   const activity = data.employees.filter((employee)=>employee.lastActivity && employee.lastActivity!=="—").slice(0,4);
   return <AppShell title="Home" industry={isRv ? "rv" : undefined}><div className={`rf-home ${isRv ? "rv-home" : ""}`}>
     {!isRv && <header className="home-welcome"><div><h1>Welcome back, {viewer.fullName.split(" ")[0]}</h1><p>Here’s what’s happening at {viewer.organizationName}.</p></div><div><span className="home-workspace"><Users size={15}/>{viewer.organizationName}</span>{viewer.demo && <span className="badge amber">Demo data</span>}</div></header>}

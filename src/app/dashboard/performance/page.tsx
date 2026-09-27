@@ -27,17 +27,17 @@ export default async function Dashboard({ searchParams }: { searchParams: Promis
   ];
   const progress = [
     { label: "Questions answered", value: data.metrics.questions, width: Math.min(data.metrics.questions, 100), Icon: MessageSquare, href: "/assistant" },
-    { label: "Messages created", value: data.metrics.messages, width: Math.min(data.metrics.messages * 2, 100), Icon: Mail, href: "/email" },
+    { label: "Messages created", value: data.metrics.messages, width: Math.min(data.metrics.messages * 2, 100), Icon: Mail, href: "/messages" },
     { label: "Training complete", value: `${data.metrics.training}%`, width: data.metrics.training, Icon: GraduationCap, href: "/training" },
   ];
 
   const resources = isRv
     ? [[MessageSquare, "Product Knowledge", "Approved answers", "/knowledge-base"], [GraduationCap, "Training Library", "Learning modules", "/training"], [BarChart3, "Competitors", "Compare models", "/comparisons"], [Calculator, "Finance & F&I", "Sell more confidently", "/pricing-calculator"]] as const
     : isGolfCart
-    ? [[MessageSquare, "Product Library", "Specs, compare, position", "/products"], [BookOpenCheck, "Procedure Library", "Service and delivery setup", "/operations/procedures"], [Mail, "Email Generator", "Customer-ready messages", "/email"], [Calculator, "Golf Cart Comparisons", "Side-by-side models", "/comparisons"], [GraduationCap, "Training Library", "Team development", "/training"], [ClipboardCheck, "Checklists", "Proven workflows", "/operations/checklists"]] as const
+    ? [[MessageSquare, "Product Library", "Specs, compare, position", "/products"], [BookOpenCheck, "Procedure Library", "Service and delivery setup", "/operations/procedures"], [Mail, "Message Center", "Customer-ready emails and texts", "/messages"], [Calculator, "Golf Cart Comparisons", "Side-by-side models", "/comparisons"], [GraduationCap, "Training Library", "Team development", "/training"], [ClipboardCheck, "Checklists", "Proven workflows", "/operations/checklists"]] as const
     : [[MessageSquare, "Product Knowledge", "Approved answers", "/knowledge-base"], [GraduationCap, "Training Library", "Learning modules", "/training"], [BarChart3, "Comparisons", "Customer tools", "/comparisons"]] as const;
 
-  const quickActions = [[ClipboardCheck, "New checklist", "/operations/checklists"], [Mail, "Write an email", "/email"], [BookOpenCheck, "Find a procedure", "/operations/procedures"], [BarChart3, "View performance", "/analytics"]] as const;
+  const quickActions = [[ClipboardCheck, "New checklist", "/operations/checklists"], [Mail, "Open Message Center", "/messages"], [BookOpenCheck, "Find a procedure", "/operations/procedures"], [BarChart3, "View performance", "/analytics"]] as const;
 
   return <AppShell title={data.team ? "Team Dashboard" : "Personal Dashboard"} industry={isRv ? "rv" : isGolfCart ? "golf-cart" : undefined}>
     <main className={`personal-command ${isRv ? "rv-performance" : ""} ${isGolfCart ? "golf-cart-performance" : ""}`}>
