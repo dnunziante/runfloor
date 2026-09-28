@@ -19,12 +19,16 @@ export default async function OperationsCalendarPage() {
     || workspaceName === "rayne rv"
   ));
   const isRv = templateKey === "rv" || workspaceName === "rayne rv" || (viewer?.demo && workspaceName === "runfloor rv");
+  const isGolfCart = templateKey === "golf-cart";
   const shared = data.persistence === "supabase";
-  return <AppShell title="Operations Calendar" industry={isRv ? "rv" : undefined}>
-    <main className={tailoredExperience ? styles.calendarExperience : undefined}>
-      <PageHeader eyebrow="See the work by date" title="Keep scheduled, active, and overdue operations visible" description="Review checklist deadlines, alert due dates, and recurring schedule runs in one monthly view." action={<Link className="btn btn-ghost" href="/operations"><ArrowLeft size={16}/> Operations dashboard</Link>}/>
-      <div className="callout operations-disclaimer"><Info size={20}/><div><strong>{shared ? "Shared Operations calendar" : "Browser-local calendar"}</strong><p>{shared ? "This calendar combines tenant-scoped checklists, alerts, and schedules. Employee calendar sync and notifications are not connected yet." : "This calendar reflects only sample and locally saved Operations records. It is not connected to employee calendars or notifications."}</p></div></div>
-      <OperationsTaskCalendar tailored={tailoredExperience} initialChecklists={data.checklists} initialAlerts={data.alerts} initialSchedules={data.schedules} persistence={data.persistence} initialError={data.error}/>
+  return <AppShell title="Operations Calendar" industry={isRv ? "rv" : isGolfCart ? "golf-cart" : undefined}>
+    <main className={`${tailoredExperience ? styles.calendarExperience : ""}${isGolfCart ? ` ${styles.golfCalendarExperience}` : ""}`}>
+      {isGolfCart
+        ? <section className={styles.golfHero}><div><span>See the work by date</span><h1>Keep scheduled, active, and overdue <em>operations visible.</em></h1><p>Review checklist deadlines, alert due dates, and recurring schedule runs in one monthly view.</p></div><blockquote>Smoother<br/>Operations.<br/>Happier<br/>Customers.</blockquote></section>
+        : <PageHeader eyebrow="See the work by date" title="Keep scheduled, active, and overdue operations visible" description="Review checklist deadlines, alert due dates, and recurring schedule runs in one monthly view." action={<Link className="btn btn-ghost" href="/operations"><ArrowLeft size={16}/> Operations dashboard</Link>}/>
+      }
+      {!isGolfCart && <div className="callout operations-disclaimer"><Info size={20}/><div><strong>{shared ? "Shared Operations calendar" : "Browser-local calendar"}</strong><p>{shared ? "This calendar combines tenant-scoped checklists, alerts, and schedules. Employee calendar sync and notifications are not connected yet." : "This calendar reflects only sample and locally saved Operations records. It is not connected to employee calendars or notifications."}</p></div></div>}
+      <OperationsTaskCalendar tailored={tailoredExperience} isGolfCart={isGolfCart} initialChecklists={data.checklists} initialAlerts={data.alerts} initialSchedules={data.schedules} persistence={data.persistence} initialError={data.error}/>
     </main>
   </AppShell>;
 }

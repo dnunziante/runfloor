@@ -17,6 +17,8 @@ import {
   BarChart3,
   Users,
   Trash2,
+  Archive,
+  Star,
 
 } from "lucide-react";
 import Link from "next/link";
@@ -52,6 +54,7 @@ export function OperationsProcedureManager({
   canManage = true,
   managementReady = false,
   isRv = false,
+  isGolfCart = false,
 }: {
   initialProcedures?: OperationsProcedureRecord[];
   initialCategories?: OperationsProcedureCategory[];
@@ -60,6 +63,7 @@ export function OperationsProcedureManager({
   canManage?: boolean;
   managementReady?: boolean;
   isRv?: boolean;
+  isGolfCart?: boolean;
 }) {
   const [procedures, setProcedures] = useState(initialProcedures);
   const [categories, setCategories] = useState(initialCategories);
@@ -73,6 +77,7 @@ export function OperationsProcedureManager({
   const [categoryName, setCategoryName] = useState("");
   const [deleting, setDeleting] = useState<OperationsProcedureCategory | "procedure" | null>(null);
   const [search, setSearch] = useState("");
+  const [libraryView, setLibraryView] = useState<"active" | "drafts">("active");
   const [error, setError] = useState(initialError);
   const [message, setMessage] = useState("");
   const [title, setTitle] = useState("");
@@ -105,11 +110,12 @@ export function OperationsProcedureManager({
       procedures.filter(
         (item) =>
           (!selectedCategory || item.categoryId === selectedCategory) &&
+          (libraryView === "active" || item.status === "Draft") &&
           `${item.title} ${item.category} ${item.summary} ${item.owner}`
             .toLowerCase()
             .includes(search.toLowerCase()),
       ),
-    [procedures, selectedCategory, search],
+    [procedures, selectedCategory, search, libraryView],
   );
   const clear = () => {
     setSelectedId(null); setReadingId(null); setError("");
@@ -380,17 +386,22 @@ export function OperationsProcedureManager({
     );
   function openProcedure(item: OperationsProcedureRecord) { setSelectedId(item.id); setReadingId(item.id); setEditingId(null); }
   function newProcedure() { clear(); setPanelOpen(true); }
-  return <section className={`${library.library} ${layout.workspace} ${isRv ? layout.rvLibrary : ""}`} aria-label="Organization procedure library">
+  const draftCount = procedures.filter(item => item.status === "Draft").length;
+  const featured = procedures.filter(item => item.status === "Published").slice(0,5);
+  return <section className={`${library.library} ${layout.workspace} ${isRv ? layout.rvLibrary : ""} ${isGolfCart ? layout.golfCartLibrary : ""}`} aria-label="Organization procedure library">
     {isRv && <section className={layout.rvHero}><div><span>Operations Assistant</span><h1>Proven Procedures.<br/><em>Stronger Dealerships.</em></h1><p>Standardize. Train. Stay Aligned. Deliver an Exceptional RV Experience.</p><div className={layout.rvHeroBenefits}><b><Settings/>Keep Operations<small>Consistent</small></b><b><Users/>Train Teams<small>Faster</small></b><b><BarChart3/>Deliver a Better<small>Customer Experience</small></b></div></div><blockquote>Great People.<br/>Greater Adventures.</blockquote></section>}
-    <header className={library.header}><div className={library.heading}>{!isRv && <span className={library.book}><BookOpen size={27} /></span>}<div><h1>{isRv ? "Procedure Categories" : "Procedure Templates"}</h1><p>{isRv ? "Choose a category to view, create, or manage procedures." : "Standardize operations. Train faster. Deliver a better experience."}</p></div></div><div className={library.tools}><label className={library.search}><Search size={18} /><input aria-label="Search procedures" placeholder={isRv ? "Search procedures, categories, or keywords…" : "Search procedures…"} value={search} onChange={event => { setSearch(event.target.value); setSelectedCategory(null); }} /></label>{canManage && <button className="btn btn-primary" onClick={newProcedure}><Plus size={17} /> New Procedure</button>}{isRv && canManage && !managementReady && <button className="btn btn-secondary" onClick={() => { setCategoryName(""); setCategoryEditor("new"); setError(""); }}><Plus size={16}/> Add Category</button>}</div></header>
+    {isGolfCart && <section className={layout.golfCartHero}><div><span>Operations Assistant</span><h1>Procedure <em>Templates</em></h1><p>Standardize operations. Train faster. Deliver a better customer experience across every location.</p><div><b><BookOpen/>Keep teams aligned<small>Consistent processes</small></b><b><Users/>Built for dealerships<small>Real-world workflows</small></b><b><Settings/>Save time<small>Ready-to-use templates</small></b><b><BarChart3/>Drive results<small>Better operations</small></b></div></div><blockquote>STRONG<br/>PROCESSES.<br/>SMOOTHER<br/>DAYS.</blockquote></section>}
+    <header className={library.header}><div className={library.heading}>{!isRv && !isGolfCart && <span className={library.book}><BookOpen size={27} /></span>}<div><h1>{isRv ? "Procedure Categories" : "Procedure Templates"}</h1><p>{isRv ? "Choose a category to view, create, or manage procedures." : "Standardize operations. Train faster. Deliver a better experience."}</p></div></div><div className={library.tools}><label className={library.search}><Search size={18} /><input aria-label="Search procedures" placeholder={isRv || isGolfCart ? "Search procedures, categories, or keywords…" : "Search procedures…"} value={search} onChange={event => { setSearch(event.target.value); setSelectedCategory(null); setLibraryView("active"); }} /></label>{canManage && <button className="btn btn-primary" onClick={newProcedure}><Plus size={17} /> New Procedure</button>}{isRv && canManage && !managementReady && <button className="btn btn-secondary" onClick={() => { setCategoryName(""); setCategoryEditor("new"); setError(""); }}><Plus size={16}/> Add Category</button>}</div></header>
+    {isGolfCart && <nav className={layout.golfCartTabs} aria-label="Procedure library views"><button className={libraryView === "active" ? layout.active : ""} onClick={() => { setLibraryView("active"); setSelectedCategory(null); setSearch(""); }}><BookOpen/>Active Library</button><button className={libraryView === "drafts" ? layout.active : ""} onClick={() => { setLibraryView("drafts"); setSelectedCategory(null); setSearch(""); }}><Archive/>Drafts <small>{draftCount}</small></button></nav>}
     {!isRv && <ProcedureValueBanner />}
     {!isRv && <div className={layout.secondary}><Link className="btn btn-ghost" href="/operations"><ArrowLeft size={15} /> Operations dashboard</Link>{canManage && !managementReady && <div className="button-row"><button className="btn btn-ghost" onClick={() => { setCategoryName(""); setCategoryEditor("new"); setError(""); }}><Plus size={16} /> Add Category</button><button className="btn btn-ghost" aria-pressed={managingCategories} onClick={() => setManagingCategories(!managingCategories)}>{managingCategories ? "Done managing" : "Manage Categories"}</button></div>}</div>}
     {persistence === "demo" && <p className="callout">Demo procedures are separate from organization records.</p>}
     {!panelOpen && error && <p role="alert" className="form-error"><AlertTriangle size={14} /> {error}</p>}
     {message && <p role="status" className="form-success">{message}</p>}
-    {!selectedCategory && !search.trim() && <div className={library.categories} aria-label="Procedure categories">{orderedCategories.map(item => <div className={layout.categoryGroup} key={item.id}><ProcedureCategoryCard name={item.name} description={item.description} styleName={item.styleName} count={procedures.filter(procedure => procedure.categoryId === item.id).length} noun="procedures" selected={false} onClick={() => { setSelectedCategory(item.id); setSelectedId(null); }} /><CategoryManagementMenu id={item.id}/>{canManage && !managementReady && managingCategories && <div className={layout.categoryActions}>{item.isDefault ? <small>Default category</small> : <><button className="btn btn-ghost" aria-label={`Rename ${item.name}`} onClick={() => { setCategoryName(item.name); setCategoryEditor(item); setError(""); }}><Pencil size={14}/> Rename</button><button className="btn btn-ghost" aria-label={`Delete ${item.name}`} onClick={() => setDeleting(item)}><Trash2 size={14}/> Delete</button></>}</div>}</div>)}</div>}
+    {!selectedCategory && !search.trim() && libraryView === "active" && <div className={library.categories} aria-label="Procedure categories">{orderedCategories.map(item => <div className={layout.categoryGroup} key={item.id}><ProcedureCategoryCard name={item.name} description={item.description} styleName={item.styleName} count={procedures.filter(procedure => procedure.categoryId === item.id).length} noun="procedures" selected={false} onClick={() => { setSelectedCategory(item.id); setSelectedId(null); }} /><CategoryManagementMenu id={item.id}/>{canManage && !managementReady && managingCategories && <div className={layout.categoryActions}>{item.isDefault ? <small>Default category</small> : <><button className="btn btn-ghost" aria-label={`Rename ${item.name}`} onClick={() => { setCategoryName(item.name); setCategoryEditor(item); setError(""); }}><Pencil size={14}/> Rename</button><button className="btn btn-ghost" aria-label={`Delete ${item.name}`} onClick={() => setDeleting(item)}><Trash2 size={14}/> Delete</button></>}</div>}</div>)}</div>}
+    {isGolfCart && libraryView === "active" && !selectedCategory && !search.trim() && featured.length > 0 && <section className={layout.golfCartFeatured}><header><Star/><div><h2>Featured Procedures</h2><p>Start with commonly used procedures from your live library.</p></div></header><div>{featured.map(item => <button key={item.id} onClick={() => openProcedure(item)}><span/><small>{item.category}</small><strong>{item.title}</strong><p>{item.summary}</p><em>View →</em></button>)}</div></section>}
     {isRv && !selectedCategory && !search.trim() && <div className={layout.rvCta}><div><span>Build a Stronger Tomorrow</span><h2>Well-Defined Operations<br/>Keep You Moving Forward.</h2></div><p>Organized procedures create confident teams, happier customers, and a more profitable dealership.</p>{canManage && <button className="btn btn-primary" onClick={newProcedure}>Create a Procedure <ArrowLeft/></button>}</div>}
-    {(selectedCategory || search.trim()) && <div className={library.results}><div className={library.panelHeading}><div><button className="btn btn-ghost" onClick={() => { setSelectedCategory(null); setSearch(""); }}><ArrowLeft size={16}/> All categories</button><h2>{category?.name ?? "Search results"}</h2><p>{category ? category.description || procedureCategoryStyle(category.styleName || category.name).description : `Matching “${search}” across your organization's procedures`}</p><p role="status">{filtered.length} {filtered.length === 1 ? "procedure" : "procedures"}</p></div>{canManage && <button className="btn btn-secondary" onClick={newProcedure}><Plus size={16}/> New Procedure</button>}</div>
+    {(selectedCategory || search.trim() || libraryView === "drafts") && <div className={library.results}><div className={library.panelHeading}><div><button className="btn btn-ghost" onClick={() => { setSelectedCategory(null); setSearch(""); setLibraryView("active"); }}><ArrowLeft size={16}/> All categories</button><h2>{libraryView === "drafts" ? "Draft procedures" : category?.name ?? "Search results"}</h2><p>{libraryView === "drafts" ? "Review procedures that are not yet published." : category ? category.description || procedureCategoryStyle(category.styleName || category.name).description : `Matching “${search}” across your organization's procedures`}</p><p role="status">{filtered.length} {filtered.length === 1 ? "procedure" : "procedures"}</p></div>{canManage && <button className="btn btn-secondary" onClick={newProcedure}><Plus size={16}/> New Procedure</button>}</div>
       {filtered.length ? <div className={library.templates}>{filtered.map((item,index) => <article className={library.template} key={item.id}><div className={library.metadata}><span>{item.category}</span><span>{item.status} · v{item.version}</span><ProcedureManagementMenu id={item.id} onEdit={() => edit(item)}/></div><button className={layout.cardOpen} onClick={() => openProcedure(item)}><strong>{item.title}</strong><p>{item.summary}</p></button><div className={library.metadata}>{item.owner}</div><div className={layout.cardActions}><button className="btn btn-secondary" onClick={() => openProcedure(item)}><Eye size={16}/> Open procedure</button>{canManage && <><button className="btn btn-ghost" aria-label={`Edit ${item.title}`} onClick={() => edit(item)}><FileEdit size={16}/></button>{selectedCategory && !search && <><button className="icon-button" aria-label={`Move ${item.title} up`} disabled={index === 0} onClick={() => moveProcedure(item.id,-1)}><ChevronUp size={16}/></button><button className="icon-button" aria-label={`Move ${item.title} down`} disabled={index === filtered.length-1} onClick={() => moveProcedure(item.id,1)}><ChevronDown size={16}/></button></>}</>}</div></article>)}</div> : <div className={library.empty}><FolderOpen size={30}/><h3>{search ? "No matching procedures" : "Ready for your first procedure"}</h3><p>{search ? "Try another title, category, owner, or keyword." : `Build your team's playbook with a ${category?.name} procedure.`}</p>{canManage && <button className="btn btn-primary" onClick={newProcedure}><Plus size={16}/> New Procedure</button>}</div>}
     </div>}
     {panelOpen && canManage && <ProcedureOverlay title={editingId ? "Edit procedure" : "Create procedure"} drawer onClose={() => { if (!saving) setPanelOpen(false); }}><div>{error && <p role="alert" className="form-error">{error}</p>}{editor}</div></ProcedureOverlay>}

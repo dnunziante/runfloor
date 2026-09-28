@@ -11,6 +11,7 @@ export default async function OperationsAlertsPage() {
     viewer ? getViewerIndustryTemplateKey(viewer) : Promise.resolve(null),
   ]);
   const isRv = industryTemplateKey === "rv";
+  const isGolfCart = industryTemplateKey === "golf-cart";
 
-  return <AppShell title="Operational Alerts" industry={isRv ? "rv" : undefined}><OperationsAlertManager initialAlerts={data.alerts} persistence={data.persistence} initialError={data.error} isRv={isRv}/></AppShell>;
+  return <AppShell title="Operational Alerts" industry={isRv ? "rv" : isGolfCart ? "golf-cart" : undefined}><OperationsAlertManager initialAlerts={data.alerts} persistence={data.persistence} initialError={data.error} isRv={isRv} isGolfCart={isGolfCart}/></AppShell>;
 }

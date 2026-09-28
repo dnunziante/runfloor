@@ -15,7 +15,9 @@ const formatDate = (value: string) => new Intl.DateTimeFormat("en-US", { month: 
 
 export default async function OperationsPage() {
   const [data, viewer] = await Promise.all([getOperationsWorkspace(), getViewer()]);
-  const isRv = viewer ? await getViewerIndustryTemplateKey(viewer) === "rv" : false;
+  const templateKey = viewer ? await getViewerIndustryTemplateKey(viewer) : null;
+  const isRv = templateKey === "rv";
+  const isGolfCart = templateKey === "golf-cart";
   const published = data.procedures.filter((item) => item.status === "Published");
   const activeChecklists = data.checklists.filter((item) => item.steps.some((step) => !step.complete));
   const openAlerts = data.alerts.filter((item) => item.status !== "Resolved");
@@ -25,14 +27,14 @@ export default async function OperationsPage() {
   const upcoming = [...data.schedules].filter((item) => item.status === "Active").sort((a, b) => a.nextRunDate.localeCompare(b.nextRunDate)).slice(0, 3);
   const recent = [...data.procedures].sort((a, b) => b.updatedAt.localeCompare(a.updatedAt)).slice(0, 3);
 
-  return <AppShell title="Operations Assistant" industry={isRv ? "rv" : undefined}><div className={`${styles.dashboard} ${isRv ? styles.rv : ""}`}>
-    <section className={styles.hero}><div className={styles.heroCopy}><span className={styles.eyebrow}>Operations assistant</span><h1>{isRv ? <>Run a Smoother Dealership.<br/><em>Every Mile of the Way.</em></> : "Run Better Operations. Every Day."}</h1><p>{isRv ? "Keep every location aligned, consistent, and accountable so your team can focus on what matters — customers." : "Keep every location aligned, consistent, and accountable."}</p>{isRv && <div className={styles.heroBenefits}><b><Settings/>Standardize<small>Operations</small></b><b><Users/>Empower<small>Your Team</small></b><b><BarChart3/>Reduce Risk<small>Stay accountable</small></b><b><Star/>Deliver a Better<small>Customer Experience</small></b></div>}</div><div className={styles.heroMark} aria-hidden="true"><CheckCircle2/><span>{isRv ? <>Great Operations<br/>Lead to Great Adventures.</> : <>Consistency<br/>creates freedom.</>}</span></div></section>
+  return <AppShell title="Operations Assistant" industry={isRv ? "rv" : isGolfCart ? "golf-cart" : undefined}><div className={`${styles.dashboard} ${isRv ? styles.rv : ""} ${isGolfCart ? styles.golfCart : ""}`}>
+    <section className={styles.hero}><div className={styles.heroCopy}><span className={styles.eyebrow}>Operations assistant</span><h1>{isRv ? <>Run a Smoother Dealership.<br/><em>Every Mile of the Way.</em></> : isGolfCart ? <>Run Better Operations.<br/><em>Every Day.</em></> : "Run Better Operations. Every Day."}</h1><p>{isRv ? "Keep every location aligned, consistent, and accountable so your team can focus on what matters — customers." : isGolfCart ? "Keep every location aligned, organized, and accountable so you can deliver an amazing golf cart experience." : "Keep every location aligned, consistent, and accountable."}</p>{(isRv || isGolfCart) && <div className={styles.heroBenefits}><b><Settings/>{isGolfCart ? "Stay aligned" : "Standardize"}<small>{isGolfCart ? "Across locations" : "Operations"}</small></b><b><Users/>{isGolfCart ? "Empower teams" : "Empower"}<small>{isGolfCart ? "Clear ownership" : "Your Team"}</small></b><b><BarChart3/>{isGolfCart ? "Track progress" : "Reduce Risk"}<small>Stay accountable</small></b><b><Star/>Deliver better<small>Customer experiences</small></b></div>}</div><div className={styles.heroMark} aria-hidden="true"><CheckCircle2/><span>{isRv ? <>Great Operations<br/>Lead to Great Adventures.</> : isGolfCart ? <>SAME TEAM.<br/>SMOOTHER<br/>OPERATIONS.</> : <>Consistency<br/>creates freedom.</>}</span></div></section>
     {data.error && <div className={styles.notice} role="status"><AlertTriangle size={18}/><span>{data.error}</span></div>}
     <section className={styles.metrics} aria-label="Operations overview">
       <Metric href="/operations/checklists" icon={CheckCircle2} tone="green" label="Today’s completion" value={`${completion}%`} detail={`${completedSteps} of ${totalSteps} steps`}/>
       <Metric href="/operations/checklists" icon={ListChecks} tone="blue" label="Active checklists" value={String(activeChecklists.length)} detail="Across your workspace"/>
       <Metric href="/operations/alerts" icon={AlertTriangle} tone="red" label="Needs attention" value={String(openAlerts.length)} detail="Review before completion"/>
-      <Metric href="/operations/procedures" icon={BookOpenCheck} tone="purple" label="Procedures" value={String(published.length)} detail="Published guidance"/>
+      <Metric href="/operations/procedures" icon={BookOpenCheck} tone="purple" label={isGolfCart ? "Published procedures" : "Procedures"} value={String(published.length)} detail={isGolfCart ? "Total guides & SOPs" : "Published guidance"}/>
       <div className={`${styles.metricCard} ${styles.dateCard}`}><span className={`${styles.iconBox} ${styles.orange}`}><CalendarDays/></span><span><small>{new Intl.DateTimeFormat("en-US", { weekday: "short", month: "short", day: "numeric" }).format(new Date())}</small><em>Let’s keep things moving.</em><Link className={styles.newTask} href="/operations/checklists"><Plus/> New checklist</Link></span></div>
     </section>
     <div className={styles.pageGrid}><div className={styles.primaryColumn}>

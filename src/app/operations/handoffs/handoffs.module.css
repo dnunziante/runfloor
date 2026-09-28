@@ -31,5 +31,36 @@
 .handoffExperience :global(.operations-handoff-promise span) { display: flex; min-height: 112px; padding: 17px; align-items: center; justify-content: center; flex-direction: column; gap: 4px; border-left: 1px solid #e7ded7; text-align: center; }
 .handoffExperience :global(.operations-handoff-promise svg) { color: #ff5219; }
 .handoffExperience :global(.operations-handoff-promise small) { color: #596574; }
+.golfHandoffExperience { background: #f8f7f4; }
+.golfHandoffExperience .hero { position: relative; min-height: 255px; padding: 28px 34px 72px; align-items: flex-start; overflow: hidden; color: #101820; background: linear-gradient(90deg,rgba(255,252,248,.99),rgba(255,247,239,.9) 43%,rgba(255,240,222,.08) 68%),url('/brand/golf-cart-home-hero.png') 64% 53%/cover; }
+.golfHandoffExperience .hero > div:first-child { position: relative; z-index: 1; }
+.golfHandoffExperience .hero h1 { font-size: clamp(38px,4.2vw,54px); }
+.golfHandoffExperience .hero p { color: #536171; font-size: 13px; }
+.golfHandoffExperience .hero blockquote { position: absolute; top: 31px; right: 28px; color: #fff; font-size: 24px; font-weight: 950; text-align: right; text-shadow: 0 3px 10px #000; }
+.golfHandoffExperience .hero blockquote::after { display: block; width: 120px; height: 5px; margin: 8px 0 0 auto; background: #fb4d12; content: ''; transform: rotate(-6deg); }
+.benefits { position: absolute; bottom: 14px; left: 34px; z-index: 1; display: flex; gap: 8px; }
+.benefits > span { display: grid; grid-template-columns: 31px 1fr; align-items: center; min-width: 170px; padding: 8px 10px; border: 1px solid rgba(255,255,255,.8); border-radius: 8px; background: rgba(255,255,255,.93); box-shadow: 0 5px 16px rgba(72,42,20,.08); }
+.benefits svg { grid-row: 1/3; width: 24px; color: #fb4d12; }
+.benefits b { display: grid; font-size: 9px; }
+.benefits small { margin-top: 2px; color: #697582; font-size: 7px; font-weight: 500; }
+.golfHandoffExperience :global(.operations-handoff-tailored) { margin-top: -45px; }
+.golfHandoffExperience :global(.operations-handoff-overview > .card) { min-height: 88px; padding: 14px; }
+.golfHandoffExperience :global(.operations-handoff-overview .metric-row) { flex-direction: row-reverse; justify-content: flex-end; gap: 12px; }
+.golfHandoffExperience :global(.operations-handoff-overview .metric) { margin: -30px 0 0 52px; font-size: 27px; }
+.golfHandoffExperience :global(.operations-handoff-overview .delta) { margin-left: 52px; font-size: 8px; }
+.golfHandoffExperience :global(.operations-handoff-overview .metric-icon) { display: grid; place-items: center; width: 40px; height: 40px; border-radius: 10px; }
+.golfHandoffExperience :global(.operations-handoff-overview > .card:nth-child(2) .metric-icon) { background: #e5f0ff; color: #176bd3; }
+.golfHandoffExperience :global(.operations-handoff-overview > .card:nth-child(3) .metric-icon) { background: #e1f8eb; color: #08a858; }
+.golfHandoffExperience :global(.operations-handoff-value) { align-items: center; background: linear-gradient(120deg,#fff,#f3eaff); color: #7c3aed; }
+.golfHandoffExperience :global(.operations-handoff-value strong) { font-size: 27px; }
+.golfHandoffExperience :global(.operations-handoff-layout) { grid-template-columns: minmax(370px,.72fr) minmax(540px,1.28fr); }
+.golfHandoffExperience :global(.operations-handoff-form .metric-row) { flex-direction: row-reverse; justify-content: flex-end; gap: 12px; }
+.golfHandoffExperience :global(.operations-handoff-form .metric-row > div) { flex: 1; }
+.golfHandoffExperience :global(.operations-handoff-form .btn-primary) { background: linear-gradient(135deg,#ff681f,#fb3f0b); box-shadow: 0 7px 16px rgba(251,80,23,.2); }
+.golfHandoffExperience :global(.operations-handoff-history) { overflow: hidden; }
+.golfHandoffExperience :global(.operations-handoff-list) { grid-template-columns: 1fr; gap: 8px; }
+.golfHandoffExperience :global(.operations-handoff-card) { padding: 14px; box-shadow: none; }
+.golfHandoffExperience :global(.operations-handoff-card h2) { margin: 9px 0; font-size: 13px; }
+.golfHandoffExperience :global(.operations-handoff-promise) { background: linear-gradient(110deg,#fff7f0,#fff); }
 @media (max-width: 1400px) { .hero blockquote { display: none; } .handoffExperience :global(.operations-handoff-overview) { grid-template-columns: repeat(2,minmax(0,1fr)); } .handoffExperience :global(.operations-handoff-layout) { grid-template-columns: 1fr; } }
 @media (max-width: 760px) { .handoffExperience { margin: -20px; } .hero { min-height: 280px; padding: 34px 20px 74px; } .hero h1 { font-size: 38px; } .handoffExperience :global(.operations-handoff-tailored) { margin-inline: 10px; } .handoffExperience :global(.operations-handoff-overview) { grid-template-columns: 1fr; } .handoffExperience :global(.operations-handoff-toolbar) { grid-template-columns: 1fr; } .handoffExperience :global(.operations-handoff-promise) { grid-template-columns: 1fr; } .handoffExperience :global(.operations-handoff-promise > div) { grid-template-columns: 1fr; } .handoffExperience :global(.operations-handoff-promise span) { border-left: 0; border-top: 1px solid #e7ded7; } }
