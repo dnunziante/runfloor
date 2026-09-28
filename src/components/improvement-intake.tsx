@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { ArrowRight, CheckCircle2, Lightbulb, LoaderCircle, Send, Sparkles } from "lucide-react";
+import { AlertTriangle, ArrowRight, CheckCircle2, Lightbulb, LoaderCircle, Send, Settings2, Sparkles } from "lucide-react";
 import { useState } from "react";
 import { submitImprovement } from "@/app/operations/improvements/actions";
 import type { ImprovementLevel, ProcessImprovement } from "@/lib/operations/improvements";
@@ -10,6 +10,7 @@ const departments = ["Management", "Sales", "Service", "Administrative", "Delive
 
 export function ImprovementIntake({ persistence = "demo", tailored = false }: { persistence?: "demo" | "supabase"; tailored?: boolean }) {
   const [kind, setKind] = useState<ProcessImprovement["kind"]>("Problem");
+  const [selectedType, setSelectedType] = useState<"idea" | "process" | "issue">("issue");
   const [description, setDescription] = useState("");
   const [guidance, setGuidance] = useState<"idle" | "loading" | "ready">("idle");
   const [submitted, setSubmitted] = useState(false);
@@ -30,13 +31,13 @@ export function ImprovementIntake({ persistence = "demo", tailored = false }: { 
   if (submitted) return <section className="card improvement-success"><CheckCircle2 size={34}/><span className="badge">Submitted</span><h2>Thank you for helping us improve</h2><p>{persistence === "supabase" ? "Your submission was saved and is ready for manager review." : "Your prototype submission is complete but was not saved or sent."}</p><div><Link className="btn btn-primary" href="/operations/improvements">View submissions</Link><button className="btn btn-ghost" onClick={() => setSubmitted(false)}>Submit another</button></div></section>;
 
   if (tailored) return <form id="share-idea" className="card improvement-intake improvement-intake-tailored" onSubmit={submit}>
-    <div className="metric-row"><div><h2>Share an idea or report an issue</h2><p>Quick and easy. Every idea helps us move forward.</p></div><span className="metric-icon"><Lightbulb size={19}/></span></div>
-    <label><span className="label">Type</span><select className="input" value={kind} onChange={(event)=>setKind(event.target.value as ProcessImprovement["kind"])}><option>Problem</option><option>Improvement</option></select></label>
-    <label><span className="label">Title</span><input className="input" name="title" required placeholder="Short description of your idea or issue"/></label>
-    <label><span className="label">Details</span><textarea className="input" required rows={4} value={description} onChange={(event)=>setDescription(event.target.value)} placeholder="Tell us more..."/></label>
-    <label><span className="label">Location (optional)</span><select className="input" name="location"><option>Charleston</option><option>Summerville</option><option>All locations</option></select></label>
+    <header><span className="metric-icon"><Lightbulb/></span><div><h2>Share an Idea or Report an Issue</h2><p>Quick and easy. Every idea helps us move forward.</p></div></header>
+    <fieldset><legend className="label">Type <i>*</i></legend><div className="improvement-type-tiles"><button className={selectedType==="idea"?"active":""} type="button" onClick={()=>{setSelectedType("idea");setKind("Improvement")}}><Lightbulb/><strong>Idea / Suggestion</strong><small>Share a better way</small></button><button className={selectedType==="issue"?"active":""} type="button" onClick={()=>{setSelectedType("issue");setKind("Problem")}}><AlertTriangle/><strong>Bug / Issue</strong><small>Report what is not working</small></button><button className={selectedType==="process"?"active":""} type="button" onClick={()=>{setSelectedType("process");setKind("Improvement")}}><Settings2/><strong>Process Improvement</strong><small>Improve a workflow</small></button></div></fieldset>
+    <label><span className="label">Title <i>*</i></span><input className="input" name="title" required placeholder="e.g. Make checklist reminders visible on mobile"/></label>
+    <label><span className="label">Description <i>*</i></span><textarea className="input" required rows={4} value={description} onChange={(event)=>setDescription(event.target.value)} placeholder="Describe your idea, issue, or suggestion in detail..."/></label>
+    <label><span className="label">Location <i>*</i></span><select className="input" name="location" required defaultValue=""><option value="" disabled>Select location</option><option>Charleston</option><option>Summerville</option><option>All locations</option></select></label>
     <input type="hidden" name="department" value="Management"/><input type="hidden" name="frequency" value="One time"/><input type="hidden" name="impact" value="Medium"/><input type="hidden" name="urgency" value="Medium"/>
-    {error&&<p className="form-error">{error}</p>}<button className="btn btn-primary" disabled={saving} type="submit">{saving?<><LoaderCircle className="spin" size={16}/> Saving submission</>:<><Send size={16}/> Submit to team</>}</button>
+    {error&&<p className="form-error">{error}</p>}<div className="improvement-intake-actions"><button className="btn btn-ghost" type="reset" onClick={()=>{setKind("Problem");setSelectedType("issue");setDescription("");setError("")}}>Cancel</button><button className="btn btn-primary" disabled={saving} type="submit">{saving?<><LoaderCircle className="spin" size={16}/> Saving submission</>:<><Send size={16}/> Submit for Review</>}</button></div>
   </form>;
 
   return <form className="improvement-intake" onSubmit={submit}>

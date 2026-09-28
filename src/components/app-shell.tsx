@@ -122,7 +122,7 @@ export function AppShell({ children, title, industry }: { children: React.ReactN
         </details>
         <details className="module-group" key={`operations-${pathname}`} open={operationsSectionActive}>
           <summary><span className="module-icon"><ClipboardCheck size={18}/></span><span>Operations Assistant</span><ChevronDown className="module-chevron" size={16}/></summary>
-          <div className="module-links">{operationsLinks.map(([label, href, Icon]) => <Link className={pathname === href || (href !== "/operations" && pathname.startsWith(`${href}/`)) ? "active" : ""} href={href} key={href} onClick={() => setOpen(false)}><Icon size={18}/><span>{label}</span></Link>)}</div>
+          <div className="module-links">{operationsLinks.map(([label, href, Icon]) => <Link className={pathname === href || (href !== "/operations" && pathname.startsWith(`${href}/`)) ? "active" : ""} href={href} key={href} onClick={() => setOpen(false)}><Icon size={18}/><span>{isGolfCart && label === "Process Improvement" ? "Help Us Improve" : label}</span></Link>)}</div>
         </details>
         <details className="module-group" key={`coach-${pathname}`} open={coachSectionActive}>
           <summary><span className="module-icon"><GraduationCap size={18}/></span><span>Sales Coach</span><ChevronDown className="module-chevron" size={16}/></summary>
