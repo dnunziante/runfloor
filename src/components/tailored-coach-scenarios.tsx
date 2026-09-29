@@ -2,7 +2,7 @@
 
 import { useMemo, useState } from "react";
 import Link from "next/link";
-import { ArrowRight, Boxes, Clock3, Eye, MessageCircle, Search, Settings, Tag, Target, Trophy, Users, Wallet } from "lucide-react";
+import { ArrowRight, BarChart3, BookOpen, Boxes, CalendarDays, Clock3, Eye, LayoutGrid, MessageCircle, Play, RefreshCw, Search, Settings, ShoppingCart, Tag, Target, Trophy, Users, Wallet, Wrench } from "lucide-react";
 import type { CoachScenario } from "@/lib/coach/types";
 import styles from "@/app/coach/scenarios/scenarios.module.css";
 
@@ -28,7 +28,27 @@ function categoryFor(scenario: CoachScenario) {
   return "Features & Benefits";
 }
 
-export function TailoredCoachScenarios({ scenarios, canManage }: { scenarios: CoachScenario[]; canManage: boolean }) {
+const golfCartCategories = [
+  { name: "All Scenarios", icon: LayoutGrid },
+  { name: "Price", icon: Tag },
+  { name: "Objections", icon: MessageCircle },
+  { name: "Trade-In", icon: RefreshCw },
+  { name: "Product Knowledge", icon: BookOpen },
+  { name: "Service & Parts", icon: Wrench },
+  { name: "Follow-Up", icon: CalendarDays },
+] as const;
+
+function golfCartCategoryFor(scenario: CoachScenario) {
+  const subject = `${scenario.title} ${scenario.category} ${scenario.goal} ${scenario.skills.join(" ")}`.toLowerCase();
+  if (/trade|exchange/.test(subject)) return "Trade-In";
+  if (/service|repair|maintenance|parts|warranty/.test(subject)) return "Service & Parts";
+  if (/follow.?up|quiet lead|re.?engag|timing|not ready/.test(subject)) return "Follow-Up";
+  if (/price|payment|financ|cost|expensive|budget|afford/.test(subject)) return "Price";
+  if (/feature|product|model|recommend|inventory|cart|vehicle/.test(subject)) return "Product Knowledge";
+  return "Objections";
+}
+
+export function TailoredCoachScenarios({ scenarios, canManage, golfCart = false }: { scenarios: CoachScenario[]; canManage: boolean; golfCart?: boolean }) {
   const [category, setCategory] = useState("All Scenarios");
   const [skill, setSkill] = useState("all");
   const [difficulty, setDifficulty] = useState("all");
@@ -36,11 +56,26 @@ export function TailoredCoachScenarios({ scenarios, canManage }: { scenarios: Co
   const [sort, setSort] = useState("relevant");
   const skills = useMemo(() => [...new Set(scenarios.flatMap((item) => item.skills))].sort(), [scenarios]);
   const visible = useMemo(() => {
-    const filtered = scenarios.filter((item) => (category === "All Scenarios" || categoryFor(item) === category) && (skill === "all" || item.skills.includes(skill)) && (difficulty === "all" || item.difficulty === difficulty) && `${item.title} ${item.goal} ${item.customer} ${item.category} ${item.skills.join(" ")}`.toLowerCase().includes(query.toLowerCase()));
+    const filtered = scenarios.filter((item) => (category === "All Scenarios" || (golfCart ? golfCartCategoryFor(item) : categoryFor(item)) === category) && (skill === "all" || item.skills.includes(skill)) && (difficulty === "all" || item.difficulty === difficulty) && `${item.title} ${item.goal} ${item.customer} ${item.category} ${item.skills.join(" ")}`.toLowerCase().includes(query.toLowerCase()));
     if (sort === "shortest") return [...filtered].sort((a, b) => a.durationMinutes - b.durationMinutes);
     if (sort === "az") return [...filtered].sort((a, b) => a.title.localeCompare(b.title));
     return filtered;
-  }, [category, difficulty, query, scenarios, skill, sort]);
+  }, [category, difficulty, golfCart, query, scenarios, skill, sort]);
+
+  if (golfCart) {
+    const countFor = (name: string) => name === "All Scenarios" ? scenarios.length : scenarios.filter((item) => golfCartCategoryFor(item) === name).length;
+    return <div className={`${styles.content} ${styles.golfCartContent}`}>
+      <section className={styles.golfFilters} aria-label="Scenario filters">
+        <label><span>Skill focus</span><span className={styles.golfSelect}><BarChart3/><select value={skill} onChange={(event) => setSkill(event.target.value)}><option value="all">All scenarios</option>{skills.map((item) => <option key={item}>{item}</option>)}</select></span></label>
+        <label><span>Difficulty level</span><span className={styles.golfSelect}><BarChart3/><select value={difficulty} onChange={(event) => setDifficulty(event.target.value)}><option value="all">All levels</option><option>Foundational</option><option>Intermediate</option><option>Advanced</option></select></span></label>
+        <label><span>Product line</span><span className={styles.golfSelect}><ShoppingCart/><select defaultValue="all" aria-label="Product line"><option value="all">All products</option></select></span></label>
+        <div className={styles.golfCount}><strong>{visible.length} scenarios</strong><span>Ready to help you grow</span></div>
+        <label className={styles.golfSearch}><span className="sr-only">Search scenarios</span><Search/><input value={query} onChange={(event) => setQuery(event.target.value)} placeholder="Search scenarios, skills, or keywords..."/></label>
+      </section>
+      <nav className={styles.golfCategories} aria-label="Scenario categories">{golfCartCategories.map(({ name, icon: Icon }) => <button key={name} type="button" className={category === name ? styles.golfCategoryActive : ""} aria-pressed={category === name} onClick={() => setCategory(name)}><Icon/><span>{name} ({countFor(name)})</span></button>)}</nav>
+      {visible.length ? <section className={styles.golfGrid} aria-label="Practice scenarios">{visible.slice(0, 12).map((scenario, index) => <article className={styles.golfCard} key={scenario.id}><div className={`${styles.golfCardImage} ${styles[`golfImage${index % 4}`]}`}><span className={styles[scenario.difficulty.toLowerCase()]}>{scenario.difficulty}</span><small><Clock3/> {scenario.duration}</small></div><div className={styles.golfCardBody}><h2>{scenario.title}</h2><p>{scenario.goal}</p><div className={styles.golfSkills}>{scenario.skills.slice(0, 3).map((item) => <span key={item}>{item}</span>)}</div><Link href={`/coach/session?scenario=${encodeURIComponent(scenario.slug)}`} className={styles.golfStart}><Play/> Start Scenario <ArrowRight/></Link></div></article>)}</section> : <div className={styles.empty}><Target size={40}/><h3>{scenarios.length ? "No scenarios match these filters" : "No practice scenarios yet"}</h3><p>{scenarios.length ? "Try a different category, skill, level, or search term." : "Ask a workspace administrator to publish the first scenario."}</p>{scenarios.length > 0 ? <button type="button" onClick={() => { setCategory("All Scenarios"); setSkill("all"); setDifficulty("all"); setQuery(""); }}>Clear filters</button> : canManage ? <Link href="/admin/coach" className={styles.emptyAction}>Manage scenarios</Link> : null}</div>}
+    </div>;
+  }
 
   return <div className={styles.content}>
     <section className={styles.filterTop} aria-label="Scenario filters"><label><span>Skill Focus</span><select value={skill} onChange={(event) => setSkill(event.target.value)}><option value="all">All skills</option>{skills.map((item) => <option key={item}>{item}</option>)}</select></label><label><span>Difficulty Level</span><select value={difficulty} onChange={(event) => setDifficulty(event.target.value)}><option value="all">All levels</option><option>Foundational</option><option>Intermediate</option><option>Advanced</option></select></label><label className={styles.search}><span className="sr-only">Search scenarios</span><Search size={18}/><input value={query} onChange={(event) => setQuery(event.target.value)} placeholder="Search scenarios..."/></label><div className={styles.count}><strong>{scenarios.length}</strong><span>Scenarios Available</span></div></section>

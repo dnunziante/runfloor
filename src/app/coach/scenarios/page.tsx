@@ -12,11 +12,13 @@ export default async function CoachScenariosPage() {
   const [result, viewer] = await Promise.all([getCoachScenarios(), getViewer()]);
   const templateKey = viewer ? await getViewerIndustryTemplateKey(viewer) : null;
   const workspaceName = viewer?.organizationName.trim().toLowerCase() || "";
-  const tailored = Boolean(viewer && (templateKey === "rv" || workspaceName === "runfloor demo" || workspaceName === "runfloor rv" || workspaceName === "rayne rv"));
-  if (tailored) return <AppShell title="Practice Scenarios" industry="rv"><main className={styles.experience}>
-    <section className={styles.hero}><div><span className={styles.eyebrow}>Sales coach training</span><h1>Practice <em>Scenarios</em></h1><h2>Real conversations. <em>Real customers. Real results.</em></h2><p>Choose a scenario below to practice and build your confidence on the sales floor.</p><div className={styles.heroPoints}><span>Master<br/>Key Skills</span><span>Handle Real<br/>Objections</span><span>Be More<br/>Prepared</span><span>Close<br/>More Deals</span></div></div><blockquote>More Deals<br/>More Adventures.</blockquote></section>
+  const isGolfCart = templateKey === "golf-cart";
+  const isRv = templateKey === "rv" || workspaceName === "runfloor demo" || workspaceName === "runfloor rv" || workspaceName === "rayne rv";
+  const tailored = Boolean(viewer && (isGolfCart || isRv));
+  if (tailored) return <AppShell title="Practice Scenarios" industry={isGolfCart ? "golf-cart" : "rv"}><main className={`${styles.experience} ${isGolfCart ? styles.golfCartExperience : ""}`}>
+    <section className={styles.hero}><div><span className={styles.eyebrow}>{isGolfCart ? "Scenario library" : "Sales coach training"}</span>{isGolfCart ? <><h1>Choose a customer<br/>conversation <em>to practice.</em></h1><p>Build confidence across realistic customer conversations and focused sales skills.</p><div className={styles.heroPoints}><span><b>Real scenarios</b><small>Based on actual dealership conversations</small></span><span><b>Build your skills</b><small>Practice, get feedback, improve faster</small></span><span><b>Close more deals</b><small>Turn knowledge into real results</small></span></div></> : <><h1>Practice <em>Scenarios</em></h1><h2>Real conversations. <em>Real customers. Real results.</em></h2><p>Choose a scenario below to practice and build your confidence on the sales floor.</p><div className={styles.heroPoints}><span>Master<br/>Key Skills</span><span>Handle Real<br/>Objections</span><span>Be More<br/>Prepared</span><span>Close<br/>More Deals</span></div></>}</div><blockquote>{isGolfCart ? <>Real<br/>Conversations.<br/>Real Skills.<br/>More Golf Cart<br/>Adventures.</> : <>More Deals<br/>More Adventures.</>}</blockquote></section>
     {result.error && <div className="card error-card"><h2>Scenarios unavailable</h2><p>{result.error}</p></div>}
-    <TailoredCoachScenarios scenarios={result.scenarios} canManage={viewer?.role === "tenant_admin" || viewer?.role === "platform_owner"}/>
+    <TailoredCoachScenarios scenarios={result.scenarios} canManage={viewer?.role === "tenant_admin" || viewer?.role === "platform_owner"} golfCart={isGolfCart}/>
   </main></AppShell>;
   return <AppShell title="Practice Scenarios"><PageHeader eyebrow="Scenario library" title="Choose a customer conversation to practice" description="Build confidence across realistic customer conversations and focused sales skills."/>
     {result.error && <div className="card error-card"><h2>Scenarios unavailable</h2><p>{result.error}</p></div>}

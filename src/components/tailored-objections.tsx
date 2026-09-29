@@ -2,7 +2,7 @@
 
 import { useMemo, useState } from "react";
 import Link from "next/link";
-import { ArrowRight, BookOpen, Boxes, CreditCard, Eye, MessageCircle, Package, Search, Settings2, Sparkles, Star, Tag, Trophy, Users, Wallet, X } from "lucide-react";
+import { ArrowRight, BookOpen, Boxes, CircleHelp, Clipboard, CreditCard, Eye, Lightbulb, List, MessageCircle, Mic, Package, Search, Settings2, Sparkles, Star, Tag, Trophy, Users, Wallet, X } from "lucide-react";
 import type { ObjectionResponse } from "@/components/objection-handling";
 import styles from "@/app/objections/objections.module.css";
 
@@ -30,16 +30,42 @@ function categoryFor(item: ObjectionResponse) {
   return "Features";
 }
 
-export function TailoredObjections({ objections, canManage }: { objections: ObjectionResponse[]; canManage: boolean }) {
+const golfCartCategories = ["All Objections", "Price", "Spouse / Partner", "Just Looking", "Competitors", "Trade-In"] as const;
+
+export function TailoredObjections({ objections, canManage, golfCart = false }: { objections: ObjectionResponse[]; canManage: boolean; golfCart?: boolean }) {
   const [category, setCategory] = useState("All Objections");
   const [query, setQuery] = useState("");
   const [sort, setSort] = useState("recent");
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [favorites, setFavorites] = useState<string[]>([]);
+  const [detailTab, setDetailTab] = useState<"response" | "follow-up" | "talking-points" | "example">("response");
+  const [copied, setCopied] = useState(false);
   const visible = useMemo(() => {
     const matches = objections.filter((item) => (category === "All Objections" || categoryFor(item) === category) && `${item.title} ${item.type} ${item.response}`.toLowerCase().includes(query.toLowerCase()));
     return sort === "az" ? [...matches].sort((a, b) => a.title.localeCompare(b.title)) : matches;
   }, [category, objections, query, sort]);
+
+  const selected = (selectedId ? visible.find((item) => item.id === selectedId) : undefined) ?? visible[0];
+  const displayed = visible.slice(0, 8);
+  const categoryCount = (name: string) => name === "All Objections" ? objections.length : objections.filter((item) => categoryFor(item) === name).length;
+
+  if (golfCart) return <div className={`${styles.content} ${styles.golfCartContent}`}>
+    <div className={styles.golfWorkspace}>
+      <section className={styles.golfLibrary} aria-label="Objection library">
+        <header className={styles.libraryHeader}><span className={styles.headerIcon}><MessageCircle/></span><div><h2>Objection Library</h2><p>Choose a common objection to get expert guidance and practice live.</p></div><label className={styles.golfSearch}><Search/><span className="sr-only">Search objections</span><input value={query} onChange={(event) => setQuery(event.target.value)} placeholder="Search objections..."/>{query && <button type="button" aria-label="Clear search" onClick={() => setQuery("")}><X/></button>}</label></header>
+        <nav className={styles.golfCategories} aria-label="Objection categories">{golfCartCategories.map((name) => <button type="button" key={name} className={category === name ? styles.golfCategoryActive : ""} onClick={() => { setCategory(name); setSelectedId(null); }}>{name === "All Objections" ? `All (${categoryCount(name)})` : `${name} (${categoryCount(name)})`}</button>)}</nav>
+        {visible.length ? <><div className={styles.golfRows}>{displayed.map((item) => { const active = selected?.id === item.id; const Icon = categoryFor(item) === "Price" ? Tag : categoryFor(item) === "Spouse / Partner" ? Users : categoryFor(item) === "Just Looking" ? Eye : categoryFor(item) === "Competitors" ? Trophy : categoryFor(item) === "Trade-In" ? Wallet : MessageCircle; return <button type="button" key={item.id} className={active ? styles.golfRowActive : ""} onClick={() => { setSelectedId(item.id); setDetailTab("response"); }}><span><Icon/></span><span><strong>{item.title}</strong><small>{item.followUp}</small></span><ArrowRight/></button>; })}</div><p className={styles.golfResultCount}>Showing {displayed.length} of {visible.length} responses. Search or choose a category to refine the library.</p></> : <div className={styles.golfEmpty}><MessageCircle/><h3>No responses match this view</h3><p>Try another category or clear your search.</p><button type="button" onClick={() => { setCategory("All Objections"); setQuery(""); }}>Clear filters</button></div>}
+        {canManage && <Link className={styles.manageLink} href="/admin/content/objection_response"><BookOpen/> Manage approved responses <ArrowRight/></Link>}
+      </section>
+      {selected ? <section className={styles.golfDetail} aria-live="polite">
+        <header className={styles.detailHeader}><span className={styles.headerIcon}><Users/></span><div><span className={styles.recommended}><MessageCircle/> Recommended</span><h2>{selected.title}</h2><p>{selected.followUp}</p></div><button className={styles.favoriteButton} type="button" aria-pressed={favorites.includes(selected.id)} onClick={() => setFavorites(favorites.includes(selected.id) ? favorites.filter((id) => id !== selected.id) : [...favorites, selected.id])}><Star fill={favorites.includes(selected.id) ? "currentColor" : "none"}/>{favorites.includes(selected.id) ? "Favorited" : "Add to favorites"}</button></header>
+        <div className={styles.detailTabs} role="tablist" aria-label="Response guidance"><button type="button" role="tab" aria-selected={detailTab === "response"} onClick={() => setDetailTab("response")}><MessageCircle/> Suggested Response</button><button type="button" role="tab" aria-selected={detailTab === "follow-up"} onClick={() => setDetailTab("follow-up")}><CircleHelp/> Follow-Up Questions</button><button type="button" role="tab" aria-selected={detailTab === "talking-points"} onClick={() => setDetailTab("talking-points")}><List/> Key Talking Points</button><button type="button" role="tab" aria-selected={detailTab === "example"} onClick={() => setDetailTab("example")}><BookOpen/> Real Example</button></div>
+        <div className={styles.responsePanel}>{detailTab === "response" ? <><b>“</b><p>“{selected.response}”</p><button type="button" onClick={async () => { await navigator.clipboard.writeText(selected.response); setCopied(true); window.setTimeout(() => setCopied(false), 1500); }}><Clipboard/>{copied ? "Copied" : "Copy"}</button></> : detailTab === "follow-up" ? <><CircleHelp/><div><strong>Continue with a helpful question</strong><p>{selected.followUp}</p></div></> : detailTab === "talking-points" ? <><List/><div><strong>Keep the conversation moving</strong><p>Acknowledge the concern, clarify what matters, use only approved information, and agree on a useful next step.</p></div></> : <><BookOpen/><div><strong>Use this guidance in context</strong><p>Adapt the approved response to the customer’s stated priorities, then use the follow-up question to invite a clear next step.</p></div></>}</div>
+        <div className={styles.why}><Lightbulb/><div><strong>Why This Works</strong><p>It acknowledges the concern, keeps the conversation positive, and creates a clear next step without adding unapproved claims.</p></div></div>
+        <div className={styles.detailActions}><section><header><Mic/><div><h3>Practice This Live</h3><p>Have a realistic, AI-powered conversation and get instant feedback.</p></div></header><Link href="/coach/session?mode=objection"><Mic/> Start Practice <ArrowRight/></Link><footer><span>Difficulty</span><i><b/></i><strong>Beginner</strong></footer></section><section className={styles.proTip}><header><Trophy/><div><h3>Pro Tip</h3><p>Share a concise recap of the customer’s priorities and the approved next step to keep momentum.</p></div></header><div><span>Prepare.</span><span>Inform.</span><span>Keep momentum.</span></div></section></div>
+      </section> : <section className={styles.golfDetailEmpty}><MessageCircle/><h2>Select an objection</h2><p>Choose a response from the library to review its approved guidance.</p></section>}
+    </div>
+  </div>;
 
   return <div className={styles.content}>
     <nav className={styles.categories} aria-label="Objection categories">{categories.map(({ name, icon: Icon, hint }) => <button key={name} type="button" className={category === name ? styles.activeCategory : ""} onClick={() => { setCategory(name); setSelectedId(null); }} aria-pressed={category === name}><Icon size={25}/><strong>{name}</strong><small>{hint}</small></button>)}</nav>

@@ -1,4 +1,4 @@
-import { Award, BookOpen, Clock } from "lucide-react";
+import { Award, BarChart3, BookOpen, Clock, Target, Trophy } from "lucide-react";
 import Link from "next/link";
 import { AppShell } from "@/components/app-shell";
 import { PageHeader } from "@/components/page-header";
@@ -22,28 +22,36 @@ export default async function Training() {
   const totalMinutes = publishedLessons.reduce((total, lesson) => total + lesson.estimatedMinutes, 0);
   const workspaceName = viewer?.organizationName ?? "your workspace";
   const normalizedWorkspace = workspaceName.trim().toLowerCase();
-  const tailored = Boolean(viewer && (templateKey === "golf-cart" || viewer.demo || normalizedWorkspace === "runfloor demo" || normalizedWorkspace === "rayne rv"));
+  const isGolfCart = templateKey === "golf-cart";
+  const tailored = Boolean(viewer && (isGolfCart || viewer.demo || normalizedWorkspace === "runfloor demo" || normalizedWorkspace === "rayne rv"));
   const isRv = templateKey === "rv" || normalizedWorkspace === "rayne rv" || (viewer?.demo && normalizedWorkspace === "runfloor rv");
+  const completionRate = publishedLessons.length ? Math.round((completedLessonIds.length / publishedLessons.length) * 100) : 0;
 
-  if (tailored) return <AppShell title="Training" industry={isRv ? "rv" : undefined}>
-    <main className={styles.trainingExperience}>
-      <section className={styles.hero}><span className={styles.eyebrow}>Learning center</span><h1>Small lessons.<br/><em>Stronger conversations.</em></h1><p>Build practical product and sales skills from approved {workspaceName} knowledge.</p></section>
+  if (tailored) return <AppShell title="Training" industry={isRv ? "rv" : isGolfCart ? "golf-cart" : undefined}>
+    <main className={`${styles.trainingExperience} ${isGolfCart ? styles.golfCartExperience : ""}`}>
+      <section className={styles.hero}>
+        <div className={styles.heroCopy}><span className={styles.eyebrow}>Learning center</span><h1>Small lessons.<br/><em>Stronger conversations.</em></h1><p>Build practical product and sales skills from approved {workspaceName} knowledge and turn every customer conversation into an opportunity.</p>
+          {isGolfCart && <div className={styles.heroPillars} aria-label="Training outcomes"><span><BookOpen/><b>Learn<small>Product &amp; sales skills</small></b></span><span><BarChart3/><b>Practice<small>Real scenarios</small></b></span><span><Trophy/><b>Close<small>More deals</small></b></span></div>}
+        </div>
+        {isGolfCart && <div className={styles.heroStatement} aria-hidden="true">People.<br/>Skills.<br/>Carts.<br/>Opportunities.<i/></div>}
+      </section>
       <div className={styles.content}>
         <section className={styles.metrics} aria-label="Training overview">
           <article><span className={styles.metricIcon}><BookOpen size={25}/></span><div><small>Knowledge-based lessons</small><strong>{publishedLessons.length}</strong><p>Published and available</p></div></article>
           <article><span className={`${styles.metricIcon} ${styles.blue}`}><Clock size={25}/></span><div><small>Assigned learning time</small><strong>{totalMinutes}m</strong><p>Time spent learning</p></div></article>
+          {isGolfCart && <article><span className={`${styles.metricIcon} ${styles.orange}`}><Target size={25}/></span><div><small>Completion rate</small><strong>{completionRate}%</strong><p>Based on your completed lessons</p></div></article>}
           <article><span className={`${styles.metricIcon} ${styles.green}`}><Award size={25}/></span><div><small>Team</small><strong className={styles.teamName}>{workspaceName}</strong><p>Your training library</p></div></article>
         </section>
         {result.error
           ? <div className="card error-card"><h2>Training unavailable</h2><p>{result.error}</p></div>
-          : <TailoredTrainingBrowser lessons={publishedLessons} modules={result.modules} completedLessonIds={completedLessonIds} canReview={canReview} canManageModules={canManageModules}/>
+          : <TailoredTrainingBrowser lessons={publishedLessons} modules={result.modules} completedLessonIds={completedLessonIds} canReview={canReview} canManageModules={canManageModules} workspaceName={workspaceName} golfCart={isGolfCart}/>
         }
-        <section className={styles.benefits} aria-label="Training benefits">
+        {!isGolfCart && <section className={styles.benefits} aria-label="Training benefits">
           <div><Award/><span><strong>Build Product Expertise</strong><small>Learn key features and benefits to sell with confidence.</small></span></div>
           <div><BookOpen/><span><strong>Improve Sales Conversations</strong><small>Practice real scenarios and overcome common objections.</small></span></div>
           <div><Clock/><span><strong>Onboard Faster</strong><small>Get new team members up to speed with proven resources.</small></span></div>
           <div><Award/><span><strong>Stronger Dealership Results</strong><small>Better knowledge. Happier customers.</small></span></div>
-        </section>
+        </section>}
       </div>
     </main>
   </AppShell>;
