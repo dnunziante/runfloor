@@ -3,8 +3,10 @@ import { useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import { Search, X } from "lucide-react";
 
-const destinations = [["Home", "/dashboard"],["Performance dashboard", "/dashboard/performance"],["Ask the Assistant", "/assistant"],["Products", "/products"],["Competitors", "/competitors"],["Comparisons", "/comparisons"],["Procedures", "/operations/procedures"],["Tasks and checklists", "/operations/checklists"],["Training", "/training"],["Knowledge Base", "/knowledge-base"],["Sales Coach", "/coach"],["Message Center", "/messages"],["Write an Email", "/messages?kind=email"],["Write a Text", "/messages?kind=text"],["Business Growth", "/growth"]];
-export function WorkspaceSearch() {
+import { getWorkspaceNavigation } from "@/lib/navigation";
+import type { AppRole } from "@/lib/auth/viewer";
+export function WorkspaceSearch({ role = "salesperson", industry }: { role?: AppRole; industry?: string }) {
+  const destinations = [["Home", "/dashboard"], ...getWorkspaceNavigation(role, industry).flatMap((workspace) => workspace.groups.flatMap((group) => group.items.filter((entry) => !entry.href.includes("#")).map((entry) => [entry.label, entry.href])))];
   const dialog = useRef<HTMLDialogElement>(null);
   const [query, setQuery] = useState("");
   useEffect(() => { const listener = (event: KeyboardEvent) => {if ((event.metaKey || event.ctrlKey) && event.key.toLowerCase()==="k") {event.preventDefault(); dialog.current?.showModal();}}; window.addEventListener("keydown",listener); return ()=>window.removeEventListener("keydown",listener); }, []);

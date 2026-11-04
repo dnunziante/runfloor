@@ -1,4 +1,5 @@
 import "server-only";
+import { canViewExecutive } from "@/lib/auth/permissions";
 
 import type { GrowthPlan } from "@/lib/growth/data";
 import { getViewer } from "@/lib/auth/viewer";
@@ -19,8 +20,8 @@ function mapPlan(row: PlanRow): GrowthPlan {
 
 export async function getGrowthPlans() {
   const viewer = await getViewer();
-  if (viewer?.demo) return { plans: [] as GrowthPlan[], persistence: "demo" as const, error: "" };
-  if (!viewer) return { plans: [] as GrowthPlan[], persistence: "supabase" as const, error: "Sign in to view growth plans." };
+  if (viewer?.demo && canViewExecutive(viewer.role)) return { plans: [] as GrowthPlan[], persistence: "demo" as const, error: "" };
+  if (!viewer || !canViewExecutive(viewer.role)) return { plans: [] as GrowthPlan[], persistence: "supabase" as const, error: "Sign in to view growth plans." };
   const supabase = await createClient();
   const { data, error } = await supabase.from("growth_action_plans").select("id, opportunity_slug, title, location_id, locations(name), owner_name, target_date, target_measure, status, created_at, growth_action_plan_tasks(id, title, is_complete, position), growth_plan_outcomes(id, outcome_date, leads, appointments, revenue, cost, notes, created_at)").eq("organization_id", viewer.organizationId).order("created_at", { ascending: false });
   return { plans: error ? [] : ((data ?? []) as PlanRow[]).map(mapPlan), persistence: "supabase" as const, error: error?.message ?? "" };

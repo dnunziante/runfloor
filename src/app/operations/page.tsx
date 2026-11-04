@@ -1,3 +1,4 @@
+import { WorkspaceAIEntry } from "@/components/workspace-ai-entry";
 import Link from "next/link";
 import { AlertTriangle, ArrowRight, ArrowRightLeft, BarChart3, Bell, BookOpenCheck, CalendarDays, Check, CheckCircle2, ChevronRight, ClipboardCheck, Clock3, FileWarning, ListChecks, MapPin, Plus, Repeat2, Settings, ShieldAlert, Star, Users } from "lucide-react";
 import { AppShell } from "@/components/app-shell";
@@ -27,7 +28,7 @@ export default async function OperationsPage() {
   const upcoming = [...data.schedules].filter((item) => item.status === "Active").sort((a, b) => a.nextRunDate.localeCompare(b.nextRunDate)).slice(0, 3);
   const recent = [...data.procedures].sort((a, b) => b.updatedAt.localeCompare(a.updatedAt)).slice(0, 3);
 
-  return <AppShell title="Operations Assistant" industry={isRv ? "rv" : isGolfCart ? "golf-cart" : undefined}><div className={`${styles.dashboard} ${isRv ? styles.rv : ""} ${isGolfCart ? styles.golfCart : ""}`}>
+  return <AppShell title="Operations Assistant" industry={isRv ? "rv" : isGolfCart ? "golf-cart" : undefined}><WorkspaceAIEntry workspace="operations"/><div className={`${styles.dashboard} ${isRv ? styles.rv : ""} ${isGolfCart ? styles.golfCart : ""}`}>
     <section className={styles.hero}><div className={styles.heroCopy}><span className={styles.eyebrow}>Operations assistant</span><h1>{isRv ? <>Run a Smoother Dealership.<br/><em>Every Mile of the Way.</em></> : isGolfCart ? <>Run Better Operations.<br/><em>Every Day.</em></> : "Run Better Operations. Every Day."}</h1><p>{isRv ? "Keep every location aligned, consistent, and accountable so your team can focus on what matters — customers." : isGolfCart ? "Keep every location aligned, organized, and accountable so you can deliver an amazing golf cart experience." : "Keep every location aligned, consistent, and accountable."}</p>{(isRv || isGolfCart) && <div className={styles.heroBenefits}><b><Settings/>{isGolfCart ? "Stay aligned" : "Standardize"}<small>{isGolfCart ? "Across locations" : "Operations"}</small></b><b><Users/>{isGolfCart ? "Empower teams" : "Empower"}<small>{isGolfCart ? "Clear ownership" : "Your Team"}</small></b><b><BarChart3/>{isGolfCart ? "Track progress" : "Reduce Risk"}<small>Stay accountable</small></b><b><Star/>Deliver better<small>Customer experiences</small></b></div>}</div><div className={styles.heroMark} aria-hidden="true"><CheckCircle2/><span>{isRv ? <>Great Operations<br/>Lead to Great Adventures.</> : isGolfCart ? <>SAME TEAM.<br/>SMOOTHER<br/>OPERATIONS.</> : <>Consistency<br/>creates freedom.</>}</span></div></section>
     {data.error && <div className={styles.notice} role="status"><AlertTriangle size={18}/><span>{data.error}</span></div>}
     <section className={styles.metrics} aria-label="Operations overview">

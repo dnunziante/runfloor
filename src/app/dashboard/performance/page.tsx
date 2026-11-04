@@ -1,3 +1,4 @@
+import { WorkspaceAIEntry } from "@/components/workspace-ai-entry";
 import Link from "next/link";
 import type { CSSProperties } from "react";
 import { ArrowRight, BarChart3, BookOpenCheck, Bot, Calculator, CheckCircle2, ClipboardCheck, Clock3, GraduationCap, Mail, MessageSquare, Play, Star, Target, Users } from "lucide-react";
@@ -39,7 +40,7 @@ export default async function Dashboard({ searchParams }: { searchParams: Promis
 
   const quickActions = [[ClipboardCheck, "New checklist", "/operations/checklists"], [Mail, "Open Message Center", "/messages"], [BookOpenCheck, "Find a procedure", "/operations/procedures"], [BarChart3, "View performance", "/analytics"]] as const;
 
-  return <AppShell title={data.team ? "Team Dashboard" : "Personal Dashboard"} industry={isRv ? "rv" : isGolfCart ? "golf-cart" : undefined}>
+  return <AppShell title={data.team ? "Team Dashboard" : "Personal Dashboard"} industry={isRv ? "rv" : isGolfCart ? "golf-cart" : undefined}><WorkspaceAIEntry workspace="sales"/>
     <main className={`personal-command ${isRv ? "rv-performance" : ""} ${isGolfCart ? "golf-cart-performance" : ""}`}>
       <section className="personal-hero" aria-labelledby="performance-title">
         <div><span>{isGolfCart ? viewer?.organizationName : data.team ? "Team performance" : "Personal performance"}</span><h1 id="performance-title">{isGolfCart ? <>{data.team ? "Team Performance" : "My Performance"}<br/><em>Drive Community Growth.</em></> : person ? <>Good morning, {person}! <i aria-hidden="true">👋</i></> : isRv && data.scope === "company" ? <>{viewer?.organizationName} — <em>Company Overview</em></> : data.title}</h1><p>{isGolfCart ? <>Track progress, training, engagement, and results in one place—built for golf cart and LSV dealerships.</> : isRv && data.scope === "company" ? <>Performance across all {viewer?.organizationName} locations. People. Processes. Profit.</> : data.subtitle}</p></div>

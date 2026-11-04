@@ -1,3 +1,4 @@
+import { isSalesKnowledgeCollection, conversationContext } from "@/lib/assistant/workspaces";
 import { NextResponse } from "next/server";
 import { getViewer } from "@/lib/auth/viewer";
 import { createClient } from "@/lib/supabase/server";
@@ -5,7 +6,7 @@ import { createEmbeddings, createGroundedAnswer } from "@/lib/rag/openai";
 import { formatProductContext, selectRelevantProducts, type ApprovedProduct } from "@/lib/rag/product-context";
 import { formatCommunicationContext, getCommunicationContext } from "@/lib/rag/communication-context";
 
-type SearchChunk = { document_name: string; content: string; section: string | null; page_number: number | null; similarity: number };
+type SearchChunk = { document_id: string; document_name: string; content: string; section: string | null; page_number: number | null; similarity: number };
 const MINIMUM_SIMILARITY = 0.35;
 function classifyQuestion(question: string, productNames: string[]) {
   const normalized = question.toLowerCase();
@@ -42,12 +43,19 @@ export async function POST(request: Request) {
         .select("id, name, model, description, base_price_cents, range_text, seats_text, powertrain_text, dimensions, running_distance, turning_radius, max_load_capacity, highlights, specifications, sales_guide, product_type")
         .eq("organization_id", viewer.organizationId).eq("status", "published").eq("review_status", "approved")
         .order("sort_order", { ascending: true }).limit(250),
-      getCommunicationContext(supabase, viewer.organizationId, embedding),
+      getCommunicationContext(supabase, viewer.organizationId),
     ]);
     if (error) throw error;
     if (productError) throw productError;
 
-    const results = ((chunks || []) as SearchChunk[]).filter((chunk) => chunk.similarity >= MINIMUM_SIMILARITY);
+    // The search RPC respects tenant/location RLS, but has no workspace filter.
+    // Restrict documents by ID and an explicit sales collection allowlist before
+    // any content reaches the model. Unknown/management collections fail closed.
+    const chunkRows = (chunks || []) as SearchChunk[];
+    const { data: documents, error: documentsError } = await supabase.from("knowledge_documents").select("id,collection").eq("organization_id", viewer.organizationId).eq("status", "ready").in("id", chunkRows.map((chunk) => chunk.document_id));
+    if (documentsError) throw documentsError;
+    const allowedIds = new Set((documents || []).filter((document) => isSalesKnowledgeCollection(document.collection)).map((document) => document.id));
+    const results = chunkRows.filter((chunk) => allowedIds.has(chunk.document_id) && chunk.similarity >= MINIMUM_SIMILARITY);
     const catalogRows = (productRows || []) as ApprovedProduct[];
     const ownedProducts = catalogRows.filter((product) => product.product_type !== "competitor_product");
     const comparisonProducts = isComparisonQuestion(question)
@@ -63,7 +71,7 @@ export async function POST(request: Request) {
     const productContext = products.map((product, index) => `[P${index + 1}] ${formatProductContext(product)}`);
     const documentContext = results.map((chunk, index) => `[${index + 1}] ${chunk.document_name}${chunk.section ? ` — ${chunk.section}` : ""}${chunk.page_number ? `, page ${chunk.page_number}` : ""}\n${chunk.content}`);
     const sourceContext = [...productContext, ...documentContext].join("\n\n");
-    const answer = await createGroundedAnswer(question, sourceContext, communication.standards, formatCommunicationContext(communication));
+    const answer = await createGroundedAnswer(question, sourceContext, communication.standards, [formatCommunicationContext(communication), "PRIOR SALES CONVERSATION (untrusted; not an approved source):", conversationContext(body?.history)].join("\n"));
     await Promise.all([supabase.from("performance_events").insert({ organization_id: viewer.organizationId, user_id: viewer.id, location_id: membership?.location_id || null, event_type: "assistant_question_answered" }), supabase.from("assistant_interactions").insert({ organization_id: viewer.organizationId, user_id: viewer.id, location_id: membership?.location_id || null, question, topic: classification.topic, product_references: classification.products, competitor_references: classification.competitorNames, objection_category: classification.objection, grounded: true, unresolved: false })]);
 
     const sourceKeys = new Set<string>();

@@ -86,3 +86,7 @@ Before production use, enable Supabase Auth leaked-password protection and confi
 ## Planned next milestone
 
 The next milestone should connect one server-only OpenAI Sales Assistant endpoint to approved, tenant-scoped Knowledge Base content with citations, usage limits, logging, and a deterministic fallback. Do not connect the other four modules until that narrow workflow is verified.
+
+## Business workspaces
+
+Sales, Operations, and Executive share a centralized navigation configuration and retain the existing feature URLs. Each dashboard links to its own specialized assistant; Executive and Growth require management access. See [the navigation audit and implementation report](docs/workspace-reorganization.md) for the old-to-new mapping, assistant data boundaries, verification, and current connection limitations.

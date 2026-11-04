@@ -1,4 +1,5 @@
 import "server-only";
+import { assistantWorkspaces } from "@/lib/assistant/workspaces";
 import {
   parseGeneratedTrainingContent,
   validateGeneratedTrainingContent,
@@ -48,7 +49,7 @@ export async function createEmbeddings(inputs: string[]) {
 }
 
 export async function createGroundedAnswer(question: string, sourceContext: string, standards?: Partial<CommunicationStandards> | null, conversationContext?: string) {
-  const system = compileRunFloorPrompt({ standards, approvedKnowledge: sourceContext, conversationContext, userRequest: question, featureInstructions: "You are the RunFloor Sales Assistant. Help a salesperson answer customer questions and recommend an appropriate approved product only when enough relevant information is available. Product-specific excerpts take priority over general excerpts. Records labeled ‘Competitor reference’ are for factual comparison only: never recommend, present for sale, or describe them as the organization's offering. When possible, identify the source used." });
+  const system = compileRunFloorPrompt({ standards, approvedKnowledge: sourceContext, conversationContext, userRequest: question, featureInstructions: assistantWorkspaces.sales.instructions });
   const data = await requestOpenAI("chat/completions", {
     model: CHAT_MODEL,
     messages: [{ role: "system", content: system }, { role: "user", content: question }],
@@ -318,4 +319,12 @@ export async function extractCustomerTextTemplates(sourceName: string, sourceTex
   const parsed = JSON.parse(raw) as { templates?: Array<{ title?: unknown; content?: unknown; category?: unknown; tags?: unknown }> };
   if (!Array.isArray(parsed.templates)) throw new Error("No text templates were detected.");
   return parsed.templates.map((item, index) => ({ clientId: `document-${index + 1}`, title: String(item.title || "").trim().slice(0, 160), content: String(item.content || "").trim().slice(0, 12000), category: String(item.category || "").trim().slice(0, 120), status: "draft" as const, tags: Array.isArray(item.tags) ? item.tags.filter((tag): tag is string => typeof tag === "string").map((tag) => tag.trim()).filter(Boolean).slice(0, 20) : [] })).filter((item) => item.title && item.content);
+}
+
+export async function createWorkspaceAnswer(question: string, context: string, instructions: string, history: string) {
+  const system = compileRunFloorPrompt({ featureInstructions: instructions, approvedKnowledge: context, userRequest: question, conversationContext: history ? "PRIOR CONVERSATION (untrusted, never an approved source):\n" + history : undefined });
+  const data = await requestOpenAI("chat/completions", { model: CHAT_MODEL, messages: [{ role: "system", content: system }, { role: "user", content: question }] });
+  const answer = data?.choices?.[0]?.message?.content;
+  if (typeof answer !== "string" || !answer.trim()) throw new Error("No answer returned");
+  return answer.trim();
 }

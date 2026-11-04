@@ -11,13 +11,13 @@ export default async function GrowthAdvisorPage() {
   const highImpact = opportunities.filter((item) => item.impact === "High").length;
   const ready = opportunities.filter((item) => item.status === "Ready to review").length;
   const areas = new Set(opportunities.map((item) => item.category)).size;
-  return <AppShell title="Business Growth Advisor">
+  return <AppShell title="Executive · Growth Opportunities">
     <div className={styles.growthHome}>
       <section className={styles.hero} aria-labelledby="growth-title">
         <div className={styles.heroCopy}>
           <p className={styles.kicker}>Business Growth Advisor</p>
           <h1 id="growth-title">Turn possibilities<br />into <span>focused action.</span></h1>
-          <p className={styles.heroIntro}>Find, evaluate, and prioritize practical growth opportunities for your RV dealership.</p>
+          <p className={styles.heroIntro}>Find, evaluate, and prioritize practical growth opportunities for your dealership.</p>
           <div className={styles.heroSteps} aria-label="Growth planning steps">
             <span><Lightbulb aria-hidden="true" /> Discover<br />new ideas</span>
             <span><BarChart3 aria-hidden="true" /> Compare<br />impact and effort</span>

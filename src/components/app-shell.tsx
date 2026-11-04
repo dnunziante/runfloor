@@ -2,54 +2,14 @@
 
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
-import { Activity, AlertTriangle, ArrowLeft, ArrowRightLeft, BarChart3, BookOpen, BookOpenCheck, Bot, Boxes, BriefcaseBusiness, Calculator, CalendarClock, CalendarDays, ChevronDown, ChevronsLeft, ChevronsRight, ClipboardCheck, Crown, FileText, GitCompareArrows, GraduationCap, History, Home, LayoutDashboard, Lightbulb, ListChecks, LogOut, Mail, Menu, MessageSquareQuote, MessagesSquare, Scale, Search, Settings, ShieldAlert, ShieldCheck, Sparkles, Target, TrendingUp, Users, Wrench, X } from "lucide-react";
+import { ArrowLeft, Boxes, ChevronDown, ChevronsLeft, ChevronsRight, Home, LogOut, Menu, Settings, Wrench, X } from "lucide-react";
 import { useEffect, useState } from "react";
 import { logout } from "@/app/auth/actions";
 import { WorkspaceSearch } from "@/components/workspace-search";
 import { BrandLogo } from "@/components/brand-logo";
+import { activeNavigationItem, activeWorkspace, getWorkspaceNavigation } from "@/lib/navigation";
+import { navigationIcons } from "@/components/navigation-icons";
 import type { Viewer } from "@/lib/auth/viewer";
-
-const links = [
-  ["Dashboard", "/dashboard/performance", BarChart3],
-  ["Quote & Loan Calculator", "/pricing-calculator", Calculator],
-  ["Products", "/products", Boxes],
-  ["Competitors", "/competitors", Scale],
-  ["Comparisons", "/comparisons", GitCompareArrows],
-  ["Message Center", "/messages", Mail],
-  ["Knowledge Base", "/knowledge-base", BookOpen],
-  ["Analytics", "/analytics", BarChart3],
-  ["Admin", "/admin", ShieldCheck],
-] as const;
-
-const businessAssistantLinks = [
-  ["Chat", "/assistant", Bot],
-  ["Suggested Prompts", "/assistant#suggested-prompts", Sparkles],
-  ["Assistant Tools", "/assistant#assistant-tools", Boxes],
-] as const;
-
-const operationsLinks = [
-  ["Operations Dashboard", "/operations", LayoutDashboard],
-  ["Today’s Checklists", "/operations/checklists", ClipboardCheck],
-  ["Procedures", "/operations/procedures", BookOpenCheck],
-  ["Operational Alerts", "/operations/alerts", AlertTriangle],
-  ["Recurring Schedules", "/operations/schedules", CalendarClock],
-  ["Task Calendar", "/operations/calendar", CalendarDays],
-  ["Handoff Logs", "/operations/handoffs", ArrowRightLeft],
-  ["Incident Reports", "/operations/incidents", ShieldAlert],
-  ["Process Improvement", "/operations/improvements", Lightbulb],
-  ["Performance", "/operations/performance", Activity],
-] as const;
-
-const coachLinks = [
-  ["Coach Dashboard", "/coach", GraduationCap],
-  ["Training", "/training", BookOpenCheck],
-  ["Objection Handling", "/objections", MessageSquareQuote],
-  ["Practice Scenarios", "/coach/scenarios", Target],
-  ["Role Play", "/role-play", Sparkles],
-  ["Start Role Play", "/coach/session", MessagesSquare],
-  ["Session Review", "/coach/review", BarChart3],
-  ["My Development", "/coach/development", TrendingUp],
-] as const;
 
 export function AppShell({ children, title, industry }: { children: React.ReactNode; title: string; industry?: "rv" | "golf-cart" }) {
   const pathname = usePathname();
@@ -88,18 +48,12 @@ export function AppShell({ children, title, industry }: { children: React.ReactN
   }
 
   const roleLabel = viewer.role === "platform_owner" ? "Platform Owner" : viewer.role === "tenant_admin" ? "Tenant Admin" : viewer.role === "manager" ? "Manager" : "Salesperson";
-  const coachSectionActive = pathname.startsWith("/coach") || pathname === "/objections" || pathname === "/role-play" || pathname === "/training" || pathname.startsWith("/training/");
-  const businessAssistantActive = pathname === "/assistant";
-  const growthSectionActive = pathname.startsWith("/growth") || pathname.startsWith("/admin/growth");
-  const operationsSectionActive = pathname.startsWith("/operations");
-  const executiveSectionActive = pathname.startsWith("/executive") || pathname.startsWith("/admin/executive") || pathname.startsWith("/admin/sales-results");
-  const executiveVisible = viewer.role === "platform_owner" || viewer.role === "tenant_admin" || viewer.role === "manager";
-  const executiveSettingsVisible = viewer.role === "platform_owner" || viewer.role === "tenant_admin";
   const administratorVisible = viewer.role === "platform_owner" || viewer.role === "tenant_admin";
   const isRv = industry === "rv" || viewer.industryTemplateKey === "rv";
   const isGolfCart = industry === "golf-cart" || viewer.industryTemplateKey === "golf-cart";
-  const visibleLinks = links;
-  const salesSectionActive = visibleLinks.some(([, href]) => pathname === href || (href === "/messages" && (pathname === "/email" || pathname === "/text")) || (href === "/admin" && pathname.startsWith("/admin") && !pathname.startsWith("/admin/growth") && !pathname.startsWith("/admin/executive") && !pathname.startsWith("/admin/sales-results")));
+  const navigation = getWorkspaceNavigation(viewer.role, industry ?? viewer.industryTemplateKey);
+  const activeItem = activeNavigationItem(pathname, navigation);
+  const expandedWorkspace = activeWorkspace(pathname) ?? (pathname === "/dashboard" ? "sales" : undefined);
   return <div className={`shell ${collapsed ? "sidebar-collapsed" : ""} ${isRv ? "rv-shell" : ""} ${isGolfCart ? "golf-cart-shell" : ""}`}>
     {open && <button className="scrim" aria-label="Close menu" onClick={() => setOpen(false)} />}
     <aside className={`sidebar ${open ? "sidebar-open" : ""}`}>
@@ -108,42 +62,22 @@ export function AppShell({ children, title, industry }: { children: React.ReactN
       <div className="workspace"><span className="avatar avatar-square">{viewer.organizationName.charAt(0)}</span><span><small>{viewer.demo ? "Demo workspace" : "Viewing workspace"}</small>{workspaces.length > 1 ? <select className="workspace-select" value={viewer.organizationId} onChange={(event) => changeWorkspace(event.target.value)} aria-label="Switch workspace">{workspaces.map((workspace) => <option key={workspace.id} value={workspace.id}>{workspace.name}</option>)}</select> : <strong>{viewer.organizationName}</strong>}</span>{workspaces.length > 1 ? null : <ChevronDown size={16}/>}</div>
       <nav className="nav module-nav" aria-label="Main navigation">
         <Link className={pathname === "/dashboard" ? "active" : ""} href="/dashboard" aria-current={pathname === "/dashboard" ? "page" : undefined} onClick={() => setOpen(false)}><Home size={18}/><span>Home</span></Link>
-        <details className="module-group" key={`business-assistant-${pathname}`} open={businessAssistantActive}>
-          <summary><span className="module-icon"><BriefcaseBusiness size={18}/></span><span>Business Assistant</span><ChevronDown className="module-chevron" size={16}/></summary>
-          <div className="module-links">{businessAssistantLinks.map(([label, href, Icon]) => <Link className={pathname === "/assistant" && label === "Chat" ? "active" : ""} href={href} key={href} onClick={() => setOpen(false)}><Icon size={18}/><span>{label}</span></Link>)}</div>
-        </details>
-        <details className="module-group" key={`sales-${pathname}`} open={salesSectionActive}>
-          <summary><span className="module-icon"><Users size={18}/></span><span>Sales Assistant</span><ChevronDown className="module-chevron" size={16}/></summary>
-          <div className="module-links">{visibleLinks.filter(([label]) => label !== "Admin" || administratorVisible).map(([label, href, Icon]) => {
-            const active = pathname === href || (href === "/messages" && (pathname === "/email" || pathname === "/text")) || (href === "/admin" && pathname.startsWith("/admin") && !pathname.startsWith("/admin/growth") && !pathname.startsWith("/admin/executive") && !pathname.startsWith("/admin/sales-results"));
-            const visibleLabel = isRv && label === "Products" ? "RVs & Inventory" : isGolfCart && label === "Products" ? "Golf Carts & LSVs" : label;
-            return <Link className={active ? "active" : ""} href={href} key={href} onClick={() => setOpen(false)}><Icon size={18}/><span>{visibleLabel}</span></Link>;
-          })}</div>
-        </details>
-        <details className="module-group" key={`operations-${pathname}`} open={operationsSectionActive}>
-          <summary><span className="module-icon"><ClipboardCheck size={18}/></span><span>Operations Assistant</span><ChevronDown className="module-chevron" size={16}/></summary>
-          <div className="module-links">{operationsLinks.map(([label, href, Icon]) => <Link className={pathname === href || (href !== "/operations" && pathname.startsWith(`${href}/`)) ? "active" : ""} href={href} key={href} onClick={() => setOpen(false)}><Icon size={18}/><span>{isGolfCart && label === "Process Improvement" ? "Help Us Improve" : label}</span></Link>)}</div>
-        </details>
-        <details className="module-group" key={`coach-${pathname}`} open={coachSectionActive}>
-          <summary><span className="module-icon"><GraduationCap size={18}/></span><span>Sales Coach</span><ChevronDown className="module-chevron" size={16}/></summary>
-          <div className="module-links">{coachLinks.map(([label, href, Icon]) => {
-            const active = pathname === href || (href === "/training" && pathname.startsWith("/training/"));
-            return <Link className={active ? "active" : ""} href={href} key={href} onClick={() => setOpen(false)}><Icon size={18}/><span>{label}</span></Link>;
-          })}</div>
-        </details>
-        <details className="module-group" key={`growth-${pathname}`} open={growthSectionActive}>
-          <summary><span className="module-icon"><TrendingUp size={18}/></span><span>Business Growth Advisor</span><ChevronDown className="module-chevron" size={16}/></summary>
-          <div className="module-links"><Link className={pathname === "/growth" || pathname.startsWith("/growth/opportunities") ? "active" : ""} href="/growth" onClick={() => setOpen(false)}><Lightbulb size={18}/><span>Growth Opportunities</span></Link><Link className={pathname === "/growth/priorities" ? "active" : ""} href="/growth/priorities" onClick={() => setOpen(false)}><BarChart3 size={18}/><span>Priority Scoring</span></Link><Link className={pathname === "/growth/plans" ? "active" : ""} href="/growth/plans" onClick={() => setOpen(false)}><ClipboardCheck size={18}/><span>Action Plans</span></Link><Link className={pathname === "/growth/performance" ? "active" : ""} href="/growth/performance" onClick={() => setOpen(false)}><Activity size={18}/><span>Performance</span></Link>{administratorVisible && <Link className={pathname === "/admin/growth" ? "active" : ""} href="/admin/growth" onClick={() => setOpen(false)}><Settings size={18}/><span>Scoring Settings</span></Link>}</div>
-        </details>
-        {executiveVisible && <details className="module-group" key={`executive-${pathname}`} open={executiveSectionActive}>
-          <summary><span className="module-icon"><Crown size={18}/></span><span>Executive Advisor</span><ChevronDown className="module-chevron" size={16}/></summary>
-          <div className="module-links"><Link className={pathname === "/executive" ? "active" : ""} href="/executive" onClick={() => setOpen(false)}><LayoutDashboard size={18}/><span>Command Center</span></Link><Link className={pathname === "/executive/readiness" ? "active" : ""} href="/executive/readiness" onClick={() => setOpen(false)}><ListChecks size={18}/><span>Data Readiness</span></Link><Link className={pathname === "/executive/trends" ? "active" : ""} href="/executive/trends" onClick={() => setOpen(false)}><TrendingUp size={18}/><span>Historical Trends</span></Link><Link className={pathname === "/executive/review" ? "active" : ""} href="/executive/review" onClick={() => setOpen(false)}><FileText size={18}/><span>Monthly Review</span></Link><Link className={pathname === "/executive/accountability" ? "active" : ""} href="/executive/accountability" onClick={() => setOpen(false)}><History size={18}/><span>Accountability</span></Link><Link className={pathname === "/executive/decisions" ? "active" : ""} href="/executive/decisions" onClick={() => setOpen(false)}><Scale size={18}/><span>Decision Log</span></Link>{executiveSettingsVisible && <><Link className={pathname === "/admin/executive/setup" ? "active" : ""} href="/admin/executive/setup" onClick={() => setOpen(false)}><ListChecks size={18}/><span>Setup Guide</span></Link><Link className={pathname === "/admin/sales-results" ? "active" : ""} href="/admin/sales-results" onClick={() => setOpen(false)}><BarChart3 size={18}/><span>Sales Results</span></Link><Link className={pathname === "/admin/sales-results/quality" ? "active" : ""} href="/admin/sales-results/quality" onClick={() => setOpen(false)}><Search size={18}/><span>Data Quality</span></Link><Link className={pathname === "/admin/executive" ? "active" : ""} href="/admin/executive" onClick={() => setOpen(false)}><Settings size={18}/><span>Executive Targets</span></Link></>}</div>
-        </details>}
+        {navigation.map((workspace) => {
+          const WorkspaceIcon = navigationIcons[workspace.icon] ?? Boxes;
+          return <details name="business-workspaces" className="module-group workspace-group" key={workspace.id + pathname} open={expandedWorkspace === workspace.id}>
+            <summary aria-label={workspace.label + " workspace"} title={workspace.label} onClick={() => collapsed && setCollapsed(false)}><span className="module-icon"><WorkspaceIcon size={18}/></span><span>{workspace.label}</span><ChevronDown className="module-chevron" size={16}/></summary>
+            <div className="module-links">{workspace.groups.map((group) => <div className="workspace-nav-group" key={group.label}><h2>{group.label}</h2>{group.items.map((entry) => {
+              const Icon = navigationIcons[entry.icon] ?? Boxes;
+              const active = activeItem?.href === entry.href;
+              return <Link className={active ? "active" : ""} aria-current={active ? "page" : undefined} href={entry.href} key={entry.href} onClick={() => setOpen(false)}><Icon size={18}/><span>{entry.label}</span></Link>;
+            })}</div>)}</div>
+          </details>;
+        })}
       </nav>
-      <div className="sidebar-footer">{viewer.role === "platform_owner" && <Link href="/admin/platform"><Settings size={18}/><span>Platform Admin</span><ChevronDown className="footer-chevron" size={16}/></Link>}{administratorVisible && <Link href="/admin/settings"><Wrench size={18}/><span>Settings</span><ChevronDown className="footer-chevron" size={16}/></Link>}<div className="profile"><span className="avatar">{viewer.initials}</span><span><strong>{viewer.fullName}</strong><small>{roleLabel}</small></span><form action={logout}><button className="logout-button" type="submit"><LogOut size={17}/><span>{viewer.demo ? "Exit demo" : "Sign out"}</span></button></form></div><div className="sidebar-motto">People <i/> Processes <i/> Profit</div></div>
+      <div className="sidebar-footer">{administratorVisible && <Link href="/admin"><Settings size={18}/><span>Platform Administration</span><ChevronDown className="footer-chevron" size={16}/></Link>}{administratorVisible && <Link href="/admin/settings"><Wrench size={18}/><span>Settings</span><ChevronDown className="footer-chevron" size={16}/></Link>}<div className="profile"><span className="avatar">{viewer.initials}</span><span><strong>{viewer.fullName}</strong><small>{roleLabel}</small></span><form action={logout}><button className="logout-button" type="submit"><LogOut size={17}/><span>{viewer.demo ? "Exit demo" : "Sign out"}</span></button></form></div><div className="sidebar-motto">People <i/> Processes <i/> Profit</div></div>
     </aside>
     <main className="main">
-      <header className="topbar"><div className="topbar-title"><button className="icon-btn menu-btn" aria-label="Open menu" onClick={() => setOpen(true)}><Menu size={21}/></button><button className="btn btn-ghost" type="button" onClick={() => router.back()} aria-label="Go back to the previous page"><ArrowLeft size={16}/> Back</button><strong>{title}</strong></div><div className="top-actions"><WorkspaceSearch/><span className="status-dot" title={viewer.demo ? "Demo environment" : "Connected"}/><span className="avatar">{viewer.initials}</span></div></header>
+      <header className="topbar"><div className="topbar-title"><button className="icon-btn menu-btn" aria-label="Open menu" onClick={() => setOpen(true)}><Menu size={21}/></button><button className="btn btn-ghost" type="button" onClick={() => router.back()} aria-label="Go back to the previous page"><ArrowLeft size={16}/> Back</button><strong>{title}</strong></div><div className="top-actions"><WorkspaceSearch role={viewer.role} industry={industry ?? viewer.industryTemplateKey}/><span className="status-dot" title={viewer.demo ? "Demo environment" : "Connected"}/><span className="avatar">{viewer.initials}</span></div></header>
       <div className="content">{children}</div>
     </main>
   </div>;

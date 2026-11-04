@@ -1,3 +1,4 @@
+import { WorkspaceAIEntry } from "@/components/workspace-ai-entry";
 import Link from "next/link";
 import { Activity, AlertTriangle, ArrowRight, BarChart3, Building2, CheckCircle2, ClipboardCheck, Crown, FileText, Gauge, ListChecks, Plus, Settings, Target, TrendingUp, UsersRound } from "lucide-react";
 import { redirect } from "next/navigation";
@@ -15,7 +16,7 @@ export default async function ExecutiveAdvisorPage({ searchParams }: { searchPar
   const data = await getExecutiveWorkspace(period);
   if (!data.canView) redirect("/dashboard");
   const coaching = data.signals.find((signal) => signal.label.toLowerCase().includes("coaching"));
-  return <AppShell title="Executive Advisor"><div className="exec-command rv-exec-command">
+  return <AppShell title="Executive Advisor"><WorkspaceAIEntry workspace="executive"/><div className="exec-command rv-exec-command">
     <section className="exec-hero"><div className="exec-hero-copy"><span>Executive command center</span><h1>See what matters,<br/>understand why,<br/>and <em>decide what happens next.</em></h1><p>Bring sales, people, growth, and operations signals into one clear leadership view.</p></div><blockquote>“Turn data into decisions.<br/> Decisions into action.<br/> Action into growth.”<small>— RUNFLOOR</small></blockquote><div className="exec-period"><ReportingPeriodSelector action="/executive" periods={data.availablePeriods} selected={data.reportingPeriod} label="Reporting period"/><small>Showing {new Date(`${data.reportingPeriod}-01T12:00:00`).toLocaleDateString(undefined, { month: "long", year: "numeric" })}</small></div></section>
     {data.error && <p className="form-error exec-error"><AlertTriangle/>Some source data could not be loaded: {data.error}</p>}
     <nav className="exec-tabs" aria-label="Executive command center sections">{tabs.map(([label, href, Icon], index) => <Link className={index === 0 ? "active" : ""} href={href === "/executive/review" ? `${href}?period=${data.reportingPeriod}` : href} key={label}><Icon/>{label}</Link>)}</nav>
