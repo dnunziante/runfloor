@@ -1,3 +1,4 @@
+import { ENABLE_SALES_COACHING } from "@/lib/features";
 import { NextResponse } from "next/server";
 import { getViewer } from "@/lib/auth/viewer";
 import { createAdminClient } from "@/lib/supabase/admin";
@@ -31,7 +32,7 @@ export async function POST(request: Request) {
   const requestedCollection = String(formData.get("collection") || "General");
   const collection = isKnowledgeCollection(requestedCollection) ? requestedCollection : "General";
   const contextType = formData.get("contextType") === "communication_example" ? "communication_example" : "knowledge";
-  const addToTraining = formData.get("addToTraining") === "on";
+  const addToTraining = ENABLE_SALES_COACHING && formData.get("addToTraining") === "on";
   const trainingOptions = parseTrainingGenerationOptions({
     estimatedMinutes: formData.get("lessonLength"),
     trainingType: formData.get("trainingType"),

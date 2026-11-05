@@ -1,3 +1,4 @@
+import { isFeatureDestinationEnabled, ENABLE_SALES_COACHING } from "./features.ts";
 import type { AppRole } from "./auth/viewer";
 
 export type WorkspaceId = "sales" | "operations" | "executive";
@@ -31,8 +32,8 @@ export function inventoryLabel(industry?: string) {
   return industry === "rv" ? "RVs & Inventory" : industry === "golf-cart" ? "Golf Carts & LSVs" : "Products & Inventory";
 }
 
-export function getWorkspaceNavigation(role: AppRole, industry?: string): WorkspaceNavigation[] {
-  return workspaceNavigation.filter((workspace) => navigationAllowed(workspace.access, role)).map((workspace) => ({ ...workspace, groups: workspace.groups.map((group) => ({ ...group, items: group.items.filter((entry) => navigationAllowed(entry.access, role)).map((entry) => ({ ...entry, label: entry.href === "/products" ? inventoryLabel(industry) : entry.href === "/operations/improvements" && industry === "golf-cart" ? "Help Us Improve" : entry.label })) })).filter((group) => group.items.length > 0) }));
+export function getWorkspaceNavigation(role: AppRole, industry?: string, coachingEnabled = ENABLE_SALES_COACHING): WorkspaceNavigation[] {
+  return workspaceNavigation.filter((workspace) => navigationAllowed(workspace.access, role)).map((workspace) => ({ ...workspace, groups: workspace.groups.map((group) => ({ ...group, items: group.items.filter((entry) => navigationAllowed(entry.access, role) && isFeatureDestinationEnabled(entry.href, coachingEnabled)).map((entry) => ({ ...entry, label: entry.href === "/products" ? inventoryLabel(industry) : entry.href === "/operations/improvements" && industry === "golf-cart" ? "Help Us Improve" : entry.label })) })).filter((group) => group.items.length > 0) }));
 }
 
 export function activeNavigationItem(pathname: string, navigation = workspaceNavigation): NavigationItem | undefined {

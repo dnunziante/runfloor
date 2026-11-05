@@ -1,5 +1,6 @@
 "use server";
 
+import { assertSalesCoachingEnabled } from "@/lib/features";
 import { revalidatePath } from "next/cache";
 import { getViewer } from "@/lib/auth/viewer";
 import { isLocalDemoMode } from "@/lib/supabase/config";
@@ -9,6 +10,7 @@ export type TrainingCompletionState = { error: string; success: string };
 const uuidPattern = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
 
 export async function completeTrainingLesson(_previous: TrainingCompletionState, formData: FormData): Promise<TrainingCompletionState> {
+  assertSalesCoachingEnabled();
   const lessonId = String(formData.get("lessonId") || "");
   if (!uuidPattern.test(lessonId)) return { error: "The training lesson is invalid.", success: "" };
   if (isLocalDemoMode()) return { error: "", success: "Training completed." };

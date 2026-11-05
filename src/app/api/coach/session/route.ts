@@ -1,3 +1,4 @@
+import { ENABLE_SALES_COACHING } from "@/lib/features";
 import { NextResponse } from "next/server";
 import { getViewer } from "@/lib/auth/viewer";
 import { createAdminClient } from "@/lib/supabase/admin";
@@ -58,6 +59,7 @@ async function approvedContext(supabase: CoachSupabaseClient, organizationId: st
   return { knowledge, communication };
 }
 export async function POST(request: Request) {
+  if (!ENABLE_SALES_COACHING) return NextResponse.json({ error: "Sales Coaching is temporarily unavailable." }, { status: 403 });
   const viewer = await getViewer(); if (!viewer?.organizationId || viewer.demo) return NextResponse.json({ error: "Sign in to use adaptive coaching." }, { status: 401 });
   const templateKey = await getViewerIndustryTemplateKey(viewer);
   const workspace = viewer.organizationName.trim().toLowerCase();

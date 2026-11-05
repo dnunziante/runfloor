@@ -1,4 +1,4 @@
-import Link from "next/link";
+import { FeatureLink as Link } from "@/components/feature-link";
 import { AlertTriangle, ArrowRight, BookOpen, CalendarDays, Check, CheckCircle2, Circle, ClipboardCheck, Flag, Info, ListChecks, Target, TrendingUp } from "lucide-react";
 import { redirect } from "next/navigation";
 import { AppShell } from "@/components/app-shell";

@@ -1,5 +1,6 @@
 "use server";
 
+import { assertSalesCoachingEnabled } from "@/lib/features";
 import { revalidatePath } from "next/cache";
 import { getViewer } from "@/lib/auth/viewer";
 import { createClient } from "@/lib/supabase/server";
@@ -8,6 +9,7 @@ import { parseGeneratedTrainingContent, validateGeneratedTrainingContent, valida
 export type LessonActionState = { error: string; success: string; published?: boolean };
 
 export async function saveGeneratedLesson(_previous: LessonActionState, formData: FormData): Promise<LessonActionState> {
+  assertSalesCoachingEnabled();
   const viewer = await getViewer();
   if (!viewer?.organizationId || !["manager", "tenant_admin", "platform_owner"].includes(viewer.role)) return { error: "Manager access is required.", success: "" };
   const lessonId = String(formData.get("lessonId") || "");

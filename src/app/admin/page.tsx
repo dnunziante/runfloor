@@ -1,4 +1,4 @@
-import Link from "next/link";
+import { FeatureLink as Link } from "@/components/feature-link";
 import type React from "react";
 import { AlertTriangle, BarChart3, BookOpen, Boxes, CheckCircle2, ChevronRight, Circle, Crown, GraduationCap, LayoutGrid, List, MapPin, Search, Settings, ShieldCheck, TrendingUp, Users } from "lucide-react";
 import { AppShell } from "@/components/app-shell";

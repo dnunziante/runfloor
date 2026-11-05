@@ -1,4 +1,5 @@
-import Link from "next/link";
+import { ENABLE_SALES_COACHING } from "@/lib/features";
+import { FeatureLink as Link } from "@/components/feature-link";
 import {
   ArrowRight,
   BarChart3,
@@ -113,7 +114,7 @@ export function GolfCartHome({
           </section>
 
           <section className="gc-performance">
-            <div><span><Sparkles /></span><div><small>Workspace momentum</small><strong>{data.metrics.questions + data.metrics.messages} assisted actions</strong><p>{data.metrics.training}% training completion across the current view.</p></div></div>
+            <div><span><Sparkles /></span><div><small>Workspace momentum</small><strong>{data.metrics.questions + data.metrics.messages} assisted actions</strong>{ENABLE_SALES_COACHING && <p>{data.metrics.training}% training completion across the current view.</p>}</div></div>
             <Link href="/dashboard/performance">Open performance <ArrowRight /></Link>
           </section>
         </main>

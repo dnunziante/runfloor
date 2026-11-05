@@ -1,4 +1,4 @@
-import Link from "next/link";
+import { FeatureLink as Link } from "@/components/feature-link";
 import { AlertTriangle, BarChart3, BookOpen, CheckCircle2, Download, GitCompareArrows, MapPin, MessageCircle, PackageSearch, Users } from "lucide-react";
 import { AppShell } from "@/components/app-shell";
 import { PageHeader } from "@/components/page-header";

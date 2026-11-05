@@ -1,5 +1,6 @@
 "use server";
 
+import { assertSalesCoachingEnabled } from "@/lib/features";
 import { revalidatePath } from "next/cache";
 import { getViewer } from "@/lib/auth/viewer";
 import { isLocalDemoMode } from "@/lib/supabase/config";
@@ -18,6 +19,7 @@ async function requireTenantAdmin() {
 }
 
 export async function saveTrainingModule(_previousState: TrainingModuleActionState, formData: FormData): Promise<TrainingModuleActionState> {
+  assertSalesCoachingEnabled();
   if (isLocalDemoMode()) return { error: "Module editing is disabled in local demo mode.", success: "" };
   const viewer = await requireTenantAdmin();
   const moduleId = String(formData.get("moduleId") || "");
@@ -108,6 +110,7 @@ async function requireTrainingReviewer() {
 }
 
 export async function deleteTrainingDraft(_previousState: TrainingDraftActionState, formData: FormData): Promise<TrainingDraftActionState> {
+  assertSalesCoachingEnabled();
   if (isLocalDemoMode()) return { error: "Training draft deletion is disabled in local demo mode.", success: "" };
   const viewer = await requireTrainingReviewer();
   const lessonId = String(formData.get("lessonId") || "");
@@ -148,6 +151,7 @@ export async function deleteTrainingDraft(_previousState: TrainingDraftActionSta
 }
 
 export async function deleteTrainingModule(_previousState: TrainingModuleActionState, formData: FormData): Promise<TrainingModuleActionState> {
+  assertSalesCoachingEnabled();
   if (isLocalDemoMode()) return { error: "Module deletion is disabled in local demo mode.", success: "" };
   const viewer = await requireTenantAdmin();
   const moduleId = String(formData.get("moduleId") || "");

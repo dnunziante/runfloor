@@ -1,8 +1,14 @@
+import { isFeatureDestinationEnabled } from "@/lib/features";
 import { createServerClient } from "@supabase/ssr";
 import { NextResponse, type NextRequest } from "next/server";
 import { isLocalDemoMode, isSupabaseConfigured, publicDemoCookieName } from "@/lib/supabase/config";
 
 export async function proxy(request: NextRequest) {
+  if (!isFeatureDestinationEnabled(request.nextUrl.pathname)) {
+    if (request.nextUrl.pathname.startsWith("/api/") || request.method !== "GET") return NextResponse.json({ error: "Sales Coaching is temporarily unavailable." }, { status: 403 });
+    return NextResponse.redirect(new URL("/dashboard", request.url));
+  }
+  // Module restrictions apply before demo bypasses and authentication.
   const hasPublicDemoCookie = request.cookies.get(publicDemoCookieName)?.value === "1";
 
   if (isLocalDemoMode()) return NextResponse.next();
@@ -100,6 +106,9 @@ export const config = {
     "/analytics/:path*",
     "/admin/:path*",
     "/coach/:path*",
+    "/api/coach/:path*",
+    "/api/admin/coach/:path*",
+    "/api/knowledge/documents/:id/training",
     "/growth/:path*",
     "/operations/:path*",
     "/executive/:path*",

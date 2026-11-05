@@ -1,3 +1,4 @@
+import { ENABLE_SALES_COACHING } from "@/lib/features";
 import { NextResponse } from "next/server";
 import { getViewer } from "@/lib/auth/viewer";
 import { processKnowledgeDocument } from "@/lib/rag/process-document";
@@ -7,6 +8,7 @@ import { generateTrainingLessonForDocument, parseTrainingGenerationOptions } fro
 const uuidPattern = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
 
 export async function POST(request: Request, { params }: { params: Promise<{ id: string }> }) {
+  if (!ENABLE_SALES_COACHING) return NextResponse.json({ error: "Sales Coaching is temporarily unavailable." }, { status: 403 });
   const { id } = await params;
   if (!uuidPattern.test(id)) return NextResponse.json({ error: "Invalid document ID" }, { status: 400 });
 

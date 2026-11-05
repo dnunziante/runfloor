@@ -1,5 +1,6 @@
 "use server";
 
+import { assertSalesCoachingEnabled } from "@/lib/features";
 import { getViewer } from "@/lib/auth/viewer";
 import { resolveCoachSessionLocation } from "@/lib/coach/access";
 import { isLocalDemoMode, isSupabaseConfigured } from "@/lib/supabase/config";
@@ -34,6 +35,7 @@ function calculateScores(rounds: RoundRow[], choices: number[], weights: Record<
 }
 
 export async function completeCoachSession(scenarioId: string, selectedOptionIndices: number[], locationId: string | null): Promise<CompleteCoachSessionResult> {
+  assertSalesCoachingEnabled();
   if (isLocalDemoMode() || !isSupabaseConfigured()) return { sessionId: "demo-review" };
   if (!/^[0-9a-f-]{36}$/i.test(scenarioId) || !Array.isArray(selectedOptionIndices)) return { error: "That practice response is invalid." };
 

@@ -1,4 +1,5 @@
-import Link from "next/link";
+import { isFeatureDestinationEnabled } from "@/lib/features";
+import { FeatureLink as Link } from "@/components/feature-link";
 import { AppShell } from "@/components/app-shell";
 import { PageHeader } from "@/components/page-header";
 
@@ -16,6 +17,6 @@ const sections = [
 
 export default function AdminContentPage() {
   return <AppShell title="Admin · Sales Content"><PageHeader eyebrow="Content manager" title="Sales content" description="Load approved BGC material now so it is ready for controlled AI testing later." />
-    <div className="grid grid-3">{sections.map(([title, description, href]) => <div className="card" key={title}><h2>{title}</h2><p>{description}</p><Link className="btn btn-secondary" href={href}>Manage</Link></div>)}</div>
+    <div className="grid grid-3">{sections.filter(([, , href]) => isFeatureDestinationEnabled(href)).map(([title, description, href]) => <div className="card" key={title}><h2>{title}</h2><p>{description}</p><Link className="btn btn-secondary" href={href}>Manage</Link></div>)}</div>
   </AppShell>;
 }

@@ -1,5 +1,6 @@
 "use server";
 
+import { assertSalesCoachingEnabled } from "@/lib/features";
 import { revalidatePath } from "next/cache";
 import { getViewer } from "@/lib/auth/viewer";
 import { isLocalDemoMode } from "@/lib/supabase/config";
@@ -24,6 +25,7 @@ async function requirePersonaManager() {
 }
 
 export async function saveCoachPersonaTemplate(formData: FormData) {
+  assertSalesCoachingEnabled();
   if (isLocalDemoMode()) throw new Error("Persona editing is disabled in local demo mode.");
   const viewer = await requirePersonaManager();
   const id = String(formData.get("personaId") || ""); const name = String(formData.get("name") || "").trim(); const archetype = String(formData.get("archetype") || "").trim(); const difficulty = String(formData.get("difficulty") || "Intermediate"); const notes = String(formData.get("notes") || "").trim();
@@ -34,21 +36,25 @@ export async function saveCoachPersonaTemplate(formData: FormData) {
 }
 
 export async function setCoachPersonaTemplateStatus(formData: FormData) {
+  assertSalesCoachingEnabled();
   const viewer = await requirePersonaManager(); const id = String(formData.get("personaId") || ""); const active = formData.get("active") === "true";
   if (!/^[0-9a-f-]{36}$/i.test(id)) throw new Error("Invalid persona template."); const supabase = await createClient(); const { error } = await supabase.from("coach_persona_templates").update({ is_active: active, updated_at: new Date().toISOString() }).eq("id", id).eq("organization_id", viewer.organizationId); if (error) throw new Error("The persona template could not be updated."); revalidatePath("/admin/coach"); revalidatePath("/coach/session");
 }
 
 export async function duplicateCoachPersonaTemplate(formData: FormData) {
+  assertSalesCoachingEnabled();
   const viewer = await requirePersonaManager(); const id = String(formData.get("personaId") || ""); if (!/^[0-9a-f-]{36}$/i.test(id)) throw new Error("Invalid persona template.");
   const supabase = await createClient(); const { data: source, error } = await supabase.from("coach_persona_templates").select("name,archetype,industry,difficulty,configuration,notes,location_id,applicable_product_ids,applicable_competitor_ids").eq("id", id).eq("organization_id", viewer.organizationId).single(); if (error || !source) throw new Error("The persona template could not be copied.");
   const result = await supabase.from("coach_persona_templates").insert({ ...source, organization_id: viewer.organizationId, name: `${source.name} copy`.slice(0, 120), created_by: viewer.id, is_active: false }); if (result.error) throw new Error("The persona template could not be copied."); revalidatePath("/admin/coach");
 }
 
 export async function deleteCoachPersonaTemplate(formData: FormData) {
+  assertSalesCoachingEnabled();
   const viewer = await requirePersonaManager(); const id = String(formData.get("personaId") || ""); if (!/^[0-9a-f-]{36}$/i.test(id)) throw new Error("Invalid persona template."); const supabase = await createClient(); const { error } = await supabase.from("coach_persona_templates").delete().eq("id", id).eq("organization_id", viewer.organizationId); if (error) throw new Error("The persona template could not be deleted."); revalidatePath("/admin/coach"); revalidatePath("/coach/session");
 }
 
 export async function createCoachScenario(_previousState: CoachScenarioActionState, formData: FormData): Promise<CoachScenarioActionState> {
+  assertSalesCoachingEnabled();
   if (isLocalDemoMode()) return { error: "Scenario editing is disabled in local demo mode. Sign in to the connected workspace to save changes.", success: "" };
   const viewer = await requireTenantAdmin();
   const scenarioId = String(formData.get("scenarioId") || "");
@@ -122,6 +128,7 @@ export async function createCoachScenario(_previousState: CoachScenarioActionSta
 }
 
 export async function updateCoachScenarioRubric(_previousState: CoachScenarioActionState, formData: FormData): Promise<CoachScenarioActionState> {
+  assertSalesCoachingEnabled();
   if (isLocalDemoMode()) return { error: "Rubric editing is disabled in local demo mode.", success: "" };
   const viewer = await requireTenantAdmin();
   const scenarioId = String(formData.get("scenarioId") || "");
@@ -137,6 +144,7 @@ export async function updateCoachScenarioRubric(_previousState: CoachScenarioAct
 }
 
 export async function updateCoachScenarioStatus(formData: FormData) {
+  assertSalesCoachingEnabled();
   if (isLocalDemoMode()) throw new Error("Scenario editing is disabled in local demo mode.");
   const viewer = await requireTenantAdmin();
   const scenarioId = String(formData.get("scenarioId") || "");

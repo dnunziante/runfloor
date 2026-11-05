@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import { ENABLE_SALES_COACHING } from "@/lib/features";
 import { usePathname, useRouter } from "next/navigation";
 import { ArrowLeft, Boxes, ChevronDown, ChevronsLeft, ChevronsRight, Home, LogOut, Menu, Settings, Wrench, X } from "lucide-react";
 import { useEffect, useState } from "react";
@@ -54,7 +55,7 @@ export function AppShell({ children, title, industry }: { children: React.ReactN
   const navigation = getWorkspaceNavigation(viewer.role, industry ?? viewer.industryTemplateKey);
   const activeItem = activeNavigationItem(pathname, navigation);
   const expandedWorkspace = activeWorkspace(pathname) ?? (pathname === "/dashboard" ? "sales" : undefined);
-  return <div className={`shell ${collapsed ? "sidebar-collapsed" : ""} ${isRv ? "rv-shell" : ""} ${isGolfCart ? "golf-cart-shell" : ""}`}>
+  return <div className={`shell ${!ENABLE_SALES_COACHING ? "coaching-disabled" : ""} ${collapsed ? "sidebar-collapsed" : ""} ${isRv ? "rv-shell" : ""} ${isGolfCart ? "golf-cart-shell" : ""}`}>
     {open && <button className="scrim" aria-label="Close menu" onClick={() => setOpen(false)} />}
     <aside className={`sidebar ${open ? "sidebar-open" : ""}`}>
       <div className="brand-row sidebar-controls"><button className="icon-btn collapse-sidebar" aria-label={collapsed ? "Expand sidebar" : "Collapse sidebar"} onClick={() => setCollapsed((value) => !value)}>{collapsed ? <ChevronsRight size={22}/> : <ChevronsLeft size={22}/>}</button><button className="icon-btn close-nav" aria-label="Close menu" onClick={() => setOpen(false)}><X size={20}/></button></div>

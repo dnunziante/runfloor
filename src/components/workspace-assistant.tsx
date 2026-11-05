@@ -1,6 +1,6 @@
 "use client";
 
-import Link from "next/link";
+import { FeatureLink as Link } from "@/components/feature-link";
 import { useEffect, useRef, useState } from "react";
 import { ArrowRight, Bot, ChevronDown, Send, Sparkles, Trash2 } from "lucide-react";
 import { AppShell } from "@/components/app-shell";

@@ -1,4 +1,4 @@
-import Link from "next/link";
+import { FeatureLink as Link } from "@/components/feature-link";
 import { AlertTriangle, ArrowRight, Building2, CheckCircle2, CircleGauge, Database, Download, ListChecks, RotateCw, Settings, Target, UsersRound } from "lucide-react";
 import { redirect } from "next/navigation";
 import { AppShell } from "@/components/app-shell";
