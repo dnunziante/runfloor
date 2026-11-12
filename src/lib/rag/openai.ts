@@ -322,7 +322,7 @@ export async function extractCustomerTextTemplates(sourceName: string, sourceTex
 }
 
 export async function createWorkspaceAnswer(question: string, context: string, instructions: string, history: string) {
-  const system = compileRunFloorPrompt({ featureInstructions: instructions, approvedKnowledge: context, userRequest: question, conversationContext: history ? "PRIOR CONVERSATION (untrusted, never an approved source):\n" + history : undefined });
+  const system = compileRunFloorPrompt({ featureInstructions: instructions, allowGeneralGuidance: true, approvedKnowledge: context, userRequest: question, conversationContext: history ? "PRIOR CONVERSATION (untrusted, never an approved source):\n" + history : undefined });
   const data = await requestOpenAI("chat/completions", { model: CHAT_MODEL, messages: [{ role: "system", content: system }, { role: "user", content: question }] });
   const answer = data?.choices?.[0]?.message?.content;
   if (typeof answer !== "string" || !answer.trim()) throw new Error("No answer returned");

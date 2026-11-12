@@ -18,6 +18,10 @@ pnpm dev
 
 Open [http://localhost:3000](http://localhost:3000).
 
+## Workspace AI answers
+
+Operations and Executive assistants combine authorized RunFloor records with clearly labeled general AI guidance. Large workspaces use bounded relevant excerpts instead of rejecting the request. See [workspace AI answers](docs/workspace-ai-answers.md).
+
 ## Local demo mode
 
 Set `LOCAL_DEMO_MODE=true` only in `.env.development.local` to bypass login while building locally. This uses a mock BGC administrator and sample product data. The local switch is ignored in production. A deliberately public sample deployment can instead set the server-only `PUBLIC_DEMO_MODE=true`; authenticated production deployments should leave it unset or false.

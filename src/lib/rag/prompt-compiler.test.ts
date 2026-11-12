@@ -25,3 +25,15 @@ test("unset and invalid tenant settings retain safe communication defaults", () 
     userRequest: "Help me with marketing.",
   }));
 });
+
+test('general guidance is opt-in and still protects company facts', () => {
+ const input={featureInstructions:'Help with operations.',approvedKnowledge:'',userRequest:'Help schedule a test drive'};
+ const strict=compileRunFloorPrompt(input);
+ const general=compileRunFloorPrompt({...input,allowGeneralGuidance:true});
+ assert.ok(strict.includes('state exactly'));
+ assert.equal(general.includes('state exactly'),false);
+ assert.ok(general.includes('General AI guidance'));
+ assert.ok(general.includes('company-specific factual claims'));
+ assert.ok(general.includes('never claim') || general.includes('Never claim'));
+ assert.ok(general.includes('not exhaustive'));
+});
