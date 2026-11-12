@@ -1,3 +1,4 @@
+import { selectWorkspaceContext } from "@/lib/assistant/workspace-context";
 import { NextResponse } from "next/server";
 import { getViewer } from "@/lib/auth/viewer";
 import { assistantWorkspaces, canUseAssistant, conversationContext } from "@/lib/assistant/workspaces";
@@ -23,26 +24,32 @@ export async function POST(request: Request, { params }: { params: Promise<{ wor
     // No arbitrary table/tool names, tenant IDs or instructions come from the client.
     let context: string;
     let sourceName: string;
-    if (workspace === "operations") {
-      const data = await getOperationsWorkspace();
-      if (data.error) throw new Error("Operations sources unavailable");
-      context = JSON.stringify({ procedures: data.procedures.filter((procedure) => procedure.status === "Published"), checklists: data.checklists, alerts: data.alerts, schedules: data.schedules, handoffs: data.handoffs, incidents: data.incidents });
-      sourceName = "Operations workspace — published procedures and authorized operational records";
-    } else {
-      const data = await getExecutiveWorkspace();
-      if (!data.canView) return NextResponse.json({ error: "Executive access denied." }, { status: 403 });
-      const supabase = await createClient();
-      const [plans, trends, opportunities] = await Promise.all([
-        getGrowthPlans(), getExecutiveTrends(),
-        supabase.from("growth_opportunities").select("slug,title,summary,rationale,score,actions,measures").eq("organization_id", viewer.organizationId).eq("status", "published").limit(40),
-      ]);
-      if (data.error || plans.error || trends.error || opportunities.error) throw new Error("Executive sources unavailable");
-      context = JSON.stringify({ reportingPeriod: data.reportingPeriod, metrics: data.metrics, signals: data.signals, priorities: data.priorities, risks: data.risks, wins: data.wins, reviews: data.reviews, actionPlans: plans.plans, historicalTrends: trends.periods, growthOpportunities: opportunities.data ?? [] });
-      sourceName = `Executive workspace — ${data.reportingPeriod} performance, priorities, reviews and action plans`;
+    let recordsAvailable = true;
+    try {
+      if (workspace === "operations") {
+        const data = await getOperationsWorkspace();
+        if (data.error) throw new Error("Operations sources unavailable");
+        context = selectWorkspaceContext(question, { procedures: data.procedures.filter((procedure) => procedure.status === "Published"), checklists: data.checklists, alerts: data.alerts, schedules: data.schedules, handoffs: data.handoffs, incidents: data.incidents }, conversationContext(body?.history));
+        sourceName = "Operations workspace — published procedures and authorized operational records";
+      } else {
+        const data = await getExecutiveWorkspace();
+        if (!data.canView) return NextResponse.json({ error: "Executive access denied." }, { status: 403 });
+        const supabase = await createClient();
+        const [plans, trends, opportunities] = await Promise.all([
+          getGrowthPlans(), getExecutiveTrends(),
+          supabase.from("growth_opportunities").select("slug,title,summary,rationale,score,actions,measures").eq("organization_id", viewer.organizationId).eq("status", "published").limit(40),
+        ]);
+        if (data.error || plans.error || trends.error || opportunities.error) throw new Error("Executive sources unavailable");
+        context = selectWorkspaceContext(question, { reportingPeriod: data.reportingPeriod, metrics: data.metrics, signals: data.signals, priorities: data.priorities, risks: data.risks, wins: data.wins, reviews: data.reviews, actionPlans: plans.plans, historicalTrends: trends.periods, growthOpportunities: opportunities.data ?? [] }, conversationContext(body?.history));
+        sourceName = `Executive workspace — ${data.reportingPeriod} performance, priorities, reviews and action plans`;
+      }
+    } catch {
+      recordsAvailable = false;
+      sourceName = "RunFloor records unavailable";
+      context = "Authorized workspace records could not be loaded. Do not infer that records are empty or that work is complete. Explain this limitation and provide General AI guidance where useful. Do not invent or cite company facts.";
     }
-    if (context.length > 120_000) return NextResponse.json({ error: "This workspace has more context than one request can safely process. Use the relevant dashboard or tool to narrow your review." }, { status: 422 });
     const answer = await createWorkspaceAnswer(question, `[1] ${sourceName}\n${context}`, assistantWorkspaces[workspace].instructions, conversationContext(body?.history));
-    return NextResponse.json({ answer, sources: [{ documentName: sourceName }] }, { headers: { "Cache-Control": "no-store" } });
+    return NextResponse.json({ answer, sources: recordsAvailable && /\[1\]/.test(answer) ? [{ documentName: sourceName }] : [] }, { headers: { "Cache-Control": "no-store" } });
   } catch {
     return NextResponse.json({ error: "The assistant could not load approved workspace information or reach the AI service. Please try again." }, { status: 503 });
   }
