@@ -1,8 +1,8 @@
 "use client";
 
 import Link from "next/link";
-import { useMemo, useState } from "react";
-import { deleteTemplateProduct } from "@/app/admin/platform/actions";
+import { useMemo, useState, useTransition } from "react";
+import { deleteTemplateProduct, updateTemplateProductType } from "@/app/admin/platform/actions";
 import { TopScrollTable } from "@/components/top-scroll-table";
 
 export type TemplateProductRow = {
@@ -11,6 +11,34 @@ export type TemplateProductRow = {
 
 type SortKey = "type" | "manufacturer" | "model" | "year" | "category";
 const pageSize = 50;
+
+function ProductTypeSelect({ product, templateId }: { product: TemplateProductRow; templateId: string }) {
+  const [value, setValue] = useState(product.product_type);
+  const [message, setMessage] = useState("");
+  const [pending, startTransition] = useTransition();
+  return <div style={{ minWidth: 150 }}>
+    <select className="input" aria-label={`Product type for ${product.model || product.name}`} value={value} disabled={pending} onChange={(event) => {
+      const next = event.target.value;
+      setValue(next);
+      setMessage("");
+      startTransition(async () => {
+        const data = new FormData();
+        data.set("templateId", templateId);
+        data.set("productId", product.id);
+        data.set("productType", next);
+        try {
+          const result = await updateTemplateProductType(data);
+          if (result.error) { setValue(product.product_type); setMessage(result.error); }
+          else setMessage("Saved");
+        } catch {
+          setValue(product.product_type);
+          setMessage("Could not save. Please try again.");
+        }
+      });
+    }}><option value="our_product">My Product</option><option value="competitor_product">Competitor</option></select>
+    <small role="status" aria-live="polite">{pending ? "Saving…" : message}</small>
+  </div>;
+}
 
 export function TemplateProductModels({ products, templateId }: { products: TemplateProductRow[]; templateId: string }) {
   const [sort, setSort] = useState<SortKey>("model");
@@ -28,7 +56,7 @@ export function TemplateProductModels({ products, templateId }: { products: Temp
 
   return <div className="form-stack" style={{ marginTop: 16 }}>
     <div className="row-between"><p>{rows.length} model{rows.length === 1 ? "" : "s"} · showing {rows.length ? currentPage * pageSize + 1 : 0}–{Math.min((currentPage + 1) * pageSize, rows.length)}</p><div style={{ display: "flex", gap: 8, alignItems: "center" }}><button className="btn btn-ghost" type="button" disabled={currentPage === 0} onClick={() => setPage((value) => Math.max(0, value - 1))}>Previous</button><span>Page {currentPage + 1} of {totalPages}</span><button className="btn btn-ghost" type="button" disabled={currentPage >= totalPages - 1} onClick={() => setPage((value) => Math.min(totalPages - 1, value + 1))}>Next</button></div></div>
-    <TopScrollTable><table className="table"><thead><tr><th>{heading("Type", "type")}</th><th>{heading("Manufacturer", "manufacturer")}</th><th>{heading("Model / Floorplan", "model")}</th><th>{heading("Year", "year")}</th><th>{heading("RV Type", "category")}</th><th>Status</th><th>Actions</th></tr></thead><tbody>{shown.map((product) => { const rvType = product.specifications?.rvType || product.product_category || "—"; const floorplan = product.specifications?.floorplan; return <tr key={product.id}><td><span className={`badge ${product.product_type === "our_product" ? "green" : "blue"}`}>{product.product_type === "our_product" ? "My Product" : "Competitor"}</span></td><td>{product.manufacturer || "—"}</td><td><strong>{product.model || product.name}</strong>{floorplan && floorplan !== product.model ? <small style={{ display: "block", color: "var(--muted)" }}>{floorplan}</small> : null}</td><td>{product.model_year || "—"}</td><td>{rvType}</td><td><span className="badge blue">Template</span></td><td><div className="product-row-actions"><Link className="btn btn-ghost" href={`?edit=${product.id}#add-starter-product`}>Edit</Link><form action={deleteTemplateProduct}><input type="hidden" name="templateId" value={templateId} /><input type="hidden" name="productId" value={product.id} /><button className="btn btn-ghost danger-button">Delete</button></form></div></td></tr>; })}{!shown.length ? <tr><td colSpan={7}>No starter products yet.</td></tr> : null}</tbody></table></TopScrollTable>
+    <TopScrollTable><table className="table"><thead><tr><th>{heading("Type", "type")}</th><th>{heading("Manufacturer", "manufacturer")}</th><th>{heading("Model / Floorplan", "model")}</th><th>{heading("Year", "year")}</th><th>{heading("RV Type", "category")}</th><th>Status</th><th>Actions</th></tr></thead><tbody>{shown.map((product) => { const rvType = product.specifications?.rvType || product.product_category || "—"; const floorplan = product.specifications?.floorplan; return <tr key={product.id}><td><ProductTypeSelect key={`${product.id}-${product.product_type}`} product={product} templateId={templateId} /></td><td>{product.manufacturer || "—"}</td><td><strong>{product.model || product.name}</strong>{floorplan && floorplan !== product.model ? <small style={{ display: "block", color: "var(--muted)" }}>{floorplan}</small> : null}</td><td>{product.model_year || "—"}</td><td>{rvType}</td><td><span className="badge blue">Template</span></td><td><div className="product-row-actions"><Link className="btn btn-ghost" href={`?edit=${product.id}#add-starter-product`}>Edit</Link><form action={deleteTemplateProduct}><input type="hidden" name="templateId" value={templateId} /><input type="hidden" name="productId" value={product.id} /><button className="btn btn-ghost danger-button">Delete</button></form></div></td></tr>; })}{!shown.length ? <tr><td colSpan={7}>No starter products yet.</td></tr> : null}</tbody></table></TopScrollTable>
     <div className="row-between"><span>Horizontal scroll is available above and below the table.</span><div style={{ display: "flex", gap: 8, alignItems: "center" }}><button className="btn btn-ghost" type="button" disabled={currentPage === 0} onClick={() => setPage((value) => Math.max(0, value - 1))}>Previous</button><span>Page {currentPage + 1} of {totalPages}</span><button className="btn btn-ghost" type="button" disabled={currentPage >= totalPages - 1} onClick={() => setPage((value) => Math.min(totalPages - 1, value + 1))}>Next</button></div></div>
   </div>;
 }

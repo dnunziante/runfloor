@@ -202,6 +202,27 @@ export async function saveTemplateProduct(formData: FormData) {
   revalidatePath(`/admin/platform/templates/${templateId}`);
 }
 
+export async function updateTemplateProductType(formData: FormData) {
+  const viewer = await getViewer();
+  const templateId = String(formData.get("templateId") || "");
+  const productId = String(formData.get("productId") || "");
+  const productType = String(formData.get("productType") || "");
+  if (viewer?.role !== "platform_owner" || !/^[0-9a-f-]{36}$/i.test(templateId) || !/^[0-9a-f-]{36}$/i.test(productId))
+    return { error: "Platform administrator access is required." };
+  if (productType !== "our_product" && productType !== "competitor_product")
+    return { error: "Choose My Product or Competitor." };
+  const { data, error } = await (await createClient())
+    .from("industry_template_products")
+    .update({ product_type: productType, updated_at: new Date().toISOString() })
+    .eq("id", productId)
+    .eq("industry_template_id", templateId)
+    .select("id")
+    .maybeSingle();
+  if (error || !data) return { error: "The product type could not be saved. Please try again." };
+  revalidatePath(`/admin/platform/templates/${templateId}`);
+  return { error: null };
+}
+
 export async function deleteTemplateProduct(formData: FormData) {
   const viewer = await getViewer();
   const templateId = String(formData.get("templateId") || "");

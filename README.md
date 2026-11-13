@@ -95,6 +95,10 @@ The next milestone should connect one server-only OpenAI Sales Assistant endpoin
 
 Sales, Operations, and Executive share a centralized navigation configuration and retain the existing feature URLs. Each dashboard links to its own specialized assistant; Executive and Growth require management access. See [the navigation audit and implementation report](docs/workspace-reorganization.md) for the old-to-new mapping, assistant data boundaries, verification, and current connection limitations.
 
+## Platform product types
+
+Platform administrators can change a starter product between My Product and Competitor using the Type dropdown in Manage Products. Changes save immediately and apply only to the selected industry template product.
+
 ## Temporary Sales Coaching restriction
 
 `ENABLE_SALES_COACHING` in `src/lib/features.ts` defaults to `false`. Coaching navigation, shortcuts, pages, APIs and save actions respect the same flag across all tenants. To reactivate the preserved module, set it to `true`, rebuild and deploy. See [verification and reactivation details](docs/temporary-sales-coaching.md).
