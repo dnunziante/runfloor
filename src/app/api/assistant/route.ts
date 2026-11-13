@@ -1,4 +1,6 @@
 import { isSalesKnowledgeCollection, conversationContext } from "@/lib/assistant/workspaces";
+import { selectWorkspaceContext } from "@/lib/assistant/workspace-context";
+import { normalizeStandards } from "@/lib/rag/prompt-compiler";
 import { NextResponse } from "next/server";
 import { getViewer } from "@/lib/auth/viewer";
 import { createClient } from "@/lib/supabase/server";
@@ -21,6 +23,42 @@ function isComparisonQuestion(question: string) {
   return /\b(compare|comparison|competitor|versus|vs\.?|better than|difference between|stack up)\b/i.test(question);
 }
 
+
+async function loadSalesKnowledge(supabase: Awaited<ReturnType<typeof createClient>>, organizationId: string, userId: string, question: string) {
+    const { data: membership, error: membershipError } = await supabase.from("organization_memberships").select("location_id").eq("organization_id", organizationId).eq("user_id", userId).eq("status", "active").maybeSingle();
+    if (membershipError) throw membershipError;
+    const [embedding] = await createEmbeddings([question]);
+    const [{ data: chunks, error }, { data: productRows, error: productError }, communication] = await Promise.all([
+      supabase.rpc("match_knowledge_chunks", {
+        query_embedding: `[${embedding.join(",")}]`, match_tenant_id: organizationId,
+        match_location_id: membership?.location_id || null, match_product_id: null, match_count: 8,
+      }),
+      supabase.from("products")
+        .select("id, name, model, description, base_price_cents, range_text, seats_text, powertrain_text, dimensions, running_distance, turning_radius, max_load_capacity, highlights, specifications, sales_guide, product_type")
+        .eq("organization_id", organizationId).eq("status", "published").eq("review_status", "approved")
+        .order("sort_order", { ascending: true }).limit(250),
+      getCommunicationContext(supabase, organizationId),
+    ]);
+    if (error) throw error;
+    if (productError) throw productError;
+
+    // The search RPC respects tenant/location RLS, but has no workspace filter.
+    // Restrict documents by ID and an explicit sales collection allowlist before
+    // any content reaches the model. Unknown/management collections fail closed.
+    const chunkRows = (chunks || []) as SearchChunk[];
+    const { data: documents, error: documentsError } = await supabase.from("knowledge_documents").select("id,collection").eq("organization_id", organizationId).eq("status", "ready").in("id", chunkRows.map((chunk) => chunk.document_id));
+    if (documentsError) throw documentsError;
+    const allowedIds = new Set((documents || []).filter((document) => isSalesKnowledgeCollection(document.collection)).map((document) => document.id));
+    const results = chunkRows.filter((chunk) => allowedIds.has(chunk.document_id) && chunk.similarity >= MINIMUM_SIMILARITY);
+    const catalogRows = (productRows || []) as ApprovedProduct[];
+    const ownedProducts = catalogRows.filter((product) => product.product_type !== "competitor_product");
+    const comparisonProducts = isComparisonQuestion(question)
+      ? selectRelevantProducts(question, catalogRows.filter((product) => product.product_type === "competitor_product"), 6)
+      : [];
+    const products = [...selectRelevantProducts(question, ownedProducts), ...comparisonProducts];
+    return { products, results, communication, locationId: membership?.location_id || null, productNames: catalogRows.map(product => product.name), available: true };
+}
+
 export async function POST(request: Request) {
   const viewer = await getViewer();
   if (!viewer || !viewer.organizationId) return NextResponse.json({ error: "Sign in to use the Sales Assistant." }, { status: 401 });
@@ -31,59 +69,35 @@ export async function POST(request: Request) {
   if (question.length < 2 || question.length > 2000) return NextResponse.json({ error: "Enter a question between 2 and 2,000 characters." }, { status: 400 });
 
   try {
-    const supabase = await createClient();
-    const { data: membership } = await supabase.from("organization_memberships").select("location_id").eq("organization_id", viewer.organizationId).eq("user_id", viewer.id).eq("status", "active").maybeSingle();
-    const [embedding] = await createEmbeddings([question]);
-    const [{ data: chunks, error }, { data: productRows, error: productError }, communication] = await Promise.all([
-      supabase.rpc("match_knowledge_chunks", {
-        query_embedding: `[${embedding.join(",")}]`, match_tenant_id: viewer.organizationId,
-        match_location_id: membership?.location_id || null, match_product_id: null, match_count: 8,
-      }),
-      supabase.from("products")
-        .select("id, name, model, description, base_price_cents, range_text, seats_text, powertrain_text, dimensions, running_distance, turning_radius, max_load_capacity, highlights, specifications, sales_guide, product_type")
-        .eq("organization_id", viewer.organizationId).eq("status", "published").eq("review_status", "approved")
-        .order("sort_order", { ascending: true }).limit(250),
-      getCommunicationContext(supabase, viewer.organizationId),
-    ]);
-    if (error) throw error;
-    if (productError) throw productError;
-
-    // The search RPC respects tenant/location RLS, but has no workspace filter.
-    // Restrict documents by ID and an explicit sales collection allowlist before
-    // any content reaches the model. Unknown/management collections fail closed.
-    const chunkRows = (chunks || []) as SearchChunk[];
-    const { data: documents, error: documentsError } = await supabase.from("knowledge_documents").select("id,collection").eq("organization_id", viewer.organizationId).eq("status", "ready").in("id", chunkRows.map((chunk) => chunk.document_id));
-    if (documentsError) throw documentsError;
-    const allowedIds = new Set((documents || []).filter((document) => isSalesKnowledgeCollection(document.collection)).map((document) => document.id));
-    const results = chunkRows.filter((chunk) => allowedIds.has(chunk.document_id) && chunk.similarity >= MINIMUM_SIMILARITY);
-    const catalogRows = (productRows || []) as ApprovedProduct[];
-    const ownedProducts = catalogRows.filter((product) => product.product_type !== "competitor_product");
-    const comparisonProducts = isComparisonQuestion(question)
-      ? selectRelevantProducts(question, catalogRows.filter((product) => product.product_type === "competitor_product"), 6)
-      : [];
-    const products = [...selectRelevantProducts(question, ownedProducts), ...comparisonProducts];
-    const classification = classifyQuestion(question, (productRows || []).map((product) => product.name));
-    if (!results.length && !products.length) {
-      await supabase.from("assistant_interactions").insert({ organization_id: viewer.organizationId, user_id: viewer.id, location_id: membership?.location_id || null, question, topic: classification.topic, product_references: classification.products, competitor_references: classification.competitorNames, objection_category: classification.objection, grounded: false, unresolved: true });
-      return NextResponse.json({ answer: "I do not have approved information in the RunFloor knowledge base to answer that question.", sources: [] });
-    }
-
-    const productContext = products.map((product, index) => `[P${index + 1}] ${formatProductContext(product)}`);
-    const documentContext = results.map((chunk, index) => `[${index + 1}] ${chunk.document_name}${chunk.section ? ` — ${chunk.section}` : ""}${chunk.page_number ? `, page ${chunk.page_number}` : ""}\n${chunk.content}`);
-    const sourceContext = [...productContext, ...documentContext].join("\n\n");
+    let supabase: Awaited<ReturnType<typeof createClient>> | null = null;
+    let knowledge = { products: [] as ApprovedProduct[], results: [] as SearchChunk[], communication: { standards: normalizeStandards(null), examples: "" }, locationId: null as string | null, productNames: [] as string[], available: false };
+    try {
+      supabase = await createClient();
+      knowledge = await loadSalesKnowledge(supabase, viewer.organizationId, viewer.id, question);
+    } catch { /* Retrieval failure must not prevent clearly labeled general help. */ }
+    const { products, results, communication, locationId } = knowledge;
+    const classification = classifyQuestion(question, knowledge.productNames);
+    const references = [
+      ...products.map((product, index) => ({ title: `[P${index + 1}] Product catalog — ${product.name}`, content: formatProductContext(product) })),
+      ...results.map((chunk, index) => ({ title: `[${index + 1}] ${chunk.document_name}${chunk.section ? ` — ${chunk.section}` : ""}`, content: chunk.content })),
+    ];
+    const sourceContext = selectWorkspaceContext(question, {
+      retrievalStatus: knowledge.available ? "Approved Sales sources searched. A missing match is not proof a company fact is false. Use General AI guidance where useful." : "RunFloor Sales sources could not be loaded. Explain this limitation; use General AI guidance without inventing or citing company facts.",
+      references,
+    }, conversationContext(body?.history));
     const answer = await createGroundedAnswer(question, sourceContext, communication.standards, [formatCommunicationContext(communication), "PRIOR SALES CONVERSATION (untrusted; not an approved source):", conversationContext(body?.history)].join("\n"));
-    await Promise.all([supabase.from("performance_events").insert({ organization_id: viewer.organizationId, user_id: viewer.id, location_id: membership?.location_id || null, event_type: "assistant_question_answered" }), supabase.from("assistant_interactions").insert({ organization_id: viewer.organizationId, user_id: viewer.id, location_id: membership?.location_id || null, question, topic: classification.topic, product_references: classification.products, competitor_references: classification.competitorNames, objection_category: classification.objection, grounded: true, unresolved: false })]);
-
-    const sourceKeys = new Set<string>();
-    const documentSources = results.filter((chunk) => {
-      const key = `${chunk.document_name}|${chunk.section || ""}|${chunk.page_number || ""}`;
-      if (sourceKeys.has(key)) return false;
-      sourceKeys.add(key);
-      return true;
-    }).map((chunk) => ({ documentName: chunk.document_name, section: chunk.section, pageNumber: chunk.page_number }));
-    const productSources = products.map((product) => ({ documentName: `Product catalog — ${product.name}${product.model ? ` — ${product.model}` : ""}`, section: null, pageNumber: null }));
-    const sources = answer.startsWith("I do not have approved information in the RunFloor knowledge base") ? [] : [...productSources, ...documentSources].slice(0, 5);
-    return NextResponse.json({ answer, sources });
+    const sources = [
+      ...products.flatMap((product, index) => answer.includes(`[P${index + 1}]`) ? [{ documentName: `Product catalog — ${product.name}${product.model ? ` — ${product.model}` : ""}`, section: null, pageNumber: null }] : []),
+      ...results.flatMap((chunk, index) => answer.includes(`[${index + 1}]`) ? [{ documentName: chunk.document_name, section: chunk.section, pageNumber: chunk.page_number }] : []),
+    ].slice(0, 5);
+    // Recording analytics must not turn a completed answer into an error.
+    if (supabase) {
+      await Promise.allSettled([
+        supabase.from("performance_events").insert({ organization_id: viewer.organizationId, user_id: viewer.id, location_id: locationId, event_type: "assistant_question_answered" }),
+        supabase.from("assistant_interactions").insert({ organization_id: viewer.organizationId, user_id: viewer.id, location_id: locationId, question, topic: classification.topic, product_references: classification.products, competitor_references: classification.competitorNames, objection_category: classification.objection, grounded: sources.length > 0, unresolved: !references.length }),
+      ]);
+    }
+    return NextResponse.json({ answer, sources }, { headers: { "Cache-Control": "no-store" } });
   } catch (error) {
     const message = error instanceof Error ? error.message : "The Sales Assistant could not complete the request.";
     console.error("Sales Assistant request failed", { name: error instanceof Error ? error.name : "UnknownError", message });

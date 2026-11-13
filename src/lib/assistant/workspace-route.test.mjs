@@ -8,7 +8,7 @@ import { assistantWorkspaces, canUseAssistant, conversationContext } from "./wor
 
 // Execute the actual route with isolated service doubles. This tests authorization
 // before retrieval and ensures each assistant invokes only its permitted sources.
-function route(viewer, operationsOverride) {
+function route(viewer, operationsOverride, executiveOverride) {
   const calls = []; let suppliedContext = "";
   const query = { select() { return this; }, eq(key, value) { calls.push([key, value]); return this; }, limit() { return Promise.resolve({ data: [], error: null }); } };
   const dependencies = {
@@ -18,7 +18,7 @@ function route(viewer, operationsOverride) {
     "@/lib/assistant/workspaces": { assistantWorkspaces, canUseAssistant, conversationContext },
     "@/lib/rag/openai": { createWorkspaceAnswer: async (_question, context) => { calls.push("model"); suppliedContext = context; return "Grounded answer"; } },
     "@/lib/operations/repository": { getOperationsWorkspace: async () => { calls.push("operations"); if (operationsOverride instanceof Error) throw operationsOverride; if (operationsOverride) return operationsOverride; return { error: "", procedures: [{ title: "Published SOP", status: "Published" }, { title: "Private draft", status: "Draft" }], checklists: [], alerts: [], schedules: [], handoffs: [], incidents: [] }; } },
-    "@/lib/executive/repository": { getExecutiveWorkspace: async () => { calls.push("executive"); return { canView: true, reportingPeriod: "2026-11", metrics: [], priorities: [] }; } },
+    "@/lib/executive/repository": { getExecutiveWorkspace: async () => { calls.push("executive"); if (executiveOverride instanceof Error) throw executiveOverride; if (executiveOverride) return executiveOverride; return { canView: true, reportingPeriod: "2026-11", metrics: [], priorities: [] }; } },
     "@/lib/growth/plans": { getGrowthPlans: async () => { calls.push("plans"); return { plans: [], error: "" }; } },
     "@/lib/executive/trends-repository": { getExecutiveTrends: async () => { calls.push("trends"); return { periods: [], error: "" }; } },
     "@/lib/supabase/server": { createClient: async () => ({ from: () => query }) },
@@ -75,4 +75,12 @@ test('unavailable Operations records still permit honestly labeled general help'
   assert.equal(request.context().includes('private-database-details'),false);
   assert.equal(response.body.sources.length,0);
  }
+});
+
+test('Executive supports large contexts and missing sources while keeping management access', async () => {
+ const large=route({organizationId:'tenant-a',role:'manager'},undefined,{canView:true,reportingPeriod:'2026-11',metrics:[],priorities:[{title:'Follow-up',detail:'Review the action plan. '.repeat(15000)}]});
+ assert.equal((await large.post('executive','Review action plans')).status,200);assert.ok(large.context().length<61000);assert.ok(large.context().includes('not an exhaustive'));
+ const unavailable=route({organizationId:'tenant-a',role:'manager'},undefined,new Error('private failure'));
+ assert.equal((await unavailable.post('executive','Help plan a leadership review')).status,200);assert.ok(unavailable.context().includes('General AI guidance'));
+ const denied=route({organizationId:'tenant-a',role:'manager'},undefined,{canView:false});assert.equal((await denied.post('executive')).status,403);assert.equal(denied.calls.includes('model'),false);
 });
