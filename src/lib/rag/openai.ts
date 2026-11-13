@@ -49,7 +49,7 @@ export async function createEmbeddings(inputs: string[]) {
 }
 
 export async function createGroundedAnswer(question: string, sourceContext: string, standards?: Partial<CommunicationStandards> | null, conversationContext?: string) {
-  const system = compileRunFloorPrompt({ standards, approvedKnowledge: sourceContext, conversationContext, userRequest: question, featureInstructions: assistantWorkspaces.sales.instructions });
+  const system = compileRunFloorPrompt({ allowGeneralGuidance: true, standards, approvedKnowledge: sourceContext, conversationContext, userRequest: question, featureInstructions: assistantWorkspaces.sales.instructions });
   const data = await requestOpenAI("chat/completions", {
     model: CHAT_MODEL,
     messages: [{ role: "system", content: system }, { role: "user", content: question }],
