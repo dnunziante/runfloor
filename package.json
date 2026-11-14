@@ -6,9 +6,10 @@
     "dev": "next dev",
     "build": "next build",
     "start": "next start",
-    "test": "node --test src/lib/procedures/document.test.ts src/lib/auth/access.test.ts src/lib/supabase/config.test.ts src/lib/content/message-templates.test.ts src/lib/executive/accountability.test.ts src/lib/executive/data.test.ts src/lib/executive/decisions.test.ts src/lib/executive/escalations.test.ts src/lib/executive/location-rollups.test.ts src/lib/executive/monthly-review.test.ts src/lib/executive/readiness.test.ts src/lib/executive/reviews.test.ts src/lib/executive/setup-sequence.test.ts src/lib/executive/trends.test.ts src/lib/pricing-calculator.test.ts src/lib/quote-calculator.test.ts src/lib/products/competitor-sync.test.ts src/lib/products/template-spreadsheet-import.test.ts src/lib/rag/product-context.test.ts src/lib/rag/prompt-compiler.test.ts src/lib/rag/sales-email-quality.test.ts src/lib/sales/quality.test.ts src/lib/training/generated.test.ts src/lib/navigation.test.ts src/lib/assistant/workspace-route.test.mjs src/lib/features.test.ts src/lib/coaching-access.test.mjs src/lib/assistant/workspace-context.test.ts src/lib/assistant/sales-route.test.mjs",
+    "test": "node --test src/lib/procedures/document.test.ts src/lib/auth/access.test.ts src/lib/supabase/config.test.ts src/lib/content/message-templates.test.ts src/lib/executive/accountability.test.ts src/lib/executive/data.test.ts src/lib/executive/decisions.test.ts src/lib/executive/escalations.test.ts src/lib/executive/location-rollups.test.ts src/lib/executive/monthly-review.test.ts src/lib/executive/readiness.test.ts src/lib/executive/reviews.test.ts src/lib/executive/setup-sequence.test.ts src/lib/executive/trends.test.ts src/lib/pricing-calculator.test.ts src/lib/quote-calculator.test.ts src/lib/products/competitor-sync.test.ts src/lib/products/template-spreadsheet-import.test.ts src/lib/rag/product-context.test.ts src/lib/rag/prompt-compiler.test.ts src/lib/rag/sales-email-quality.test.ts src/lib/sales/quality.test.ts src/lib/training/generated.test.ts src/lib/navigation.test.ts src/lib/assistant/workspace-route.test.mjs src/lib/features.test.ts src/lib/coaching-access.test.mjs src/lib/assistant/workspace-context.test.ts src/lib/assistant/sales-route.test.mjs src/lib/ai-billing/*.test.mjs src/lib/ai-billing/money.test.ts",
     "lint": "eslint .",
-    "typecheck": "tsc --noEmit"
+    "typecheck": "tsc --noEmit",
+    "test:credits": "node --test src/lib/ai-billing/*.test.mjs src/lib/ai-billing/money.test.ts"
   },
   "dependencies": {
     "@supabase/ssr": "0.12.4",
@@ -26,9 +27,11 @@
     "pdf-parse": "^2.4.5",
     "react": "19.2.8",
     "react-dom": "19.2.8",
+    "stripe": "23.0.0",
     "xlsx": "0.18.5"
   },
   "devDependencies": {
+    "@electric-sql/pglite": "0.3.14",
     "@tailwindcss/postcss": "4.3.3",
     "@types/node": "26.2.0",
     "@types/react": "19.2.18",
@@ -36,6 +39,7 @@
     "eslint": "9.39.5",
     "eslint-config-next": "16.3.0",
     "postcss": "8.5.26",
+    "supabase": "2.118.0",
     "tailwindcss": "4.3.3",
     "typescript": "6.0.3"
   }

@@ -99,6 +99,7 @@ export async function POST(request: Request) {
     }
     return NextResponse.json({ answer, sources }, { headers: { "Cache-Control": "no-store" } });
   } catch (error) {
+    if(error instanceof Error&&error.name==='AiCreditError')return NextResponse.json({error:error.message},{status:402});
     const message = error instanceof Error ? error.message : "The Sales Assistant could not complete the request.";
     console.error("Sales Assistant request failed", { name: error instanceof Error ? error.name : "UnknownError", message });
     return NextResponse.json({ error: message.includes("OPENAI_API_KEY") ? "The secure OpenAI connection has not been configured yet." : "The Sales Assistant could not complete the request." }, { status: 503 });
