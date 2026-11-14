@@ -2,8 +2,6 @@ node_modules
 .next
 .next-stale-*
 out
-.env
-.env.local
 .env.*.local
 .vercel
 .pnpm-store
@@ -13,7 +11,14 @@ out
 .DS_Store
 .env.local.txt
 env.local.txt
-.env.local
 .env.*.local
 supabase/.temp/
 .qa/
+
+.projects/cache
+.projects/vault
+.projects/state.test.json
+.projects/state.local.test.json
+.env
+.env.*
+!.env.example

@@ -25,7 +25,7 @@ export function WorkspaceAssistant({ workspace, organizationId, userId, organiza
     setMessages((current) => [...current, { role: "user", text: question }]);
     setInput(""); setSending(true);
     try {
-      const response = await fetch(workspace === "sales" ? "/api/assistant" : `/api/workspace-assistant/${workspace}`, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ question, history: messages.slice(1).slice(-6) }) });
+      const response = await fetch(workspace === "sales" ? "/api/assistant" : `/api/workspace-assistant/${workspace}`, { method: "POST", headers: { "Content-Type": "application/json", "x-runfloor-ai-request": crypto.randomUUID() }, body: JSON.stringify({ question, history: messages.slice(1).slice(-6) }) });
       const result = await response.json().catch(() => ({}));
       setMessages((current) => [...current, { role: "ai", text: response.ok ? result.answer : (result.error || "The assistant could not complete your request."), sources: response.ok && Array.isArray(result.sources) ? result.sources : [] }]);
     } catch { setMessages((current) => [...current, { role: "ai", text: "The connection was interrupted. Please try again." }]); }

@@ -50,7 +50,8 @@ export async function POST(request: Request, { params }: { params: Promise<{ wor
     }
     const answer = await createWorkspaceAnswer(question, `[1] ${sourceName}\n${context}`, assistantWorkspaces[workspace].instructions, conversationContext(body?.history));
     return NextResponse.json({ answer, sources: recordsAvailable && /\[1\]/.test(answer) ? [{ documentName: sourceName }] : [] }, { headers: { "Cache-Control": "no-store" } });
-  } catch {
+  } catch (error) {
+    if(error instanceof Error&&error.name==='AiCreditError')return NextResponse.json({error:error.message},{status:402});
     return NextResponse.json({ error: "The assistant could not load approved workspace information or reach the AI service. Please try again." }, { status: 503 });
   }
 }

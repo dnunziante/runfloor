@@ -1,3 +1,4 @@
+import {meteredOpenAI} from "@/lib/ai-billing/provider";
 import { ENABLE_SALES_COACHING } from "@/lib/features";
 import { NextResponse } from "next/server";
 import { getViewer } from "@/lib/auth/viewer";
@@ -45,8 +46,7 @@ function discoveryAnswer(persona: unknown, repReply: string, rv = false) {
 }
 async function ai(system: string, payload: unknown) {
   const key = process.env.OPENAI_API_KEY; if (!key) throw new Error("OpenAI is not configured.");
-  const response = await fetch("https://api.openai.com/v1/chat/completions", { method: "POST", headers: { Authorization: `Bearer ${key}`, "Content-Type": "application/json" }, body: JSON.stringify({ model: MODEL, messages: [{ role: "system", content: system }, { role: "user", content: JSON.stringify(payload) }], response_format: { type: "json_object" } }), cache: "no-store" });
-  const data = await response.json(); if (!response.ok) throw new Error(data?.error?.message || "The coach could not respond.");
+  const data = await meteredOpenAI("chat/completions", { model: MODEL, messages: [{role:"system",content:system},{role:"user",content:JSON.stringify(payload)}],response_format:{type:"json_object"}}, "sales_coaching");
   return JSON.parse(data.choices?.[0]?.message?.content || "{}");
 }
 async function approvedContext(supabase: CoachSupabaseClient, organizationId: string, query: string) {
