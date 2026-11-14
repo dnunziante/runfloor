@@ -2,7 +2,7 @@
 
 ## Current state
 
-Feature branch only; production migrations and production publishing are not authorized. Retail credit packs and the subscription catalog remain inactive. The confirmed Stripe account is Runfloorai; authorization granted so far is CLI Test-mode access only. No real customer is charged.
+The user explicitly approved the production release on 2026-11-14 after reviewing the named repository commit, database, Vercel project and domains. All five billing migrations were applied successfully to the original RunFloor database. PR #32 was merged as e9b69ef2753e590407b5a6d0533dbef7dd318b5e. Retail credit packs and the subscription catalog remain inactive; no live Stripe credentials or real charges were enabled.
 
 ## Rehearsal gates
 
@@ -61,3 +61,18 @@ Security advisors report intentional service-only RLS tables with no client poli
 - Test sales/catalog resources deactivated; open test Checkout expired; temporary local helpers/listener stopped. The user rotated the Test-mode key; the replacement was verified against the intended account and saved privately.
 
 The Stripe dashboard also reports paused account capabilities requiring an account-owner task. Resolve the account's requirements, tax handling and portal settings before any live launch. No live resource or legal agreement was activated here.
+
+
+## Approved production release record
+
+- Approval: explicit user confirmation of the named release plan on 2026-11-14.
+- Source: PR #32, reviewed source commit `903bb9dc1144d19dd6770f7e93c90b57b831ae2f`, squash merge `e9b69ef2753e590407b5a6d0533dbef7dd318b5e`.
+- Database: original RunFloor project `cqwcagnrgxokbrswhbfj` (dashboard name Refyntra). Backup verified in its dashboard: physical backup dated 2026-11-14 11:20:04 UTC.
+- Applied all five billing migrations listed above, in order; each returned success. No QA compatibility fixtures were applied to production.
+- Post-migration checks: zero active credit packs, subscription sales inactive, three configured model rates, no historical customer usage invented or backfilled.
+- Vercel: project `runfloor` / `prj_HKCNaB2PwcqQdzMRQiAlbyPiqjz6`, team `team_8MpmlspRGB7xHqEa0CIa1K9A`. Production domains: `refyntra-demo.vercel.app` and `commandly-rho.vercel.app`.
+- The same repository also triggers the `commandly-demo` deployment. Its status is observable through GitHub checks; direct Vercel connector access was denied and the CLI login was expired. No access protections were changed.
+- Marketing application, database and deployments were not changed.
+- Live Stripe purchases, subscription sales and retail prices remain disabled pending the separate business/account setup and approval described above.
+
+Deployment verification: both GitHub production checks succeeded for the feature release (`Vercel – runfloor` and `Vercel – commandly-demo`). RunFloor deployment `dpl_6MmBGBFkcMxqkVhndu7oHgY6KRnW` reached READY. Both named production login pages returned HTTP 200 without a server-error page; unauthenticated `/ai-usage` redirected to sign-in. No customer session or production AI request was fabricated for smoke testing.
