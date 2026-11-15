@@ -4,6 +4,7 @@ import { NextResponse, type NextRequest } from "next/server";
 import { isLocalDemoMode, isSupabaseConfigured, publicDemoCookieName } from "@/lib/supabase/config";
 
 export async function proxy(request: NextRequest) {
+  if (request.nextUrl.pathname === "/api/billing/webhook" || request.nextUrl.pathname.startsWith("/api/auth/")) return NextResponse.next();
   if (!isFeatureDestinationEnabled(request.nextUrl.pathname)) {
     if (request.nextUrl.pathname.startsWith("/api/") || request.method !== "GET") return NextResponse.json({ error: "Sales Coaching is temporarily unavailable." }, { status: 403 });
     return NextResponse.redirect(new URL("/dashboard", request.url));
@@ -85,11 +86,26 @@ export async function proxy(request: NextRequest) {
     return NextResponse.redirect(new URL("/dashboard", request.url));
   }
 
+  if (membership && !request.nextUrl.pathname.startsWith("/billing")) {
+    const { data: access, error } = await supabase.rpc("rv_access_state", { target_org: membership.organization_id, target_location: request.cookies.get("rf-billing-location")?.value || null });
+    if (error && !(process.env.RUNFLOOR_RV_BILLING_ENABLED !== "true" && error.code === "PGRST202")) return NextResponse.json({ error: "Billing access could not be verified. Try again shortly." }, { status: 503 });
+    if (!error && !access?.allowed) {
+      if (request.nextUrl.pathname.startsWith("/api/") || request.method !== "GET") return NextResponse.json({ error: "Your location requires an active trial or subscription. Open Billing to upgrade.", billingUrl: "/billing" }, { status: 402 });
+      const upgrade = NextResponse.redirect(new URL("/billing", request.url));
+      response.cookies.getAll().forEach(cookie => upgrade.cookies.set(cookie));
+      return upgrade;
+    }
+  }
   return response;
 }
 
 export const config = {
   matcher: [
+    "/billing/:path*",
+    "/messages/:path*",
+    "/generator/:path*",
+    "/knowledge/:path*",
+    "/api/:path*",
     "/dashboard/:path*",
     "/assistant/:path*",
     "/pricing-calculator/:path*",

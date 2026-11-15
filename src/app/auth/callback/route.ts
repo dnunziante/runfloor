@@ -6,7 +6,7 @@ export async function GET(request: NextRequest) {
   const requestUrl = new URL(request.url);
   const code = requestUrl.searchParams.get("code");
   const next = requestUrl.searchParams.get("next");
-  const destination = next?.startsWith("/") ? next : "/dashboard";
+  const destination = next?.startsWith("/") && !next.startsWith("//") && !next.includes("\\") ? next : "/dashboard";
   const { url, publishableKey } = getSupabaseConfig();
   const response = NextResponse.redirect(new URL(destination, requestUrl.origin));
 

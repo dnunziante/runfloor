@@ -15,7 +15,7 @@ export const EMBEDDING_MODEL = "text-embedding-3-small";
 const CHAT_MODEL = process.env.OPENAI_CHAT_MODEL || "gpt-5-mini";
 const EMAIL_MODEL = process.env.OPENAI_EMAIL_MODEL || process.env.OPENAI_CHAT_MODEL || "gpt-5.6-terra";
 
-async function requestOpenAI(path: string, payload: Record<string, unknown>, operation: string) { return meteredOpenAI(path,payload,operation); }
+export async function requestOpenAI(path: string, payload: Record<string, unknown>, operation = "knowledge_request") { return meteredOpenAI(path,payload,operation); }
 
 export async function createEmbeddings(inputs: string[]) {
   const data = await requestOpenAI("embeddings", { model: EMBEDDING_MODEL, input: inputs }, "createEmbeddings");

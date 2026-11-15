@@ -51,6 +51,7 @@ function route({
     },
   };
   const deps = {
+    "@/lib/billing/webhook": { handleRvBillingEvent: async () => false },
     "next/server": {
       NextResponse: {
         json: (body, options = {}) => ({ body, status: options.status ?? 200 }),

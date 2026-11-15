@@ -102,3 +102,8 @@ Platform administrators can change a starter product between My Product and Comp
 ## Temporary Sales Coaching restriction
 
 `ENABLE_SALES_COACHING` in `src/lib/features.ts` defaults to `false`. Coaching navigation, shortcuts, pages, APIs and save actions respect the same flag across all tenants. To reactivate the preserved module, set it to `true`, rebuild and deploy. See [verification and reactivation details](docs/temporary-sales-coaching.md).
+
+
+## RV pricing and trial rollout
+
+See [RV release notes](docs/rv-billing-implementation.md) for the location trial, reused AI ledger, configuration and remaining live-billing setup.

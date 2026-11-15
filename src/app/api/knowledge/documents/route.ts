@@ -70,6 +70,7 @@ export async function POST(request: Request) {
       mime_type: file.type,
       size_bytes: file.size,
       collection,
+      assistant_scopes: contextType === "communication_example" ? [] : ["Sales process", "Product knowledge", "Competitor Knowledge"].includes(collection) ? ["sales"] : collection === "Operations" ? ["operations"] : [],
       context_type: contextType,
       status: "processing",
       location_id: locationId,

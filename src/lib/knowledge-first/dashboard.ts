@@ -1,0 +1,8 @@
+import type { SourceClassification } from "./types.ts";
+export type KnowledgeEvent = { assistant: string; category: string; topic: string; source_classification: SourceClassification; internal_complete: boolean; research_attempted: boolean; research_used: boolean; research_succeeded: boolean; answered: boolean; created_at: string; location_id: string | null };
+export function coverageMetrics(events: KnowledgeEvent[]) {
+  const percent = (count: number) => events.length ? Math.round(count / events.length * 100) : 0;
+  const counts = (values: string[]) => Object.entries(values.reduce<Record<string, number>>((result, value) => { result[value] = (result[value] ?? 0) + 1; return result; }, {})).sort((a, b) => b[1] - a[1]);
+  return { total: events.length, internal: percent(events.filter((event) => event.internal_complete).length), research: percent(events.filter((event) => event.research_used).length), unverified: percent(events.filter((event) => event.source_classification === "unverified").length), topics: counts(events.filter((event) => event.research_attempted).map((event) => event.topic)), categories: counts(events.filter((event) => !event.internal_complete).map((event) => event.category)), assistants: counts(events.filter((event) => event.research_used).map((event) => event.assistant)), trends: counts(events.map((event) => event.created_at.slice(0, 10))).sort(([a], [b]) => a.localeCompare(b)).map(([day, total]) => ({ day, total, internal: percentForDay(events, day) })) };
+}
+function percentForDay(events: KnowledgeEvent[], day: string) { const rows = events.filter((event) => event.created_at.startsWith(day)); return Math.round(rows.filter((row) => row.internal_complete).length / rows.length * 100); }

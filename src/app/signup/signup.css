@@ -1,0 +1,13 @@
+.rv-signup { min-height: 100vh; background: radial-gradient(ellipse at top left,#fff1e9,#f7f6f2 65%); padding: 36px 24px 72px; }
+.rv-signup > a:first-child { display: block; width: 180px; margin: 0 auto 40px; }
+.rv-signup section { max-width: 540px; margin: auto; background: white; padding: 40px; border: 1px solid #e8e3df; border-radius: 22px; box-shadow: 0 18px 50px #24140b08; }
+.rv-signup h1 { font-size: clamp(30px,4vw,42px); line-height: 1.15; letter-spacing: -.04em; margin: 14px 0; }
+.rv-signup h1 em { color: #ff4b18; font-style: normal; }
+.rv-signup p { color: #606060; line-height: 1.7; font-size: 14px; }
+.rv-signup a { text-decoration: underline; text-underline-offset: 3px; }
+.rv-signup-form { display: grid; gap: 18px; margin: 28px 0; }
+.rv-signup-form label { display: grid; gap: 7px; font-size: 13px; font-weight: 650; }
+.rv-signup-form input { padding: 12px 14px; border: 1px solid #ccc; border-radius: 8px; width: 100%; min-width: 0; background: white; color: #151515; }
+.rv-signup-form button { min-height: 48px; justify-content: center; }
+.rv-signup-form > p:last-child { text-align: center; margin: 0; font-size: 12px; }
+@media(max-width:600px) { .rv-signup { padding: 28px 16px; } .rv-signup section { padding: 28px 22px; } }

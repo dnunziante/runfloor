@@ -3,7 +3,9 @@
 import { useState, useSyncExternalStore } from "react";
 import type { ConversationTurn } from "@/lib/assistant/workspaces";
 
-export type AssistantMessage = ConversationTurn & { sources?: { documentName: string; section?: string | null; pageNumber?: number | null }[] };
+import type { SourceMetadata } from "@/lib/knowledge-first/types";
+
+export type AssistantMessage = ConversationTurn & { metadata?: SourceMetadata; sources?: { documentName: string; url?: string; section?: string | null; pageNumber?: number | null }[] };
 
 // A component-owned store avoids sharing conversation contents across requests.
 // The server snapshot is stable; browser storage is read only after subscription.

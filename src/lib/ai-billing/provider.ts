@@ -1,6 +1,6 @@
 import "server-only";
 import { createHash } from "node:crypto";
-import { headers } from "next/headers";
+import { cookies, headers } from "next/headers";
 import { AsyncLocalStorage } from "node:async_hooks";
 import { getViewer } from "@/lib/auth/viewer";
 import { createAdminClient } from "@/lib/supabase/admin";
@@ -74,6 +74,7 @@ export async function meteredOpenAI(
     max_input: bounds.input,
     max_output: bounds.output,
     input_fingerprint: fingerprint,
+    ...(process.env.RUNFLOOR_RV_BILLING_ENABLED === "true" ? { target_location: (await cookies()).get("rf-billing-location")?.value || null } : {}),
   });
   if (reserveError)
     throw new AiCreditError(
