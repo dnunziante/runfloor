@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { ArrowRight, Check, ChevronDown } from "lucide-react";
+import { RvPricingLayout } from "./rv-pricing-layout";
 import "./rv-pricing.css";
 
 const features = ["Unlimited Users — No Per-User Fees", "2,000 AI Credits Included Monthly", "AI Sales Assistant", "Operations & Task Management", "Product Knowledge & Comparisons", "Conversations & Messaging", "Reporting & Performance Insights"];
@@ -17,7 +18,9 @@ const faqs = [
 export function RvPricing() {
   return <section className="rv-pricing" id="pricing" aria-labelledby="pricing-title">
     <header><p className="lp-kicker">SIMPLE. TRANSPARENT. BUILT TO SCALE.</p><h2 id="pricing-title">One location.<br/><em>Unlimited potential.</em></h2><p>Everything your dealership needs. One predictable monthly price.</p></header>
+    <RvPricingLayout>
     <article className="rv-price-card"><p className="rv-plan-name">RUNFLOOR COMPLETE</p><p className="rv-price"><strong>$99</strong><span>/ month<br/><small>per location</small></span></p><p className="rv-price-promise">Pay Monthly. Cancel Anytime.</p><ul>{features.map(feature => <li key={feature}><Check aria-hidden="true"/><span>{feature}</span></li>)}</ul><p className="rv-price-extra">Need more AI power? Additional credit packs are available.</p><Link className="lp-button rv-trial-link" href="/signup">Start Your 7-Day Free Trial <ArrowRight aria-hidden="true"/></Link><p className="rv-price-trust">No Credit Card Required • Unlimited Users • Cancel Anytime</p><Link className="rv-price-demo" href="/demo">Explore the platform demo <ArrowRight size={15}/></Link></article>
-    <div className="rv-price-faq"><h3>A few things you might be wondering.</h3>{faqs.map(([question,answer]) => <details key={question}><summary>{question}<ChevronDown aria-hidden="true"/></summary><p>{answer}</p></details>)}</div>
+    <div className="rv-price-faq" aria-labelledby="pricing-faq-title"><h3 id="pricing-faq-title">A few things you might be wondering.</h3>{faqs.map(([question,answer], index) => <details key={question} name="rv-pricing-faq" open={index === 0}><summary id={`pricing-question-${index}`} aria-controls={`pricing-answer-${index}`}>{question}<ChevronDown aria-hidden="true"/></summary><div className="rv-faq-answer" id={`pricing-answer-${index}`} role="region" aria-labelledby={`pricing-question-${index}`}><p>{answer}</p></div></details>)}</div>
+    </RvPricingLayout>
   </section>;
 }
