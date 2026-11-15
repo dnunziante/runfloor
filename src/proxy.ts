@@ -4,7 +4,7 @@ import { NextResponse, type NextRequest } from "next/server";
 import { isLocalDemoMode, isSupabaseConfigured, publicDemoCookieName } from "@/lib/supabase/config";
 
 export async function proxy(request: NextRequest) {
-  if (request.nextUrl.pathname === "/api/billing/webhook" || request.nextUrl.pathname.startsWith("/api/auth/")) return NextResponse.next();
+  if (request.nextUrl.pathname === "/api/stripe/webhook" || request.nextUrl.pathname.startsWith("/api/auth/")) return NextResponse.next();
   if (!isFeatureDestinationEnabled(request.nextUrl.pathname)) {
     if (request.nextUrl.pathname.startsWith("/api/") || request.method !== "GET") return NextResponse.json({ error: "Sales Coaching is temporarily unavailable." }, { status: 403 });
     return NextResponse.redirect(new URL("/dashboard", request.url));
