@@ -1,0 +1,79 @@
+import test from "node:test";
+import assert from "node:assert/strict";
+import { readFileSync } from "node:fs";
+import vm from "node:vm";
+import ts from "typescript";
+
+function fixture(user = null) {
+  const calls = [];
+  const dependencies = {
+    "next/navigation": { redirect: path => { throw new Error(`redirect:${path}`); } },
+    "next/headers": { cookies: async () => ({ set: (...args) => calls.push(["cookie", ...args]) }) },
+    "@/lib/supabase/config": { isSupabaseConfigured: () => true },
+    "@/lib/supabase/server": { createClient: async () => ({
+      auth: {
+        getUser: async () => { calls.push(["user"]); return { data: { user } }; },
+        signUp: async input => { calls.push(["signup", input]); return { data: { session: null }, error: null }; },
+      },
+      from: table => ({ update: values => ({ eq: async (column, id) => {
+        calls.push(["profile", table, values, column, id]); return { error: null };
+      } }) }),
+    }) },
+    "@/lib/supabase/admin": { createAdminClient: () => ({ rpc: async (name, parameters) => { calls.push(["activate", name, parameters]); return { error: null }; } }) },
+  };
+  const exports = {};
+  const compiled = ts.transpileModule(readFileSync("src/app/signup/actions.ts", "utf8"), { compilerOptions: { module: ts.ModuleKind.CommonJS, target: ts.ScriptTarget.ES2022 } }).outputText;
+  vm.runInNewContext(compiled, { exports, require: name => { assert.ok(name in dependencies, name); return dependencies[name]; }, process: { env: { RUNFLOOR_RV_BILLING_ENABLED: "true", APP_URL: "https://example.invalid" } } });
+  return { actions: exports, calls };
+}
+function form(changes = {}) {
+  const fields = { dealership: "Example RV", fullName: "Example Owner", email: "owner@example.invalid", password: "example-password-123", phone: "", ...changes };
+  const result = new FormData();
+  Object.entries(fields).forEach(([name, value]) => result.set(name, value));
+  return result;
+}
+test("dealership, contact name, and email are required on the server before signup", async () => {
+  for (const name of ["dealership", "fullName", "email"]) {
+    const f = fixture();
+    const result = await f.actions.signupTrial({ message: "" }, form({ [name]: "  " }));
+    assert.match(result.message, /Enter your dealership/);
+    assert.equal(f.calls.length, 0);
+  }
+});
+test("phone is optional and never becomes a payment or authentication phone", async () => {
+  const f = fixture();
+  await f.actions.signupTrial({ message: "" }, form());
+  const input = f.calls.find(call => call[0] === "signup")[1];
+  assert.equal(input.options.data.contact_phone, null);
+  assert.equal("phone" in input, false);
+});
+test("international contact phone is retained through email verification", async () => {
+  const f = fixture();
+  await f.actions.signupTrial({ message: "" }, form({ phone: " +1 (843) 555-0123 " }));
+  assert.equal(f.calls.find(call => call[0] === "signup")[1].options.data.contact_phone, "+1 (843) 555-0123");
+  assert.equal(JSON.parse(f.calls.find(call => call[0] === "cookie")[2]).phone, "+1 (843) 555-0123");
+});
+test("invalid phone is rejected before authentication or trial activation", async () => {
+  const f = fixture();
+  for (const action of ["signupTrial", "activateTrial"]) {
+    const result = await f.actions[action]({ message: "" }, form({ phone: "not a number" }));
+    assert.match(result.message, /valid phone number/);
+  }
+  assert.equal(f.calls.length, 0);
+});
+test("an unverified user cannot persist a profile phone or activate a trial", async () => {
+  const f = fixture({ id: "owner-a", email_confirmed_at: null });
+  const result = await f.actions.activateTrial({ message: "" }, form({ phone: "+1 843 555 0123" }));
+  assert.match(result.message, /Verify your email/);
+  assert.equal(f.calls.some(call => ["profile", "activate"].includes(call[0])), false);
+});
+test("successful activation saves the phone only to the verified user's existing profile", async () => {
+  const f = fixture({ id: "owner-a", email_confirmed_at: "2026-11-14T12:00:00Z" });
+  await assert.rejects(() => f.actions.activateTrial({ message: "" }, form({ phone: "+1 843 555 0123" })), /redirect:\/dashboard/);
+  const update = f.calls.find(call => call[0] === "profile");
+  assert.equal(update[1], "profiles");
+  assert.equal(update[2].phone, "+1 843 555 0123");
+  assert.equal(update[3], "id");
+  assert.equal(update[4], "owner-a");
+  assert.ok(f.calls.findIndex(call => call[0] === "activate") < f.calls.findIndex(call => call[0] === "profile"));
+});

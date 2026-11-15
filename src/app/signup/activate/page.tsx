@@ -9,7 +9,8 @@ export default async function Activate() {
   const db = await createClient();
   const { data: { user } } = await db.auth.getUser();
   if (!user || !user.email_confirmed_at) return <main className="rv-signup"><h1>Verify your email to get started.</h1><p>Then sign in to activate your dealership.</p><Link href="/login?next=/signup/activate">Sign in</Link></main>;
-  let draft: { dealership?: string; fullName?: string } = {};
+  let draft: { dealership?: string; fullName?: string; phone?: string } = {};
   try { draft = JSON.parse((await cookies()).get("rf-trial-draft")?.value || "{}"); } catch { /* Defaults can be entered again on another device. */ }
-  return <main className="rv-signup"><section><h1>Welcome to RunFloor.</h1><p>Confirm your dealership to activate 7 days of access and 100 shared AI credits.</p><TrialSignupForm activate dealership={typeof draft.dealership === "string" ? draft.dealership : ""} fullName={typeof draft.fullName === "string" ? draft.fullName : ""}/><Link href="/dashboard">Return to an existing workspace</Link></section></main>;
+  const phone = typeof draft.phone === "string" ? draft.phone : typeof user.user_metadata?.contact_phone === "string" ? user.user_metadata.contact_phone : "";
+  return <main className="rv-signup"><section><h1>Welcome to RunFloor.</h1><p>Confirm your dealership to activate 7 days of access and 100 shared AI credits.</p><TrialSignupForm activate dealership={typeof draft.dealership === "string" ? draft.dealership : ""} fullName={typeof draft.fullName === "string" ? draft.fullName : ""} phone={phone}/><Link href="/dashboard">Return to an existing workspace</Link></section></main>;
 }
