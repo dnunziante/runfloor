@@ -1,8 +1,8 @@
-import "./home-account-actions.css";
+import { PublicHeader } from "@/components/public-header";
 import { RvPricing } from "@/components/rv-pricing";
 import { ENABLE_SALES_COACHING } from "@/lib/features";
 import { FeatureLink as Link } from "@/components/feature-link";
-import { ArrowRight, BarChart3, BookOpenCheck, Bot, BriefcaseBusiness, CheckCircle2, ChevronDown, CirclePlay, ClipboardCheck, Gauge, GraduationCap, MapPin, MessageSquareText, ShieldCheck, Target, TrendingUp, UsersRound } from "lucide-react";
+import { ArrowRight, BarChart3, BookOpenCheck, Bot, BriefcaseBusiness, CheckCircle2, CirclePlay, ClipboardCheck, Gauge, GraduationCap, MapPin, MessageSquareText, ShieldCheck, Target, TrendingUp, UsersRound } from "lucide-react";
 import { BrandLogo } from "@/components/brand-logo";
 
 const pillars = [
@@ -30,7 +30,7 @@ const roles = [
 export default function Home() {
   return <main data-coaching-disabled={!ENABLE_SALES_COACHING || undefined} className="lp">
     <section className="lp-hero">
-      <header className="lp-nav"><Link href="/" aria-label="RunFloor home"><BrandLogo priority/></Link><nav><details><summary>Platform <ChevronDown/></summary><div><a href="#platform">Platform overview</a><a href="#solutions">Solutions</a></div></details><details><summary>Solutions <ChevronDown/></summary><div><Link href="/assistant">Sales Assistant</Link><Link href="/operations">Operations</Link><Link href="/coach">Coaching</Link><Link href="/executive">Executive</Link></div></details><a href="#resources">Resources</a><a href="#pricing">Pricing</a></nav><div className="lp-account-actions"><Link href="/demo">View Demo</Link><Link className="lp-button lp-login" href="/login">Log In <ArrowRight/></Link><Link className="lp-button" href="/signup">Sign Up</Link></div></header>
+      <PublicHeader home/>
       <div className="lp-hero-grid"><div><p className="lp-kicker">The AI-powered RV dealership platform</p><h1>Drive a<br/>Stronger<br/><em>Dealership.</em></h1><h2>{ENABLE_SALES_COACHING ? "Train your team." : "Equip your team."} Standardize your operations.<br/>Close more units.</h2><p>Create unforgettable customer experiences and run a more profitable RV dealership—all in one platform.</p><div className="lp-actions"><Link className="lp-button" href="/demo">See It In Action <ArrowRight/></Link><Link className="lp-outline" href="/demo"><CirclePlay/> Watch Demo</Link></div></div><div className="lp-product-preview"><div className="lp-mini-nav"><BrandLogo compact/><span>Home</span><span>Sales Assistant</span><span>Inventory</span>{ENABLE_SALES_COACHING && <span>Coaching</span>}<span>Operations</span><span>Reports</span></div><section><span className="lp-preview-logo"><BrandLogo compact/></span><h3>Good Morning, Team!</h3><p>Let&apos;s make today another great day at the dealership.</p><div><Link href="/assistant"><Bot/>Ask AI<small>Get instant answers</small></Link><Link href="/coach"><GraduationCap/>Role Play<small>Practice and improve</small></Link><Link href="/operations/checklists"><ClipboardCheck/>Checklists<small>Stay on track</small></Link><Link href="/executive"><BarChart3/>Reports<small>See what matters</small></Link></div></section></div></div>
       <div className="lp-hero-proof"><span><TrendingUp/>More Unit Sales</span><span><UsersRound/>Stronger Teams</span><span><ClipboardCheck/>Smoother Operations</span><span><BarChart3/>Measurable Growth</span></div>
     </section>

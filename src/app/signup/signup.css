@@ -1,5 +1,4 @@
-.rv-signup { min-height: 100vh; background: radial-gradient(ellipse at top left,#fff1e9,#f7f6f2 65%); padding: 36px 24px 72px; }
-.rv-signup > a:first-child { display: block; width: 180px; margin: 0 auto 40px; }
+.rv-signup { min-height: calc(100svh - 72px); background: radial-gradient(ellipse at top left,#fff1e9,#f7f6f2 65%); padding: 36px 24px 72px; }
 .rv-signup section { max-width: 540px; margin: auto; background: white; padding: 40px; border: 1px solid #e8e3df; border-radius: 22px; box-shadow: 0 18px 50px #24140b08; }
 .rv-signup h1 { font-size: clamp(30px,4vw,42px); line-height: 1.15; letter-spacing: -.04em; margin: 14px 0; }
 .rv-signup h1 em { color: #ff4b18; font-style: normal; }
