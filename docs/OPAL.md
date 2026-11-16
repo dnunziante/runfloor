@@ -13,6 +13,10 @@ npm run dev -- --hostname localhost --port 3101
 Open http://localhost:3101/help and http://localhost:3101/admin/opal.
 This development-only preview uses a synthetic owner and isolated .opal-preview files. It is disabled whenever NODE_ENV is production. No dealership records or production database credentials are needed. Do not expose a development preview publicly.
 
+## Sidebar navigation
+
+The lower sidebar reuses the module accordion with Help & Support, Billing & Usage, and Administration. Groups start collapsed outside their routes; navigating to a destination opens its group and highlights only that link. One lower group can be open at a time. Existing owner-only Opal and AI Billing Admin links and administrator-only Settings and Platform Administration links retain their access rules. Sales, Operations, Executive, and the workspace selector are unchanged.
+
 ## Implemented
 
 - Persistent, page-aware Ask Opal panel, approved portrait, mobile layout, keyboard focus, Escape, background inert state, new conversation, workspace/sign-out reset.

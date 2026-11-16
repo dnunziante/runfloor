@@ -700,3 +700,18 @@
 /* Reflow retained dashboard cards while Sales Coaching is temporarily hidden. */
 .coaching-disabled .home-metrics,.coaching-disabled .home-insights,.coaching-disabled .personal-metrics,.coaching-disabled .personal-grid,.coaching-disabled .exec-metrics,.coaching-disabled .exec-insights,.coaching-disabled .rv-knowledge-metrics{grid-template-columns:repeat(auto-fit,minmax(min(100%,230px),1fr))}
 [data-coaching-disabled] .lp-pillar-grid,[data-coaching-disabled] .lp-results>div{grid-template-columns:repeat(auto-fit,minmax(min(100%,250px),1fr))}
+
+/* Compact lower sidebar navigation, sharing the existing module accordion. */
+.sidebar-footer{flex-shrink:0;max-height:60%;overflow-y:auto;scrollbar-width:thin;scrollbar-color:#4f4f4f transparent}
+.utility-nav{display:block;padding:0;overflow:visible}
+.utility-group{margin:0;border:0;border-bottom:1px solid rgba(255,255,255,.055);border-radius:0;background:transparent}
+.utility-group summary{min-height:44px;padding:10px;gap:10px;font-size:13px;font-weight:600}
+.utility-group summary:hover{background:#34241e;border-radius:9px;color:#fff}
+.utility-group .module-icon svg,.utility-group .module-links svg{color:#ff6a21;flex-shrink:0}
+.utility-group .module-chevron{width:14px;opacity:.75}
+.utility-group .module-links{padding:2px 2px 7px 20px}
+.utility-group .module-links a{min-height:36px;gap:8px;font-size:12px;line-height:1.4}
+.utility-group .module-links a span{min-width:0;white-space:normal}
+.utility-group a:focus-visible{outline:2px solid #ff9b79;outline-offset:-2px}
+@media(min-width:761px){.sidebar-collapsed .utility-label,.sidebar-collapsed .utility-group .module-chevron,.sidebar-collapsed .utility-group .module-links{display:none}.sidebar-collapsed .utility-group summary{justify-content:center;padding-inline:0}}
+@media(max-width:760px){.sidebar{height:100dvh}.utility-group summary,.utility-group .module-links a{min-height:44px}}

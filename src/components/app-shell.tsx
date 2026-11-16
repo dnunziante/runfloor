@@ -3,12 +3,13 @@
 import Link from "next/link";
 import { ENABLE_SALES_COACHING } from "@/lib/features";
 import { usePathname, useRouter } from "next/navigation";
-import { ArrowLeft, Boxes, ChevronDown, ChevronsLeft, ChevronsRight, Home, LogOut, Menu, Settings, Wrench, X } from "lucide-react";
+import { ArrowLeft, Boxes, ChevronDown, ChevronsLeft, ChevronsRight, Home, LogOut, Menu, X } from "lucide-react";
 import { useEffect, useState } from "react";
 import { logout } from "@/app/auth/actions";
 import { WorkspaceSearch } from "@/components/workspace-search";
 import { BrandLogo } from "@/components/brand-logo";
 import { activeNavigationItem, activeWorkspace, getWorkspaceNavigation } from "@/lib/navigation";
+import { activeSidebarItem, getSidebarNavigation } from "@/lib/sidebar-navigation";
 import { navigationIcons } from "@/components/navigation-icons";
 import type { Viewer } from "@/lib/auth/viewer";
 
@@ -50,11 +51,13 @@ export function AppShell({ children, title, industry }: { children: React.ReactN
   }
 
   const roleLabel = viewer.role === "platform_owner" ? "Platform Owner" : viewer.role === "tenant_admin" ? "Tenant Admin" : viewer.role === "manager" ? "Manager" : "Salesperson";
-  const administratorVisible = viewer.role === "platform_owner" || viewer.role === "tenant_admin";
   const isRv = industry === "rv" || viewer.industryTemplateKey === "rv";
   const isGolfCart = industry === "golf-cart" || viewer.industryTemplateKey === "golf-cart";
   const navigation = getWorkspaceNavigation(viewer.role, industry ?? viewer.industryTemplateKey);
   const activeItem = activeNavigationItem(pathname, navigation);
+  const sidebarGroups = getSidebarNavigation(viewer.role);
+  const activeFooterItem = activeItem ? undefined : activeSidebarItem(pathname, sidebarGroups);
+  const activeFooterGroup = sidebarGroups.find(group => group.items.some(item => item.href === activeFooterItem?.href))?.id;
   const expandedWorkspace = activeWorkspace(pathname) ?? (pathname === "/dashboard" ? "sales" : undefined);
   return <div className={`shell ${!ENABLE_SALES_COACHING ? "coaching-disabled" : ""} ${collapsed ? "sidebar-collapsed" : ""} ${isRv ? "rv-shell" : ""} ${isGolfCart ? "golf-cart-shell" : ""}`}>
     {open && <button className="scrim" aria-label="Close menu" onClick={() => setOpen(false)} />}
@@ -76,7 +79,20 @@ export function AppShell({ children, title, industry }: { children: React.ReactN
           </details>;
         })}
       </nav>
-      <div className="sidebar-footer"><Link href="/help"><Boxes size={18}/><span>Help Center</span></Link>{viewer.role === "platform_owner" && <Link href="/admin/opal"><Settings size={18}/><span>Opal &amp; Help Center</span></Link>}<Link href="/billing"><Settings size={18}/><span>Subscription &amp; Billing</span></Link><Link href="/ai-usage"><Boxes size={18}/><span>AI Usage & Billing</span></Link>{administratorVisible && <Link href="/admin"><Settings size={18}/><span>Platform Administration</span><ChevronDown className="footer-chevron" size={16}/></Link>}{viewer.role === "platform_owner" && <Link href="/admin/ai-billing"><Boxes size={18}/><span>AI Billing Admin</span></Link>}{administratorVisible && <Link href="/admin/settings"><Wrench size={18}/><span>Settings</span><ChevronDown className="footer-chevron" size={16}/></Link>}<div className="profile"><span className="avatar">{viewer.initials}</span><span><strong>{viewer.fullName}</strong><small>{roleLabel}</small></span><form action={logout} onSubmit={() => window.dispatchEvent(new Event("opal:reset"))}><button className="logout-button" type="submit"><LogOut size={17}/><span>{viewer.demo ? "Exit demo" : "Sign out"}</span></button></form></div><div className="sidebar-motto">People <i/> Processes <i/> Profit</div></div>
+      <div className="sidebar-footer">
+        <nav className="nav utility-nav" aria-label="Help, billing and administration">
+          {sidebarGroups.map(group => {
+            const GroupIcon = navigationIcons[group.icon] ?? Boxes;
+            return <details name="sidebar-utilities" className="module-group utility-group" key={group.id + pathname + viewer.role} open={activeFooterGroup === group.id}>
+              <summary aria-label={group.label} title={group.label} onClick={() => collapsed && setCollapsed(false)}><span className="module-icon"><GroupIcon size={18}/></span><span className="utility-label">{group.label}</span><ChevronDown className="module-chevron" size={16}/></summary>
+              <div className="module-links">{group.items.map(entry => {
+                const Icon = navigationIcons[entry.icon] ?? Boxes;
+                const active = activeFooterItem?.href === entry.href;
+                return <Link href={entry.href} key={entry.href} className={active ? "active" : ""} aria-current={active ? "page" : undefined} onClick={() => setOpen(false)}><Icon size={16}/><span>{entry.label}</span></Link>;
+              })}</div>
+            </details>;
+          })}
+        </nav><div className="profile"><span className="avatar">{viewer.initials}</span><span><strong>{viewer.fullName}</strong><small>{roleLabel}</small></span><form action={logout} onSubmit={() => window.dispatchEvent(new Event("opal:reset"))}><button className="logout-button" type="submit"><LogOut size={17}/><span>{viewer.demo ? "Exit demo" : "Sign out"}</span></button></form></div><div className="sidebar-motto">People <i/> Processes <i/> Profit</div></div>
     </aside>
     <main className="main">
       <header className="topbar"><div className="topbar-title"><button className="icon-btn menu-btn" aria-label="Open menu" onClick={() => setOpen(true)}><Menu size={21}/></button><button className="btn btn-ghost" type="button" onClick={() => router.back()} aria-label="Go back to the previous page"><ArrowLeft size={16}/> Back</button><strong>{title}</strong></div><div className="top-actions"><WorkspaceSearch role={viewer.role} industry={industry ?? viewer.industryTemplateKey}/><span className="status-dot" title={viewer.demo ? "Demo environment" : "Connected"}/><span className="avatar">{viewer.initials}</span></div></header>
