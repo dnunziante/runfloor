@@ -13,10 +13,10 @@ export function getSidebarNavigation(role: AppRole) {
       { href: "/ai-usage", label: "AI Usage & Credits", icon: "Boxes" },
       ...(owner ? [{ href: "/admin/ai-billing", label: "AI Billing Admin", icon: "Boxes" }] : []),
     ] },
-    ...(administrator ? [{ id: "administration", label: "Administration", icon: "Settings", items: [
-      { href: "/admin/settings", label: "Settings", icon: "Wrench" },
-      { href: "/admin", label: "Platform Administration", icon: "Settings" },
-    ] }] : []),
+    ...([{ id: "administration", label: "Administration", icon: "Settings", items: [
+      { href: administrator ? "/admin/settings" : "/admin/settings/roles", label: "Settings", icon: "Wrench" },
+      ...(administrator ? [{ href: "/admin", label: "Platform Administration", icon: "Settings" }] : []),
+    ] }]),
   ];
 }
 

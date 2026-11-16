@@ -11,6 +11,7 @@ import { BrandLogo } from "@/components/brand-logo";
 import { activeNavigationItem, activeWorkspace, getWorkspaceNavigation } from "@/lib/navigation";
 import { activeSidebarItem, getSidebarNavigation } from "@/lib/sidebar-navigation";
 import { navigationIcons } from "@/components/navigation-icons";
+import { hasPagePermission } from "@/lib/auth/role-permissions";
 import type { Viewer } from "@/lib/auth/viewer";
 
 export function AppShell({ children, title, industry }: { children: React.ReactNode; title: string; industry?: "rv" | "golf-cart" }) {
@@ -19,7 +20,7 @@ export function AppShell({ children, title, industry }: { children: React.ReactN
   const [open, setOpen] = useState(false);
   const [collapsed, setCollapsed] = useState(false);
   const [workspaces, setWorkspaces] = useState<{ id: string; name: string }[]>([]);
-  const [viewer, setViewer] = useState<Pick<Viewer, "fullName" | "initials" | "organizationId" | "organizationName" | "role" | "demo"> & { industryTemplateKey?: string }>({
+  const [viewer, setViewer] = useState<Pick<Viewer, "fullName" | "initials" | "organizationId" | "organizationName" | "role" | "demo" | "permissions"> & { industryTemplateKey?: string }>({
     fullName: "User",
     initials: "U",
     organizationId: "",
@@ -53,9 +54,9 @@ export function AppShell({ children, title, industry }: { children: React.ReactN
   const roleLabel = viewer.role === "platform_owner" ? "Platform Owner" : viewer.role === "tenant_admin" ? "Tenant Admin" : viewer.role === "manager" ? "Manager" : "Salesperson";
   const isRv = industry === "rv" || viewer.industryTemplateKey === "rv";
   const isGolfCart = industry === "golf-cart" || viewer.industryTemplateKey === "golf-cart";
-  const navigation = getWorkspaceNavigation(viewer.role, industry ?? viewer.industryTemplateKey);
+  const navigation = getWorkspaceNavigation(viewer.role, industry ?? viewer.industryTemplateKey).map(workspace => ({ ...workspace, groups: workspace.groups.map(group => ({ ...group, items: group.items.filter(item => hasPagePermission(viewer.role, item.href, viewer.permissions)) })).filter(group => group.items.length) })).filter(workspace => workspace.groups.length);
   const activeItem = activeNavigationItem(pathname, navigation);
-  const sidebarGroups = getSidebarNavigation(viewer.role);
+  const sidebarGroups = getSidebarNavigation(viewer.role).map(group => ({ ...group, items: group.items.map(item => item.href === "/admin/settings" && !hasPagePermission(viewer.role, item.href, viewer.permissions) ? { ...item, href: "/admin/settings/roles" } : item).filter(item => hasPagePermission(viewer.role, item.href, viewer.permissions)) })).filter(group => group.items.length);
   const activeFooterItem = activeItem ? undefined : activeSidebarItem(pathname, sidebarGroups);
   const activeFooterGroup = sidebarGroups.find(group => group.items.some(item => item.href === activeFooterItem?.href))?.id;
   const expandedWorkspace = activeWorkspace(pathname) ?? (pathname === "/dashboard" ? "sales" : undefined);
@@ -95,7 +96,7 @@ export function AppShell({ children, title, industry }: { children: React.ReactN
         </nav><div className="profile"><span className="avatar">{viewer.initials}</span><span><strong>{viewer.fullName}</strong><small>{roleLabel}</small></span><form action={logout} onSubmit={() => window.dispatchEvent(new Event("opal:reset"))}><button className="logout-button" type="submit"><LogOut size={17}/><span>{viewer.demo ? "Exit demo" : "Sign out"}</span></button></form></div><div className="sidebar-motto">People <i/> Processes <i/> Profit</div></div>
     </aside>
     <main className="main">
-      <header className="topbar"><div className="topbar-title"><button className="icon-btn menu-btn" aria-label="Open menu" onClick={() => setOpen(true)}><Menu size={21}/></button><button className="btn btn-ghost" type="button" onClick={() => router.back()} aria-label="Go back to the previous page"><ArrowLeft size={16}/> Back</button><strong>{title}</strong></div><div className="top-actions"><WorkspaceSearch role={viewer.role} industry={industry ?? viewer.industryTemplateKey}/><span className="status-dot" title={viewer.demo ? "Demo environment" : "Connected"}/><span className="avatar">{viewer.initials}</span></div></header>
+      <header className="topbar"><div className="topbar-title"><button className="icon-btn menu-btn" aria-label="Open menu" onClick={() => setOpen(true)}><Menu size={21}/></button><button className="btn btn-ghost" type="button" onClick={() => router.back()} aria-label="Go back to the previous page"><ArrowLeft size={16}/> Back</button><strong>{title}</strong></div><div className="top-actions"><WorkspaceSearch permissions={viewer.permissions} role={viewer.role} industry={industry ?? viewer.industryTemplateKey}/><span className="status-dot" title={viewer.demo ? "Demo environment" : "Connected"}/><span className="avatar">{viewer.initials}</span></div></header>
       <div className="content">{children}</div>
     </main>
   </div>;

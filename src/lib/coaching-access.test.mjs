@@ -1,3 +1,4 @@
+import * as rolePermissions from "./auth/role-permissions.ts";
 import assert from "node:assert/strict";
 import test from "node:test";
 import { readFileSync } from "node:fs";
@@ -20,6 +21,7 @@ function load(file, dependencies) {
 test("the actual proxy rejects coaching before authentication and demo bypasses", async () => {
   for (const enabled of [false, true]) {
     const { proxy } = load("src/proxy.ts", {
+      "@/lib/auth/role-permissions": rolePermissions,
       "@/lib/features": { isFeatureDestinationEnabled: (path) => isFeatureDestinationEnabled(path, enabled) },
       "@supabase/ssr": { createServerClient: () => { throw new Error("Unexpected database access"); } },
       "@/lib/supabase/config": { isLocalDemoMode: () => true },

@@ -13,6 +13,7 @@ export default async function SettingsPage() {
 
   return <AppShell title="Admin · Settings">
     <PageHeader eyebrow="Customization" title="Company branding and settings" description="Save organization settings for every authorized user and computer." />
+    <section className="card" style={{ marginBottom: 18 }}><h2>Roles &amp; Permissions</h2><p>Review the default access for Admin, Manager, and Sales positions and configure their workspace permissions.</p><Link className="btn btn-secondary" href="/admin/settings/roles">Manage Roles &amp; Permissions</Link></section>
     <OrganizationSettingsForm settings={settings} locations={locationResult.locations} canSave={canSave} />
     <section className="card" style={{ marginTop: 18 }}><h2>AI Communication Standards</h2><p>Manage communication rules and style examples separately from factual company knowledge.</p><Link className="btn btn-secondary" href="/admin/ai-communication">Manage AI Communication Standards</Link></section>
     <AddLocationForm canAdd={canSave} />

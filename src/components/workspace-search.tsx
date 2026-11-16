@@ -5,9 +5,10 @@ import Link from "next/link";
 import { Search, X } from "lucide-react";
 
 import { getWorkspaceNavigation } from "@/lib/navigation";
+import { hasPagePermission, type RolePermissions } from "@/lib/auth/role-permissions";
 import type { AppRole } from "@/lib/auth/viewer";
-export function WorkspaceSearch({ role = "salesperson", industry }: { role?: AppRole; industry?: string }) {
-  const destinations = [["Home", "/dashboard"], ...getWorkspaceNavigation(role, industry).flatMap((workspace) => workspace.groups.flatMap((group) => group.items.filter((entry) => !entry.href.includes("#")).map((entry) => [entry.label, entry.href])))];
+export function WorkspaceSearch({ role = "salesperson", industry, permissions }: { role?: AppRole; industry?: string; permissions?: RolePermissions }) {
+  const destinations = [["Home", "/dashboard"], ...getWorkspaceNavigation(role, industry).flatMap((workspace) => workspace.groups.flatMap((group) => group.items.filter((entry) => !entry.href.includes("#") && hasPagePermission(role, entry.href, permissions)).map((entry) => [entry.label, entry.href])))];
   const dialog = useRef<HTMLDialogElement>(null);
   const [query, setQuery] = useState("");
   useEffect(() => { const listener = (event: KeyboardEvent) => {if ((event.metaKey || event.ctrlKey) && event.key.toLowerCase()==="k") {event.preventDefault(); dialog.current?.showModal();}}; window.addEventListener("keydown",listener); return ()=>window.removeEventListener("keydown",listener); }, []);

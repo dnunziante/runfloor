@@ -1,4 +1,5 @@
 import "server-only";
+import { defaultPermissions, type RolePermissions } from "./role-permissions";
 
 import { cookies } from "next/headers";
 import { isLocalDemoMode, isSupabaseConfigured, publicDemoCookieName } from "@/lib/supabase/config";
@@ -19,6 +20,7 @@ export type Viewer = {
   organizationName: string;
   role: AppRole;
   demo: boolean;
+  permissions?: RolePermissions;
 };
 
 export const demoViewer: Viewer = {
@@ -89,7 +91,15 @@ export async function getViewer(): Promise<Viewer | null> {
   const organizationId = canUseContext && workspaceContext?.active_organization_id ? workspaceContext.active_organization_id : membership?.organization_id || "";
   const organizationName = canUseContext && contextOrganization?.name ? contextOrganization.name : membershipOrganization?.name || "No organization";
 
+  const role: AppRole = isPlatformOwner ? "platform_owner" : ((membership?.role as AppRole | undefined) || "salesperson");
+  let permissions = defaultPermissions(role);
+  if (organizationId && !isPlatformOwner) {
+    const { data: permissionRow, error } = await supabase.from("organization_role_permissions").select("permissions").eq("organization_id", organizationId).eq("role", role).maybeSingle();
+    if (error) throw new Error("Workspace permissions could not be verified.");
+    if (permissionRow) permissions = permissionRow.permissions;
+  }
   return {
+    permissions,
     id: user.id,
     email: user.email || "",
     fullName,

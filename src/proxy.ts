@@ -1,3 +1,5 @@
+import { defaultPermissions, hasPagePermission } from "@/lib/auth/role-permissions";
+import type { AppRole } from "@/lib/auth/viewer";
 import { isFeatureDestinationEnabled } from "@/lib/features";
 import { createServerClient } from "@supabase/ssr";
 import { NextResponse, type NextRequest } from "next/server";
@@ -81,11 +83,23 @@ export async function proxy(request: NextRequest) {
   if (
     request.nextUrl.pathname.startsWith("/admin") &&
     !profile?.is_platform_owner &&
-    membership?.role !== "tenant_admin"
+    membership?.role !== "tenant_admin" &&
+    !(request.nextUrl.pathname === "/admin/settings/roles" || request.nextUrl.pathname.startsWith("/admin/settings/roles/"))
   ) {
     return NextResponse.redirect(new URL("/dashboard", request.url));
   }
 
+  if (!profile?.is_platform_owner && membership) {
+    const { data: permissionRow, error: permissionError } = await supabase.from("organization_role_permissions").select("permissions").eq("organization_id", membership.organization_id).eq("role", membership.role).maybeSingle();
+    if (permissionError) return NextResponse.json({ error: "Workspace permissions could not be verified. Try again shortly." }, { status: 503 });
+    const permissions = permissionRow?.permissions ?? defaultPermissions(membership.role as AppRole);
+    if (!hasPagePermission(membership.role as AppRole, request.nextUrl.pathname, permissions)) {
+      if (request.method !== "GET" || request.nextUrl.pathname.startsWith("/api/")) return NextResponse.json({ error: "Your position does not have access to this area." }, { status: 403 });
+      const denied = NextResponse.redirect(new URL("/dashboard?access=restricted", request.url));
+      response.cookies.getAll().forEach(cookie => denied.cookies.set(cookie));
+      return denied;
+    }
+  }
   const helpPath = request.nextUrl.pathname === "/help" || request.nextUrl.pathname.startsWith("/help/") || request.nextUrl.pathname === "/api/opal" || request.nextUrl.pathname.startsWith("/api/opal/") || request.nextUrl.pathname === "/admin/opal";
   if (membership && !helpPath && !request.nextUrl.pathname.startsWith("/billing")) {
     const { data: access, error } = await supabase.rpc("rv_access_state", { target_org: membership.organization_id, target_location: request.cookies.get("rf-billing-location")?.value || null });
@@ -104,6 +118,7 @@ export const config = {
   matcher: [
     "/help/:path*",
     "/billing/:path*",
+    "/ai-usage/:path*",
     "/messages/:path*",
     "/generator/:path*",
     "/knowledge/:path*",
