@@ -1,0 +1,1048 @@
+[
+  {
+    "slug": "meet-opal",
+    "title": "Meet Opal, your RunFloor guide",
+    "category": "Getting Started",
+    "route": "/help",
+    "body": "Hi, I’m Opal! I help you find your way around RunFloor using verified platform guides. My help is included and never uses dealership AI credits. I cannot read dealership activity, change records, or send messages. If I cannot verify an answer, I will say so.",
+    "steps": [
+      "Select Ask Opal from any workspace page.",
+      "Describe what you are trying to do, or choose Help with this page.",
+      "Follow a linked guide for the full instructions.",
+      "Use Contact support to prepare an email to support@runfloorai.com."
+    ],
+    "evidence": "src/lib/opal; src/components/opal-widget.tsx",
+    "roles": [
+      "platform_owner",
+      "tenant_admin",
+      "manager",
+      "salesperson"
+    ],
+    "summary": "Hi, I’m Opal! I help you find your way around RunFloor using verified platform guides.",
+    "verified": true,
+    "verifiedAt": "2026-11-15",
+    "status": "published",
+    "version": 1,
+    "needsReview": false
+  },
+  {
+    "slug": "find-your-way",
+    "title": "Find your way around RunFloor",
+    "category": "Getting Started",
+    "route": "/dashboard",
+    "body": "Home is your starting point. Sales, Operations, and Executive group related tools. Available tools depend on your access.",
+    "steps": [
+      "Open the navigation menu if it is hidden.",
+      "Expand Sales, Operations, or Executive to find its tools.",
+      "Select Home to return to the dashboard.",
+      "Open Help Center or Ask Opal whenever you need guidance."
+    ],
+    "evidence": "src/components/app-shell.tsx; src/lib/navigation.ts",
+    "roles": [
+      "platform_owner",
+      "tenant_admin",
+      "manager",
+      "salesperson"
+    ],
+    "summary": "Home is your starting point.",
+    "verified": true,
+    "verifiedAt": "2026-11-15",
+    "status": "published",
+    "version": 1,
+    "needsReview": false
+  },
+  {
+    "slug": "sales-assistant",
+    "title": "Ask the Sales AI Assistant",
+    "category": "Sales",
+    "route": "/assistant",
+    "body": "The Sales AI Assistant provides a conversation for sales questions. Include the model, year, and customer needs in your question. Opal can explain how to use it; Opal does not read its conversations.",
+    "steps": [
+      "Open Sales → Sales AI Assistant.",
+      "Type your question or choose a suggested prompt.",
+      "Select Send message.",
+      "Review the answer and supporting sources before using it."
+    ],
+    "evidence": "src/components/workspace-assistant.tsx; src/lib/assistant/workspaces.ts",
+    "roles": [
+      "platform_owner",
+      "tenant_admin",
+      "manager",
+      "salesperson"
+    ],
+    "summary": "The Sales AI Assistant provides a conversation for sales questions.",
+    "verified": true,
+    "verifiedAt": "2026-11-15",
+    "status": "published",
+    "version": 1,
+    "needsReview": false
+  },
+  {
+    "slug": "find-inventory",
+    "title": "Find an RV in your inventory",
+    "category": "Sales",
+    "route": "/products",
+    "body": "Use the inventory library to find published models and open their product guides. A catalog listing alone does not establish current stock availability.",
+    "steps": [
+      "Open Sales → RVs & Inventory.",
+      "Use Search inventory and narrow by brand, RV type, or model year.",
+      "Select View product guide to read model details.",
+      "Use Clear to remove filters when a model is missing."
+    ],
+    "evidence": "src/app/products/page.tsx; src/lib/knowledge-first/retrieval.ts",
+    "roles": [
+      "platform_owner",
+      "tenant_admin",
+      "manager",
+      "salesperson"
+    ],
+    "summary": "Use the inventory library to find published models and open their product guides.",
+    "verified": true,
+    "verifiedAt": "2026-11-15",
+    "status": "published",
+    "version": 1,
+    "needsReview": false
+  },
+  {
+    "slug": "compare-models",
+    "title": "Compare RV models",
+    "category": "Sales",
+    "route": "/comparisons",
+    "body": "Compare the available product specifications side by side. Not provided means a value is missing; it does not prove the vehicle lacks a feature.",
+    "steps": [
+      "Open Sales → Product Comparisons.",
+      "Choose Our Product and Competitor Product.",
+      "Optionally select Add a third product.",
+      "Check the model years and open product guides to confirm important details."
+    ],
+    "evidence": "src/app/comparisons/page.tsx",
+    "roles": [
+      "platform_owner",
+      "tenant_admin",
+      "manager",
+      "salesperson"
+    ],
+    "summary": "Compare the available product specifications side by side.",
+    "verified": true,
+    "verifiedAt": "2026-11-15",
+    "status": "published",
+    "version": 1,
+    "needsReview": false
+  },
+  {
+    "slug": "customer-messages",
+    "title": "Prepare a customer email or text",
+    "category": "Sales",
+    "route": "/messages",
+    "body": "Message Center helps prepare customer messages using AI or approved templates. Review the preview before copying a message into your sending tool.",
+    "steps": [
+      "Open Sales → Message Center.",
+      "Choose Email or Text message.",
+      "Choose Generate with AI or Use a template.",
+      "Complete customer and product context, then generate or choose a template.",
+      "Review the preview and use Copy or Print."
+    ],
+    "evidence": "src/app/messages/page.tsx; src/components/rv-message-studio.tsx",
+    "roles": [
+      "platform_owner",
+      "tenant_admin",
+      "manager",
+      "salesperson"
+    ],
+    "summary": "Message Center helps prepare customer messages using AI or approved templates.",
+    "verified": true,
+    "verifiedAt": "2026-11-15",
+    "status": "published",
+    "version": 1,
+    "needsReview": false
+  },
+  {
+    "slug": "find-procedure",
+    "title": "Find a procedure",
+    "category": "Operations",
+    "route": "/operations/procedures",
+    "body": "The procedure library groups processes by category. Check the status and version before treating a procedure as approved guidance.",
+    "steps": [
+      "Open Operations → Procedures.",
+      "Search procedures or choose a category.",
+      "Select Open procedure.",
+      "Check Draft or Published status and the displayed version."
+    ],
+    "evidence": "src/components/operations-procedure-manager.tsx",
+    "roles": [
+      "platform_owner",
+      "tenant_admin",
+      "manager",
+      "salesperson"
+    ],
+    "summary": "The procedure library groups processes by category.",
+    "verified": true,
+    "verifiedAt": "2026-11-15",
+    "status": "published",
+    "version": 1,
+    "needsReview": false
+  },
+  {
+    "slug": "task-calendar",
+    "title": "Use the Operations calendar",
+    "category": "Operations",
+    "route": "/operations/calendar",
+    "body": "The calendar combines dated checklists, alerts, and recurring schedule runs. Employee calendar sync and notifications are not connected in this version.",
+    "steps": [
+      "Open Operations → Task Calendar.",
+      "Use Previous month, Next month, or Today.",
+      "Narrow by Location or Work type.",
+      "If the month is empty, check filters and try another month."
+    ],
+    "evidence": "src/components/operations-task-calendar.tsx",
+    "roles": [
+      "platform_owner",
+      "tenant_admin",
+      "manager",
+      "salesperson"
+    ],
+    "summary": "The calendar combines dated checklists, alerts, and recurring schedule runs.",
+    "verified": true,
+    "verifiedAt": "2026-11-15",
+    "status": "published",
+    "version": 1,
+    "needsReview": false
+  },
+  {
+    "slug": "historical-trends",
+    "title": "Understand Historical Trends",
+    "category": "Executive",
+    "route": "/executive/trends",
+    "body": "Historical Trends uses approved monthly results. Draft and missing records are excluded; missing months are not estimated.",
+    "steps": [
+      "Open Executive → Historical Trends.",
+      "Choose 6, 12, or 24 months, or a custom range.",
+      "Select the available location filter and Apply filters.",
+      "If a month is missing, ask an administrator to check approval of its sales results."
+    ],
+    "evidence": "src/app/executive/trends/page.tsx; src/lib/executive/trends-repository.ts",
+    "roles": [
+      "platform_owner",
+      "tenant_admin",
+      "manager"
+    ],
+    "summary": "Historical Trends uses approved monthly results.",
+    "verified": true,
+    "verifiedAt": "2026-11-15",
+    "status": "published",
+    "version": 1,
+    "needsReview": false
+  },
+  {
+    "slug": "monthly-review",
+    "title": "Complete a Monthly Leadership Review",
+    "category": "Executive",
+    "route": "/executive/review",
+    "body": "Both completion buttons save the current notes and record review completion. Clear changes the notes field locally until the form is submitted. Notes allow up to 2,000 characters.",
+    "steps": [
+      "Open Executive → Monthly Review.",
+      "Select the reporting period and View period.",
+      "Review the snapshot, agenda, accountability, and decisions.",
+      "Enter your Review Notes.",
+      "Select Save notes and complete review or Mark review complete."
+    ],
+    "evidence": "src/components/monthly-review-controls.tsx; src/app/executive/review/actions.ts",
+    "roles": [
+      "platform_owner",
+      "tenant_admin",
+      "manager"
+    ],
+    "summary": "Both completion buttons save the current notes and record review completion.",
+    "verified": true,
+    "verifiedAt": "2026-11-15",
+    "status": "published",
+    "version": 1,
+    "needsReview": false
+  },
+  {
+    "slug": "priority-scoring",
+    "title": "Understand Priority Scoring",
+    "category": "Executive",
+    "route": "/growth/priorities",
+    "body": "Priority scores are planning aids, not predictions. Higher impact, confidence, and alignment increase priority; lower effort, cost, and risk increase priority.",
+    "steps": [
+      "Open Executive → Priority Scoring.",
+      "Filter or sort the ranked opportunities.",
+      "Use View details to review the underlying ratings.",
+      "Expand How the priority score is calculated to see the explanation."
+    ],
+    "evidence": "src/app/growth/priorities/page.tsx",
+    "roles": [
+      "platform_owner",
+      "tenant_admin",
+      "manager"
+    ],
+    "summary": "Priority scores are planning aids, not predictions.",
+    "verified": true,
+    "verifiedAt": "2026-11-15",
+    "status": "published",
+    "version": 1,
+    "needsReview": false
+  },
+  {
+    "slug": "knowledge-upload",
+    "title": "Upload dealership knowledge",
+    "category": "Team & Administration",
+    "route": "/knowledge-base",
+    "body": "Administrators can upload PDF, DOCX, Markdown, or text documents up to 4 MiB. Processing can succeed or fail; uploading alone is not a guarantee that content is usable by every assistant.",
+    "steps": [
+      "Open Knowledge Base.",
+      "Enter a Title and select a Collection.",
+      "Optionally associate a product and location from the current dealership.",
+      "Choose the file and select Upload securely.",
+      "Review processing status and any error."
+    ],
+    "evidence": "src/app/api/knowledge/documents/route.ts; src/lib/rag/process-document.ts",
+    "roles": [
+      "platform_owner",
+      "tenant_admin"
+    ],
+    "summary": "Administrators can upload PDF, DOCX, Markdown, or text documents up to 4 MiB.",
+    "verified": true,
+    "verifiedAt": "2026-11-15",
+    "status": "published",
+    "version": 1,
+    "needsReview": false
+  },
+  {
+    "slug": "ai-credits",
+    "title": "Understand shared AI credits",
+    "category": "Billing & AI Credits",
+    "route": "/ai-usage",
+    "body": "AI Usage & Billing shows included credits, pending reservations, purchased credits, and usage history. Opal’s platform help never deducts dealership credits.",
+    "steps": [
+      "Open AI Usage & Billing.",
+      "Review the displayed period and remaining balance.",
+      "Check Reserved / pending when comparing available credits with completed usage.",
+      "Use Company usage history filters and select Filter."
+    ],
+    "evidence": "src/app/ai-usage/page.tsx; src/lib/ai-billing/provider.ts",
+    "roles": [
+      "platform_owner",
+      "tenant_admin",
+      "manager",
+      "salesperson"
+    ],
+    "summary": "AI Usage & Billing shows included credits, pending reservations, purchased credits, and usage history.",
+    "verified": true,
+    "verifiedAt": "2026-11-15",
+    "status": "published",
+    "version": 1,
+    "needsReview": false
+  },
+  {
+    "slug": "contact-support",
+    "title": "Contact RunFloor support",
+    "category": "Troubleshooting",
+    "route": "/help",
+    "body": "Need extra help? Email support@runfloorai.com. Contact support prepares a draft for you to review and send; it does not send automatically.",
+    "steps": [
+      "Select Contact support in the Help Center or Opal panel.",
+      "Describe what you tried and what happened.",
+      "Choose whether to include the Opal conversation.",
+      "Review the email draft and send it from your email app."
+    ],
+    "evidence": "src/lib/opal/policy.ts; src/components/opal-widget.tsx",
+    "roles": [
+      "platform_owner",
+      "tenant_admin",
+      "manager",
+      "salesperson"
+    ],
+    "summary": "Need extra help? Email support@runfloorai.com.",
+    "verified": true,
+    "verifiedAt": "2026-11-15",
+    "status": "published",
+    "version": 1,
+    "needsReview": false
+  },
+  {
+    "slug": "choose-your-work-area",
+    "title": "Choose your work area",
+    "summary": "Awaiting complete workflow verification.",
+    "category": "Getting Started",
+    "route": "/help",
+    "body": "Draft planning topic. Verify workflow and role access before publication.",
+    "steps": [],
+    "roles": [
+      "platform_owner"
+    ],
+    "verified": false,
+    "verifiedAt": "",
+    "evidence": "",
+    "status": "draft",
+    "version": 1,
+    "needsReview": true
+  },
+  {
+    "slug": "switch-dealership-workspace",
+    "title": "Switch dealership workspace",
+    "summary": "Awaiting complete workflow verification.",
+    "category": "Getting Started",
+    "route": "/help",
+    "body": "Draft planning topic. Verify workflow and role access before publication.",
+    "steps": [],
+    "roles": [
+      "platform_owner"
+    ],
+    "verified": false,
+    "verifiedAt": "",
+    "evidence": "",
+    "status": "draft",
+    "version": 1,
+    "needsReview": true
+  },
+  {
+    "slug": "understand-access-and-permissions",
+    "title": "Understand access and permissions",
+    "summary": "Awaiting complete workflow verification.",
+    "category": "Getting Started",
+    "route": "/help",
+    "body": "Draft planning topic. Verify workflow and role access before publication.",
+    "steps": [],
+    "roles": [
+      "platform_owner"
+    ],
+    "verified": false,
+    "verifiedAt": "",
+    "evidence": "",
+    "status": "draft",
+    "version": 1,
+    "needsReview": true
+  },
+  {
+    "slug": "research-competitors",
+    "title": "Research competitors",
+    "summary": "Awaiting complete workflow verification.",
+    "category": "Sales",
+    "route": "/help",
+    "body": "Draft planning topic. Verify workflow and role access before publication.",
+    "steps": [],
+    "roles": [
+      "platform_owner"
+    ],
+    "verified": false,
+    "verifiedAt": "",
+    "evidence": "",
+    "status": "draft",
+    "version": 1,
+    "needsReview": true
+  },
+  {
+    "slug": "build-a-quote-and-estimate-payments",
+    "title": "Build a quote and estimate payments",
+    "summary": "Awaiting complete workflow verification.",
+    "category": "Sales",
+    "route": "/help",
+    "body": "Draft planning topic. Verify workflow and role access before publication.",
+    "steps": [],
+    "roles": [
+      "platform_owner"
+    ],
+    "verified": false,
+    "verifiedAt": "",
+    "evidence": "",
+    "status": "draft",
+    "version": 1,
+    "needsReview": true
+  },
+  {
+    "slug": "review-sales-dashboard",
+    "title": "Review Sales Dashboard",
+    "summary": "Awaiting complete workflow verification.",
+    "category": "Sales",
+    "route": "/help",
+    "body": "Draft planning topic. Verify workflow and role access before publication.",
+    "steps": [],
+    "roles": [
+      "platform_owner"
+    ],
+    "verified": false,
+    "verifiedAt": "",
+    "evidence": "",
+    "status": "draft",
+    "version": 1,
+    "needsReview": true
+  },
+  {
+    "slug": "explore-sales-analytics",
+    "title": "Explore Sales Analytics",
+    "summary": "Awaiting complete workflow verification.",
+    "category": "Sales",
+    "route": "/help",
+    "body": "Draft planning topic. Verify workflow and role access before publication.",
+    "steps": [],
+    "roles": [
+      "platform_owner"
+    ],
+    "verified": false,
+    "verifiedAt": "",
+    "evidence": "",
+    "status": "draft",
+    "version": 1,
+    "needsReview": true
+  },
+  {
+    "slug": "create-an-operational-checklist",
+    "title": "Create an operational checklist",
+    "summary": "Awaiting complete workflow verification.",
+    "category": "Operations",
+    "route": "/help",
+    "body": "Draft planning topic. Verify workflow and role access before publication.",
+    "steps": [],
+    "roles": [
+      "platform_owner"
+    ],
+    "verified": false,
+    "verifiedAt": "",
+    "evidence": "",
+    "status": "draft",
+    "version": 1,
+    "needsReview": true
+  },
+  {
+    "slug": "set-up-recurring-work",
+    "title": "Set up recurring work",
+    "summary": "Awaiting complete workflow verification.",
+    "category": "Operations",
+    "route": "/help",
+    "body": "Draft planning topic. Verify workflow and role access before publication.",
+    "steps": [],
+    "roles": [
+      "platform_owner"
+    ],
+    "verified": false,
+    "verifiedAt": "",
+    "evidence": "",
+    "status": "draft",
+    "version": 1,
+    "needsReview": true
+  },
+  {
+    "slug": "ask-operations-ai",
+    "title": "Ask Operations AI",
+    "summary": "Awaiting complete workflow verification.",
+    "category": "Operations",
+    "route": "/help",
+    "body": "Draft planning topic. Verify workflow and role access before publication.",
+    "steps": [],
+    "roles": [
+      "platform_owner"
+    ],
+    "verified": false,
+    "verifiedAt": "",
+    "evidence": "",
+    "status": "draft",
+    "version": 1,
+    "needsReview": true
+  },
+  {
+    "slug": "use-operations-dashboard",
+    "title": "Use Operations Dashboard",
+    "summary": "Awaiting complete workflow verification.",
+    "category": "Operations",
+    "route": "/help",
+    "body": "Draft planning topic. Verify workflow and role access before publication.",
+    "steps": [],
+    "roles": [
+      "platform_owner"
+    ],
+    "verified": false,
+    "verifiedAt": "",
+    "evidence": "",
+    "status": "draft",
+    "version": 1,
+    "needsReview": true
+  },
+  {
+    "slug": "create-an-operational-alert",
+    "title": "Create an operational alert",
+    "summary": "Awaiting complete workflow verification.",
+    "category": "Operations",
+    "route": "/help",
+    "body": "Draft planning topic. Verify workflow and role access before publication.",
+    "steps": [],
+    "roles": [
+      "platform_owner"
+    ],
+    "verified": false,
+    "verifiedAt": "",
+    "evidence": "",
+    "status": "draft",
+    "version": 1,
+    "needsReview": true
+  },
+  {
+    "slug": "create-a-shift-handoff",
+    "title": "Create a shift handoff",
+    "summary": "Awaiting complete workflow verification.",
+    "category": "Operations",
+    "route": "/help",
+    "body": "Draft planning topic. Verify workflow and role access before publication.",
+    "steps": [],
+    "roles": [
+      "platform_owner"
+    ],
+    "verified": false,
+    "verifiedAt": "",
+    "evidence": "",
+    "status": "draft",
+    "version": 1,
+    "needsReview": true
+  },
+  {
+    "slug": "report-an-incident",
+    "title": "Report an incident",
+    "summary": "Awaiting complete workflow verification.",
+    "category": "Operations",
+    "route": "/help",
+    "body": "Draft planning topic. Verify workflow and role access before publication.",
+    "steps": [],
+    "roles": [
+      "platform_owner"
+    ],
+    "verified": false,
+    "verifiedAt": "",
+    "evidence": "",
+    "status": "draft",
+    "version": 1,
+    "needsReview": true
+  },
+  {
+    "slug": "suggest-a-process-improvement",
+    "title": "Suggest a process improvement",
+    "summary": "Awaiting complete workflow verification.",
+    "category": "Operations",
+    "route": "/help",
+    "body": "Draft planning topic. Verify workflow and role access before publication.",
+    "steps": [],
+    "roles": [
+      "platform_owner"
+    ],
+    "verified": false,
+    "verifiedAt": "",
+    "evidence": "",
+    "status": "draft",
+    "version": 1,
+    "needsReview": true
+  },
+  {
+    "slug": "review-operations-performance",
+    "title": "Review Operations performance",
+    "summary": "Awaiting complete workflow verification.",
+    "category": "Operations",
+    "route": "/help",
+    "body": "Draft planning topic. Verify workflow and role access before publication.",
+    "steps": [],
+    "roles": [
+      "platform_owner"
+    ],
+    "verified": false,
+    "verifiedAt": "",
+    "evidence": "",
+    "status": "draft",
+    "version": 1,
+    "needsReview": true
+  },
+  {
+    "slug": "use-executive-dashboard",
+    "title": "Use Executive Dashboard",
+    "summary": "Awaiting complete workflow verification.",
+    "category": "Executive",
+    "route": "/help",
+    "body": "Draft planning topic. Verify workflow and role access before publication.",
+    "steps": [],
+    "roles": [
+      "platform_owner"
+    ],
+    "verified": false,
+    "verifiedAt": "",
+    "evidence": "",
+    "status": "draft",
+    "version": 1,
+    "needsReview": true
+  },
+  {
+    "slug": "ask-executive-ai-advisor",
+    "title": "Ask Executive AI Advisor",
+    "summary": "Awaiting complete workflow verification.",
+    "category": "Executive",
+    "route": "/help",
+    "body": "Draft planning topic. Verify workflow and role access before publication.",
+    "steps": [],
+    "roles": [
+      "platform_owner"
+    ],
+    "verified": false,
+    "verifiedAt": "",
+    "evidence": "",
+    "status": "draft",
+    "version": 1,
+    "needsReview": true
+  },
+  {
+    "slug": "explore-growth-opportunities",
+    "title": "Explore growth opportunities",
+    "summary": "Awaiting complete workflow verification.",
+    "category": "Executive",
+    "route": "/help",
+    "body": "Draft planning topic. Verify workflow and role access before publication.",
+    "steps": [],
+    "roles": [
+      "platform_owner"
+    ],
+    "verified": false,
+    "verifiedAt": "",
+    "evidence": "",
+    "status": "draft",
+    "version": 1,
+    "needsReview": true
+  },
+  {
+    "slug": "create-an-action-plan",
+    "title": "Create an action plan",
+    "summary": "Awaiting complete workflow verification.",
+    "category": "Executive",
+    "route": "/help",
+    "body": "Draft planning topic. Verify workflow and role access before publication.",
+    "steps": [],
+    "roles": [
+      "platform_owner"
+    ],
+    "verified": false,
+    "verifiedAt": "",
+    "evidence": "",
+    "status": "draft",
+    "version": 1,
+    "needsReview": true
+  },
+  {
+    "slug": "review-growth-performance",
+    "title": "Review Growth Performance",
+    "summary": "Awaiting complete workflow verification.",
+    "category": "Executive",
+    "route": "/help",
+    "body": "Draft planning topic. Verify workflow and role access before publication.",
+    "steps": [],
+    "roles": [
+      "platform_owner"
+    ],
+    "verified": false,
+    "verifiedAt": "",
+    "evidence": "",
+    "status": "draft",
+    "version": 1,
+    "needsReview": true
+  },
+  {
+    "slug": "record-a-leadership-decision",
+    "title": "Record a leadership decision",
+    "summary": "Awaiting complete workflow verification.",
+    "category": "Executive",
+    "route": "/help",
+    "body": "Draft planning topic. Verify workflow and role access before publication.",
+    "steps": [],
+    "roles": [
+      "platform_owner"
+    ],
+    "verified": false,
+    "verifiedAt": "",
+    "evidence": "",
+    "status": "draft",
+    "version": 1,
+    "needsReview": true
+  },
+  {
+    "slug": "track-accountability",
+    "title": "Track accountability",
+    "summary": "Awaiting complete workflow verification.",
+    "category": "Executive",
+    "route": "/help",
+    "body": "Draft planning topic. Verify workflow and role access before publication.",
+    "steps": [],
+    "roles": [
+      "platform_owner"
+    ],
+    "verified": false,
+    "verifiedAt": "",
+    "evidence": "",
+    "status": "draft",
+    "version": 1,
+    "needsReview": true
+  },
+  {
+    "slug": "enter-and-approve-sales-results",
+    "title": "Enter and approve sales results",
+    "summary": "Awaiting complete workflow verification.",
+    "category": "Executive",
+    "route": "/help",
+    "body": "Draft planning topic. Verify workflow and role access before publication.",
+    "steps": [],
+    "roles": [
+      "platform_owner"
+    ],
+    "verified": false,
+    "verifiedAt": "",
+    "evidence": "",
+    "status": "draft",
+    "version": 1,
+    "needsReview": true
+  },
+  {
+    "slug": "check-sales-data-quality",
+    "title": "Check sales data quality",
+    "summary": "Awaiting complete workflow verification.",
+    "category": "Executive",
+    "route": "/help",
+    "body": "Draft planning topic. Verify workflow and role access before publication.",
+    "steps": [],
+    "roles": [
+      "platform_owner"
+    ],
+    "verified": false,
+    "verifiedAt": "",
+    "evidence": "",
+    "status": "draft",
+    "version": 1,
+    "needsReview": true
+  },
+  {
+    "slug": "configure-executive-targets",
+    "title": "Configure Executive targets",
+    "summary": "Awaiting complete workflow verification.",
+    "category": "Executive",
+    "route": "/help",
+    "body": "Draft planning topic. Verify workflow and role access before publication.",
+    "steps": [],
+    "roles": [
+      "platform_owner"
+    ],
+    "verified": false,
+    "verifiedAt": "",
+    "evidence": "",
+    "status": "draft",
+    "version": 1,
+    "needsReview": true
+  },
+  {
+    "slug": "understand-data-readiness",
+    "title": "Understand Data Readiness",
+    "summary": "Awaiting complete workflow verification.",
+    "category": "Executive",
+    "route": "/help",
+    "body": "Draft planning topic. Verify workflow and role access before publication.",
+    "steps": [],
+    "roles": [
+      "platform_owner"
+    ],
+    "verified": false,
+    "verifiedAt": "",
+    "evidence": "",
+    "status": "draft",
+    "version": 1,
+    "needsReview": true
+  },
+  {
+    "slug": "adjust-growth-scoring",
+    "title": "Adjust growth scoring",
+    "summary": "Awaiting complete workflow verification.",
+    "category": "Executive",
+    "route": "/help",
+    "body": "Draft planning topic. Verify workflow and role access before publication.",
+    "steps": [],
+    "roles": [
+      "platform_owner"
+    ],
+    "verified": false,
+    "verifiedAt": "",
+    "evidence": "",
+    "status": "draft",
+    "version": 1,
+    "needsReview": true
+  },
+  {
+    "slug": "follow-executive-setup-guide",
+    "title": "Follow Executive Setup Guide",
+    "summary": "Awaiting complete workflow verification.",
+    "category": "Executive",
+    "route": "/help",
+    "body": "Draft planning topic. Verify workflow and role access before publication.",
+    "steps": [],
+    "roles": [
+      "platform_owner"
+    ],
+    "verified": false,
+    "verifiedAt": "",
+    "evidence": "",
+    "status": "draft",
+    "version": 1,
+    "needsReview": true
+  },
+  {
+    "slug": "configure-assistant-knowledge",
+    "title": "Configure assistant knowledge",
+    "summary": "Awaiting complete workflow verification.",
+    "category": "Team & Administration",
+    "route": "/help",
+    "body": "Draft planning topic. Verify workflow and role access before publication.",
+    "steps": [],
+    "roles": [
+      "platform_owner"
+    ],
+    "verified": false,
+    "verifiedAt": "",
+    "evidence": "",
+    "status": "draft",
+    "version": 1,
+    "needsReview": true
+  },
+  {
+    "slug": "address-knowledge-gaps",
+    "title": "Address knowledge gaps",
+    "summary": "Awaiting complete workflow verification.",
+    "category": "Team & Administration",
+    "route": "/help",
+    "body": "Draft planning topic. Verify workflow and role access before publication.",
+    "steps": [],
+    "roles": [
+      "platform_owner"
+    ],
+    "verified": false,
+    "verifiedAt": "",
+    "evidence": "",
+    "status": "draft",
+    "version": 1,
+    "needsReview": true
+  },
+  {
+    "slug": "set-communication-standards",
+    "title": "Set communication standards",
+    "summary": "Awaiting complete workflow verification.",
+    "category": "Team & Administration",
+    "route": "/help",
+    "body": "Draft planning topic. Verify workflow and role access before publication.",
+    "steps": [],
+    "roles": [
+      "platform_owner"
+    ],
+    "verified": false,
+    "verifiedAt": "",
+    "evidence": "",
+    "status": "draft",
+    "version": 1,
+    "needsReview": true
+  },
+  {
+    "slug": "invite-a-team-member",
+    "title": "Invite a team member",
+    "summary": "Awaiting complete workflow verification.",
+    "category": "Team & Administration",
+    "route": "/help",
+    "body": "Draft planning topic. Verify workflow and role access before publication.",
+    "steps": [],
+    "roles": [
+      "platform_owner"
+    ],
+    "verified": false,
+    "verifiedAt": "",
+    "evidence": "",
+    "status": "draft",
+    "version": 1,
+    "needsReview": true
+  },
+  {
+    "slug": "manage-roles-and-locations",
+    "title": "Manage roles and locations",
+    "summary": "Awaiting complete workflow verification.",
+    "category": "Team & Administration",
+    "route": "/help",
+    "body": "Draft planning topic. Verify workflow and role access before publication.",
+    "steps": [],
+    "roles": [
+      "platform_owner"
+    ],
+    "verified": false,
+    "verifiedAt": "",
+    "evidence": "",
+    "status": "draft",
+    "version": 1,
+    "needsReview": true
+  },
+  {
+    "slug": "update-workspace-settings",
+    "title": "Update workspace settings",
+    "summary": "Awaiting complete workflow verification.",
+    "category": "Team & Administration",
+    "route": "/help",
+    "body": "Draft planning topic. Verify workflow and role access before publication.",
+    "steps": [],
+    "roles": [
+      "platform_owner"
+    ],
+    "verified": false,
+    "verifiedAt": "",
+    "evidence": "",
+    "status": "draft",
+    "version": 1,
+    "needsReview": true
+  },
+  {
+    "slug": "set-location-quote-defaults",
+    "title": "Set location quote defaults",
+    "summary": "Awaiting complete workflow verification.",
+    "category": "Team & Administration",
+    "route": "/help",
+    "body": "Draft planning topic. Verify workflow and role access before publication.",
+    "steps": [],
+    "roles": [
+      "platform_owner"
+    ],
+    "verified": false,
+    "verifiedAt": "",
+    "evidence": "",
+    "status": "draft",
+    "version": 1,
+    "needsReview": true
+  },
+  {
+    "slug": "view-your-subscription",
+    "title": "View your subscription",
+    "summary": "Awaiting complete workflow verification.",
+    "category": "Billing & AI Credits",
+    "route": "/help",
+    "body": "Draft planning topic. Verify workflow and role access before publication.",
+    "steps": [],
+    "roles": [
+      "platform_owner"
+    ],
+    "verified": false,
+    "verifiedAt": "",
+    "evidence": "",
+    "status": "draft",
+    "version": 1,
+    "needsReview": true
+  },
+  {
+    "slug": "review-credit-purchase-availability",
+    "title": "Review credit purchase availability",
+    "summary": "Awaiting complete workflow verification.",
+    "category": "Billing & AI Credits",
+    "route": "/help",
+    "body": "Draft planning topic. Verify workflow and role access before publication.",
+    "steps": [],
+    "roles": [
+      "platform_owner"
+    ],
+    "verified": false,
+    "verifiedAt": "",
+    "evidence": "",
+    "status": "draft",
+    "version": 1,
+    "needsReview": true
+  }
+]

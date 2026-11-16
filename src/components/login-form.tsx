@@ -4,7 +4,6 @@ import { useActionState, useState } from "react";
 import Link from "next/link";
 import { ArrowRight, BarChart3, Eye, EyeOff, Lightbulb, LockKeyhole, Mail, Play, Users } from "lucide-react";
 import { login } from "@/app/auth/actions";
-import "./login-form.css";
 
 export function LoginForm({ configured, demoMode, nextPath, initialError = "" }: { configured: boolean; demoMode: boolean; nextPath: string; initialError?: string }) {
   const [showPassword, setShowPassword] = useState(false);
@@ -20,7 +19,6 @@ export function LoginForm({ configured, demoMode, nextPath, initialError = "" }:
       {state.error && <p className="form-error" role="alert">{state.error}</p>}
       <button className="signin-submit" disabled={pending || (!configured && !demoMode)} type="submit">{pending ? "Signing in…" : demoMode ? "Continue to demo" : "Sign in"} <ArrowRight aria-hidden="true" /></button>
     </form>
-    <Link className="signin-signup-button" href="/signup">Sign Up <ArrowRight aria-hidden="true"/></Link>
     {!demoMode && <><div className="signin-divider"><span>or</span></div><Link className="signin-demo-card" href={`/demo?next=${encodeURIComponent(nextPath)}`}><span className="signin-demo-title"><Play aria-hidden="true" fill="currentColor" /> Explore the demo <ArrowRight aria-hidden="true" /></span><small>See how RunFloor helps RV dealerships</small></Link></>}
     <div className="signin-proof"><div><Users aria-hidden="true" /><strong>Built for RV Teams</strong><span>Connected dealership workflows</span></div><div><Lightbulb aria-hidden="true" /><strong>Clear Guidance</strong><span>Approved knowledge in context</span></div><div><BarChart3 aria-hidden="true" /><strong>Stronger Results</strong><span>Performance in one place</span></div></div>
     <div className="signin-tagline"><span /> Run your dealership forward <span /></div>

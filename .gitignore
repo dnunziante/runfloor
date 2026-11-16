@@ -22,3 +22,6 @@ supabase/.temp/
 .env
 .env.*
 !.env.example
+
+.opal-preview/
+.next-opal-*

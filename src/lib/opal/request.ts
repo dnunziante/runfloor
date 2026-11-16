@@ -1,0 +1,1 @@
+export function sameOrigin(request: Request) { try { const origin = new URL(request.headers.get("origin") || ""); return origin.host === request.headers.get("host") && /^https?:$/.test(origin.protocol); } catch { return false; } }

@@ -86,7 +86,8 @@ export async function proxy(request: NextRequest) {
     return NextResponse.redirect(new URL("/dashboard", request.url));
   }
 
-  if (membership && !request.nextUrl.pathname.startsWith("/billing")) {
+  const helpPath = request.nextUrl.pathname === "/help" || request.nextUrl.pathname.startsWith("/help/") || request.nextUrl.pathname === "/api/opal" || request.nextUrl.pathname.startsWith("/api/opal/") || request.nextUrl.pathname === "/admin/opal";
+  if (membership && !helpPath && !request.nextUrl.pathname.startsWith("/billing")) {
     const { data: access, error } = await supabase.rpc("rv_access_state", { target_org: membership.organization_id, target_location: request.cookies.get("rf-billing-location")?.value || null });
     if (error && !(process.env.RUNFLOOR_RV_BILLING_ENABLED !== "true" && error.code === "PGRST202")) return NextResponse.json({ error: "Billing access could not be verified. Try again shortly." }, { status: 503 });
     if (!error && !access?.allowed) {
@@ -101,6 +102,7 @@ export async function proxy(request: NextRequest) {
 
 export const config = {
   matcher: [
+    "/help/:path*",
     "/billing/:path*",
     "/messages/:path*",
     "/generator/:path*",

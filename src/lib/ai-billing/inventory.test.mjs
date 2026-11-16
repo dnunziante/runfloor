@@ -9,13 +9,13 @@ function files(dir) {
       : [path.join(dir, entry.name)],
   );
 }
-test("every OpenAI transport remains centralized behind reservations", () => {
+test("OpenAI transports are limited to dealership billing and the explicit platform-help exception", () => {
   const transports = files("src")
     .filter((file) => /\.[cm]?[jt]sx?$/.test(file) && !file.includes(".test."))
     .filter((file) => readFileSync(file, "utf8").includes("api.openai.com"));
   assert.deepEqual(
     transports.map((file) => file.replaceAll("\\", "/")),
-    ["src/lib/ai-billing/provider.ts"],
+    ["src/lib/ai-billing/provider.ts", "src/lib/opal/provider.ts"],
   );
 });
 test("all current shared billable helpers have distinct accounting feature names", () => {
@@ -34,3 +34,5 @@ test("all current shared billable helpers have distinct accounting feature names
   ])
     assert.ok(source.includes(`, "${name}")`), name);
 });
+
+test("platform-help exception cannot reach dealership accounting or business repositories",()=>{const source=readFileSync("src/lib/opal/provider.ts","utf8");assert.doesNotMatch(source,/meteredOpenAI|reserve_ai_usage|finish_ai_usage|workspace-context|operations\/repository|executive\/repository/);assert.match(source,/max_completion_tokens:1600/);assert.match(source,/store:false/);});
