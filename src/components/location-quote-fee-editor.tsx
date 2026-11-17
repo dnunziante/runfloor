@@ -27,7 +27,7 @@ export function LocationQuoteFeeEditor({ locations }: { locations: OrganizationL
     });
   }
   return <section className="card form-stack settings-section" id="location-fees">
-    <div><span className="eyebrow">Quote Calculator</span><h2>Location details and fee defaults</h2><p>Drag a location by its handle to set its shared order. Update a location name, city/state, and the TP Destination, RR Destination, delivery, and tax defaults used in quotes.</p></div>
+    <div><span className="eyebrow">Quote Calculator</span><h2>Location details and sales tax</h2><p>Drag a location by its handle to set its shared order. Update a location name, city/state, and the sales tax rate used in quotes. Destination and delivery amounts are entered directly on each quote.</p></div>
     {notice ? <p className={notice.includes("could not") || notice.includes("invalid") || notice.includes("changed") ? "form-error" : "form-success"} role="status">{notice}</p> : null}
     {orderedLocations.length ? <div className="form-stack">{orderedLocations.map((location) => <form className="location-fee-row" action={saveLocationQuoteFees} draggable onDragStart={() => setDraggingId(location.id)} onDragOver={(event) => event.preventDefault()} onDrop={() => moveLocation(location.id)} onDragEnd={() => setDraggingId(null)} key={location.id} style={{ opacity: draggingId === location.id ? 0.55 : 1 }}>
       <button className="icon-btn" type="button" aria-label={`Drag ${location.name} to reorder`} title="Drag to reorder"><GripVertical size={18}/></button>
@@ -35,11 +35,8 @@ export function LocationQuoteFeeEditor({ locations }: { locations: OrganizationL
       <label><span className="label">Location name</span><input className="input" name="locationName" required minLength={2} maxLength={120} defaultValue={location.name}/></label>
       <label><span className="label">City</span><input className="input" name="city" maxLength={120} defaultValue={location.city}/></label>
       <label><span className="label">State</span><input className="input" name="state" maxLength={40} defaultValue={location.state}/></label>
-      <label><span className="label">TP Destination</span><input className="input" name="tpDestinationFee" type="number" min="0" step="0.01" defaultValue={location.tpDestinationFee}/></label>
-      <label><span className="label">RR Destination</span><input className="input" name="rrDestinationFee" type="number" min="0" step="0.01" defaultValue={location.rrDestinationFee}/></label>
-      <label><span className="label">Delivery</span><input className="input" name="deliveryFee" type="number" min="0" step="0.01" defaultValue={location.deliveryFee}/></label>
       <label><span className="label">Sales tax rate</span><div className="input-suffix"><input className="input" name="salesTaxRate" type="number" min="0" max="100" step="0.001" defaultValue={location.salesTaxRate}/><span>%</span></div></label>
       <button className="btn btn-secondary" type="submit" disabled={pending}><Save size={15}/> Save</button>
-    </form>)}</div> : <div className="output empty"><div><h3>No active locations</h3><p>Add an active business location before setting quote defaults.</p></div></div>}
+    </form>)}</div> : <div className="output empty"><div><h3>No active locations</h3><p>Add an active business location before setting sales tax rates.</p></div></div>}
   </section>;
 }

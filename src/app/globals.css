@@ -718,3 +718,9 @@
 @media(max-width:760px){.sidebar{height:100dvh}.utility-group summary,.utility-group .module-links a{min-height:44px}}
 
 .shell .content .rv-bulk-catalog-toolbar{flex-wrap:wrap}
+
+/* Quote-specific names preserve the underlying amounts and calculations. */
+.cq-deal>header{flex-wrap:wrap}.cq-field-actions{display:flex;gap:8px;margin-left:auto}.cq-field-actions button{display:inline-flex;align-items:center;gap:6px;border:1px solid var(--orange);border-radius:8px;background:#fff;color:var(--orange);padding:8px 11px;font:inherit;font-weight:700;cursor:pointer}.cq-field-actions button[hidden]{display:none}.cq-field-actions .primary{background:var(--orange);color:#fff}.cq-field-actions svg{width:15px;height:15px}.cq-label-help{color:var(--muted);font-size:12px;line-height:1.5}.cq-money-field{display:grid;grid-template-columns:minmax(0,1fr) 140px;align-items:center;gap:8px;margin-bottom:8px;font-size:11px;font-weight:700}.cq-money-field>label{display:block!important;margin:0!important;overflow-wrap:anywhere}.cq-money-field>input{min-width:0;width:100%}.cq-money-field .cq-label-input{grid-column:1;width:100%;text-align:left;min-width:0}.cq-money-field small{font-size:10px;color:var(--orange)}.cq-money-field:has(small){grid-template-columns:minmax(0,1fr) auto 140px}.cq-summary dt{overflow-wrap:anywhere}
+@media(max-width:760px){.cq-money-field,.cq-money-field:has(small){grid-template-columns:minmax(0,1fr)}.cq-field-actions{margin-left:0;width:100%;justify-content:flex-end}.cq-money-field .cq-label-input{border-color:var(--orange)}}
+
+@media(min-width:761px) and (max-width:1400px){.cq-layout{grid-template-columns:minmax(0,1.15fr) minmax(0,.85fr)}.cq-summary{grid-column:1/-1;position:static}.cq-deal{position:static}}

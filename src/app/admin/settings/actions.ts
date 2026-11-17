@@ -55,16 +55,14 @@ export async function saveLocationQuoteFees(formData: FormData) {
   const locationName = String(formData.get("locationName") || "").trim();
   const city = String(formData.get("city") || "").trim();
   const state = String(formData.get("state") || "").trim().toUpperCase();
-  const tpDestination = Number(formData.get("tpDestinationFee"));
-  const rrDestination = Number(formData.get("rrDestinationFee"));
-  const delivery = Number(formData.get("deliveryFee"));
   const salesTaxRate = Number(formData.get("salesTaxRate"));
-  if (!/^[0-9a-f-]{36}$/i.test(locationId) || locationName.length < 2 || locationName.length > 120 || city.length > 120 || state.length > 40 || !Number.isFinite(tpDestination) || tpDestination < 0 || !Number.isFinite(rrDestination) || rrDestination < 0 || !Number.isFinite(delivery) || delivery < 0 || !Number.isFinite(salesTaxRate) || salesTaxRate < 0 || salesTaxRate > 100) throw new Error("Enter a location name, valid optional city/state details, non-negative fees, and a tax rate from 0 to 100.");
+  if (!/^[0-9a-f-]{36}$/i.test(locationId) || locationName.length < 2 || locationName.length > 120 || city.length > 120 || state.length > 40 || !Number.isFinite(salesTaxRate) || salesTaxRate < 0 || salesTaxRate > 100) throw new Error("Enter a location name, valid optional city/state details, and a tax rate from 0 to 100.");
   const supabase = await createClient();
-  const { error } = await supabase.from("locations").update({ name: locationName, city: city || null, state: state || null, tp_destination_fee_cents: Math.round(tpDestination * 100), rr_destination_fee_cents: Math.round(rrDestination * 100), delivery_fee_cents: Math.round(delivery * 100), sales_tax_rate: salesTaxRate }).eq("id", locationId).eq("organization_id", viewer.organizationId);
+  const { error } = await supabase.from("locations").update({ name: locationName, city: city || null, state: state || null, sales_tax_rate: salesTaxRate }).eq("id", locationId).eq("organization_id", viewer.organizationId);
   if (error) throw new Error(error.code === "23505" ? "A BGC location with that name already exists." : "Location details and quote defaults could not be saved.");
   revalidatePath("/admin/settings");
   revalidatePath("/quote-calculator");
+  revalidatePath("/pricing-calculator");
   revalidatePath("/admin/users");
 }
 
@@ -116,5 +114,6 @@ export async function reorderLocations(locationIds: string[]): Promise<{ error: 
   revalidatePath("/admin/settings");
   revalidatePath("/admin/users");
   revalidatePath("/quote-calculator");
+  revalidatePath("/pricing-calculator");
   return { error: "" };
 }
