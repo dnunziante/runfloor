@@ -1,8 +1,9 @@
 "use client";
 
-import { productPrice, rvCategory } from "@/lib/products/presentation";
+import { productPrice, productTitle, rvCategory, specificationValue } from "@/lib/products/presentation";
 import { useState } from "react";
 import Link from "next/link";
+import { useSearchParams } from "next/navigation";
 import { ArrowRight, BedDouble, Car, Database, GitCompareArrows, LayoutGrid, List, Ruler, Search, Users, Zap } from "lucide-react";
 import type { ProductDTO } from "@/lib/products/types";
 
@@ -10,18 +11,31 @@ function ProductGallery({ product }: { product: ProductDTO }) {
   const [activeImage, setActiveImage] = useState(0);
   const imageUrl = product.imageUrls[activeImage] || null;
   return <div className="product-gallery">
-    <div className={`product-visual ${product.color} ${imageUrl ? "has-image" : ""}`} style={imageUrl ? {backgroundImage:`url(${imageUrl})`} : undefined} role="img" aria-label={`${product.name} product image ${activeImage + 1}`}/>
+    <div className={`product-visual ${product.color} ${imageUrl ? "has-image" : ""}`} style={imageUrl ? {backgroundImage:`url(${imageUrl})`} : undefined} role="img" aria-label={imageUrl ? `${product.name} product image ${activeImage + 1}` : `Product image not provided for ${product.name}`}/>
     {product.imageUrls.length > 1 && <div className="product-gallery-thumbnails" aria-label={`${product.name} image gallery`}>{product.imageUrls.map((url, index) => <button className={index === activeImage ? "active" : ""} type="button" key={url} onClick={() => setActiveImage(index)} aria-label={`Show ${product.name} image ${index + 1}`} aria-pressed={index === activeImage}><span style={{backgroundImage:`url(${url})`}}/></button>)}</div>}
   </div>;
 }
 
 export function ProductLibrary({ products, live, emptyMessage, addOnMode = false, competitorMode = false, isRv = false, isGolfCart = false, showInventoryNavigation = false, canManage = false }: { products: ProductDTO[]; live: boolean; emptyMessage?: string; addOnMode?: boolean; competitorMode?: boolean; isRv?: boolean; isGolfCart?: boolean; showInventoryNavigation?: boolean; canManage?: boolean }) {
-  const [query, setQuery] = useState("");
-  const [brand, setBrand] = useState("");
-  const [category, setCategory] = useState("");
-  const [year, setYear] = useState("");
-  const [sort, setSort] = useState("popular");
-  const [view, setView] = useState<"grid" | "list">("grid");
+  const params = useSearchParams();
+  const query = params.get("q") || "";
+  const brand = params.get("brand") || "";
+  const category = params.get("rvType") || "";
+  const year = params.get("year") || "";
+  const sort = params.get("sort") || "popular";
+  const view = params.get("view") === "list" ? "list" : "grid";
+  function setFilter(key: string, value: string) {
+    const url = new URL(window.location.href);
+    if (value && !(key === "sort" && value === "popular") && !(key === "view" && value === "grid")) url.searchParams.set(key,value);
+    else url.searchParams.delete(key);
+    window.history.replaceState(null,"",`${url.pathname}${url.search}${url.hash}`);
+  }
+  const setQuery = (value: string) => setFilter("q",value);
+  const setBrand = (value: string) => setFilter("brand",value);
+  const setCategory = (value: string) => setFilter("rvType",value);
+  const setYear = (value: string) => setFilter("year",value);
+  const setSort = (value: string) => setFilter("sort",value);
+  const setView = (value: string) => setFilter("view",value);
   const brands = Array.from(new Set(products.map((product) => product.brand || product.manufacturer || "").filter(Boolean))).sort();
   const categories = Array.from(new Set(products.map((product) => (isRv ? rvCategory(product.productCategory || "") : product.productCategory || "")).filter(Boolean))).sort();
   const years = Array.from(new Set(products.map((product) => product.modelYear).filter((value): value is number => Boolean(value)))).sort((a, b) => b - a);
@@ -39,7 +53,7 @@ export function ProductLibrary({ products, live, emptyMessage, addOnMode = false
     <header className="golf-cart-product-heading"><div><h2>Featured Models</h2><p>{shown.length} published golf cart and LSV model{shown.length === 1 ? "" : "s"} ready for your team.</p></div><span className={`badge ${live ? "" : "amber"}`}><Database size={13}/>{live ? "Live workspace data" : "Demo data"}</span></header>
     {shown.length ? <div className={`golf-cart-product-cards ${view === "list" ? "list" : ""}`}>{shown.map((product) => <article className="golf-cart-product-card" key={product.id}>
       <ProductGallery product={product}/>
-      <div className="golf-cart-product-card-body"><span className="golf-cart-product-brand">{product.brand || product.manufacturer || "Golf Cart"}</span><h2>{product.name}</h2><p>{product.description}</p><div className="golf-cart-product-specs">{product.seats && <span><Users/>{product.seats}</span>}{product.powertrain && <span><Zap/>{product.powertrain}</span>}{product.productCategory && <span><Car/>{product.productCategory}</span>}</div><small>Starting at</small><strong>{product.price ? `$${product.price.toLocaleString()}` : "Contact for pricing"}</strong><div className="golf-cart-product-actions"><Link href={`/products/${product.slug}`}>View model <ArrowRight/></Link><Link href={`/comparisons?${product.productType === "competitor_product" ? "competitor" : "product"}=${encodeURIComponent(product.id)}`}><GitCompareArrows/>Compare</Link></div></div>
+      <div className="golf-cart-product-card-body"><span className="golf-cart-product-brand">{product.brand || product.manufacturer || "Golf Cart"}</span><h2>{product.name}</h2><p>{product.description}</p><div className="golf-cart-product-specs">{product.seats && <span><Users/>{product.seats}</span>}{product.powertrain && <span><Zap/>{product.powertrain}</span>}{product.productCategory && <span><Car/>{product.productCategory}</span>}</div><small>Starting at</small><strong>{productPrice(product) == null ? "Price not provided" : `$${productPrice(product)!.toLocaleString()}`}</strong><div className="golf-cart-product-actions"><Link href={`/products/${product.slug}`}>View model <ArrowRight/></Link><Link href={`/comparisons?${product.productType === "competitor_product" ? "competitor" : "product"}=${encodeURIComponent(product.id)}`}><GitCompareArrows/>Compare</Link></div></div>
     </article>)}</div> : <div className="card output empty"><div><Search size={32}/><h2>No matching models</h2><p>{products.length ? "Try another filter or clear your search." : emptyMessage}</p>{(query || brand || category || year) && <button className="btn btn-secondary" onClick={() => { setQuery(""); setBrand(""); setCategory(""); setYear(""); }}>Clear filters</button>}</div></div>}
     <aside className="golf-cart-product-cta"><Car/><div><strong>Help More People Get Where They Want to Go.</strong><span>Reliable products, approved details, and customer-ready comparisons.</span></div><Link href="/comparisons">Compare models <ArrowRight/></Link></aside>
   </section>;
@@ -66,7 +80,7 @@ export function ProductLibrary({ products, live, emptyMessage, addOnMode = false
       return <article className="golf-cart-competitor-card" key={product.id}>
         <ProductGallery product={product}/>
         <div className="golf-cart-competitor-card-body">
-          <div className="golf-cart-competitor-title"><div><span>{product.brand || product.manufacturer || "Competitor"}</span><h2>{product.name}</h2><p>{[product.brand || product.manufacturer, product.modelYear, product.modelVariant || product.model].filter(Boolean).join(" / ")}</p></div><strong>{product.price ? `$${product.price.toLocaleString()}` : "Price not provided"}</strong></div>
+          <div className="golf-cart-competitor-title"><div><span>{product.brand || product.manufacturer || "Competitor"}</span><h2>{product.name}</h2><p>{[product.brand || product.manufacturer, product.modelYear, product.modelVariant || product.model].filter(Boolean).join(" / ")}</p></div><strong>{productPrice(product) == null ? "Price not provided" : `$${productPrice(product)!.toLocaleString()}`}</strong></div>
           {product.description && <p className="golf-cart-competitor-description">{product.description}</p>}
           {facts.length > 0 && <div className="golf-cart-competitor-specs">{facts.map((fact, index) => <span key={`${product.id}-${index}`}>{fact}</span>)}</div>}
           <div className="golf-cart-competitor-actions"><Link href={`/products/${product.slug}`}>View product guide <ArrowRight/></Link><Link href={`/comparisons?${product.productType === "competitor_product" ? "competitor" : "product"}=${encodeURIComponent(product.id)}`}><GitCompareArrows/>Compare</Link></div>
@@ -95,10 +109,12 @@ export function ProductLibrary({ products, live, emptyMessage, addOnMode = false
       <section className="rv-inventory-results">
         <header><div><h2>{shown.length} Inventory Model{shown.length === 1 ? "" : "s"}</h2><p>Published dealership products ready for your sales team.</p></div><label>Sort by<select value={sort} onChange={(event) => setSort(event.target.value)}><option value="popular">Most Popular</option><option value="name">Model Name</option><option value="year">Newest Year</option></select></label><div className="rv-view-toggle"><button className={view === "grid" ? "active" : ""} type="button" onClick={() => setView("grid")}><LayoutGrid/>Grid</button><button className={view === "list" ? "active" : ""} type="button" onClick={() => setView("list")}><List/>List</button></div></header>
         {shown.length ? <div className={`rv-inventory-cards ${view === "list" ? "list" : ""}`}>{shown.map((product) => {
-          const length = product.specifications?.length || product.dimensions;
+          const lengthKey = product.specifications?.lengthFt != null ? "lengthFt" : product.specifications?.overallLength != null ? "overallLength" : "length";
+          const lengthValue = product.specifications?.[lengthKey];
+          const length = lengthValue != null ? specificationValue(lengthKey,lengthValue) : product.dimensions;
           const sleeps = product.specifications?.sleepingCapacity || product.seats;
-          const displayName = product.modelYear && !product.name.startsWith(String(product.modelYear)) ? `${product.modelYear} ${product.name}` : product.name;
-          return <article className="rv-inventory-card" key={product.id}><ProductGallery product={product}/><div className="rv-inventory-card-body"><span className="rv-inventory-brand">{product.brand || product.manufacturer || "RV"}</span><h2>{displayName}</h2><p className="rv-inventory-meta">{[product.productCategory, product.modelVariant || product.model].filter(Boolean).join("  |  ")}</p><div className="rv-inventory-specs">{sleeps && <span><BedDouble/>Sleeps {sleeps}</span>}{length && <span><Ruler/>Length {length}</span>}</div><p>{product.description}</p><Link href={`/products/${product.slug}`}>View product guide <span aria-hidden="true">→</span></Link></div></article>;
+          const displayName = productTitle(product);
+          return <article className="rv-inventory-card" key={product.id}><ProductGallery product={product}/><div className="rv-inventory-card-body"><span className="rv-inventory-brand">{product.brand || product.manufacturer || "RV"}</span><h2>{displayName}</h2><p className="rv-inventory-meta">{[rvCategory(product.productCategory || ""), product.modelVariant || product.model].filter(Boolean).join("  |  ")}</p><div className="rv-inventory-specs">{sleeps && <span><BedDouble/>Sleeps {sleeps}</span>}{length && <span><Ruler/>Length {length}</span>}</div><p>{product.description}</p><Link href={`/products/${product.slug}`}>View product guide <span aria-hidden="true">→</span></Link></div></article>;
         })}</div> : <div className="card output empty"><div><Search size={32}/><h2>No matching inventory</h2><p>{products.length ? "Try another filter or clear your search." : emptyMessage || "No published dealership products have been added yet."}</p>{(query || brand || category || year) && <button className="btn btn-secondary" onClick={() => {setQuery("");setBrand("");setCategory("");setYear("");}}>Clear filters</button>}</div></div>}
       </section>
     </div>
@@ -120,7 +136,7 @@ export function ProductLibrary({ products, live, emptyMessage, addOnMode = false
         {years.length > 0 && <section><h3>Model Year</h3>{years.map((value) => <button className={year === String(value) ? "active" : ""} type="button" key={value} onClick={() => setYear(year === String(value) ? "" : String(value))}><span>{value}</span><small>{products.filter((product) => product.modelYear === value).length}</small></button>)}</section>}
       </aside>
       <section className="rv-competitor-results"><header><div><h2>{shown.length} Competitor Model{shown.length === 1 ? "" : "s"}</h2><p>{products.length ? "Showing published models from your workspace" : "Your competitor library is ready for published models"}</p></div><label>Sort by<select value={sort} onChange={(event) => setSort(event.target.value)}><option value="popular">Most Popular</option><option value="name">Model Name</option><option value="year">Newest Year</option></select></label><div className="rv-view-toggle"><button className={view === "grid" ? "active" : ""} type="button" onClick={() => setView("grid")}><LayoutGrid/>Grid</button><button className={view === "list" ? "active" : ""} type="button" onClick={() => setView("list")}><List/>List</button></div></header>
-        {shown.length ? <div className={`rv-competitor-cards ${view === "list" ? "list" : ""}`}>{shown.map((product) => <article className="rv-competitor-card" key={product.id}><ProductGallery product={product}/><div className="rv-competitor-card-body"><span className="rv-competitor-brand">{product.brand || product.manufacturer || "Competitor RV"}</span><h2>{product.name}</h2><p className="rv-competitor-meta">{[product.modelYear, product.brand || product.manufacturer].filter(Boolean).join("  |  ")}</p><div className="rv-competitor-specs">{[product.seats, product.range, product.powertrain].filter(Boolean).map((value, index) => <span key={`${product.id}-${index}`}>{value}</span>)}</div><p>{product.description}</p><div><Link href={`/products/${product.slug}`}>View product guide</Link><Link href={`/comparisons?${product.productType === "competitor_product" ? "competitor" : "product"}=${encodeURIComponent(product.id)}`}><GitCompareArrows/>Compare</Link></div></div></article>)}</div> : <div className="card output empty"><div><Search size={32}/><h2>No matching competitor RVs</h2><p>{products.length ? "Try another filter or clear your search." : emptyMessage}</p>{(query || brand || category || year) && <button className="btn btn-secondary" onClick={() => {setQuery("");setBrand("");setCategory("");setYear("");}}>Clear filters</button>}</div></div>}
+        {shown.length ? <div className={`rv-competitor-cards ${view === "list" ? "list" : ""}`}>{shown.map((product) => <article className="rv-competitor-card" key={product.id}><ProductGallery product={product}/><div className="rv-competitor-card-body"><span className="rv-competitor-brand">{product.brand || product.manufacturer || "Competitor RV"}</span><h2>{productTitle(product)}</h2><p className="rv-competitor-meta">{rvCategory(product.productCategory || "")}</p><div className="rv-competitor-specs">{[product.seats, product.range, product.powertrain].filter(Boolean).map((value, index) => <span key={`${product.id}-${index}`}>{value}</span>)}</div><p>{product.description}</p><div><Link href={`/products/${product.slug}`}>View product guide</Link><Link href={`/comparisons?${product.productType === "competitor_product" ? "competitor" : "product"}=${encodeURIComponent(product.id)}`}><GitCompareArrows/>Compare</Link></div></div></article>)}</div> : <div className="card output empty"><div><Search size={32}/><h2>No matching competitor RVs</h2><p>{products.length ? "Try another filter or clear your search." : emptyMessage}</p>{(query || brand || category || year) && <button className="btn btn-secondary" onClick={() => {setQuery("");setBrand("");setCategory("");setYear("");}}>Clear filters</button>}</div></div>}
       </section>
     </div>
   </div>;

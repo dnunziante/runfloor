@@ -672,6 +672,7 @@ export function TextTemplateManager({
                 </span>
               </div>
               <textarea
+                aria-label={isScript ? "Script content" : isObjection ? "Approved response" : isEmail ? "Email body" : "Message"}
                 maxLength={12000}
                 minLength={2}
                 name="body"

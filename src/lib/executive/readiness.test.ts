@@ -17,3 +17,14 @@ test("reports exact missing sales and assignment gaps without estimating", () =>
   assert.equal(result.checks.some((check) => check.id === "coaching"), false);
   assert.equal(result.readyRequired, 4);
 });
+
+test("workspace-wide checklist assignments cover every active location", () => {
+  const result = buildExecutiveReadiness({ ...completeInput, operationsLocationNames: [" All locations "] });
+  assert.equal(result.missingOperations, 0);
+  assert.equal(result.checks.find(check => check.id === "operations")?.ready, true);
+});
+test("absent checklist data remains missing for every location", () => {
+  const result = buildExecutiveReadiness({ ...completeInput, operationsLocationNames: [] });
+  assert.equal(result.missingOperations, 2);
+  assert.equal(result.checks.find(check => check.id === "operations")?.ready, false);
+});

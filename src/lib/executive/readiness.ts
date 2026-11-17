@@ -18,7 +18,7 @@ export type ExecutiveReadinessCheck = { id: string; title: string; explanation: 
 export function buildExecutiveReadiness(input: ExecutiveReadinessInput) {
   const normalizedOperations = new Set(input.operationsLocationNames.map((name) => name.trim().toLowerCase()));
   const missingSales = input.locationIds.filter((id) => !input.approvedLocationIds.includes(id)).length;
-  const missingOperations = input.locationNames.filter((name) => !normalizedOperations.has(name.trim().toLowerCase())).length;
+  const missingOperations = normalizedOperations.has("all locations") ? 0 : input.locationNames.filter((name) => !normalizedOperations.has(name.trim().toLowerCase())).length;
   const checks: ExecutiveReadinessCheck[] = [
     { id: "locations", title: "Business locations", explanation: input.locationIds.length ? `${input.locationIds.length} active location${input.locationIds.length === 1 ? " is" : "s are"} available for reporting.` : "No active locations are configured.", action: "Configure at least one active location.", href: "/admin/settings", required: true, ready: input.locationIds.length > 0 },
     { id: "sales", title: "Approved monthly sales", explanation: input.locationIds.length && !missingSales ? `Every active location has an approved result for this period.` : `${missingSales} active location${missingSales === 1 ? " is" : "s are"} missing an approved result for this period.`, action: "Enter and approve the missing monthly location results.", href: "/admin/sales-results/quality", required: true, ready: input.locationIds.length > 0 && missingSales === 0 },

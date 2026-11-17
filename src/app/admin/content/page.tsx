@@ -10,7 +10,7 @@ const sections = [
   ["Text templates", "Add reusable customer text messages.", "/admin/content/text_template"],
   ["Role-play scenarios", "Create practice scenarios and scoring rubrics.", "/admin/coach"],
   ["Training resources", "Build modules from approved training lessons.", "/admin/training"],
-  ["AI instructions", "Set the shared company instructions for future AI testing.", "/admin/settings"],
+  ["AI Communication Standards", "Set the shared communication rules and response style.", "/admin/ai-communication"],
   ["Knowledge documents", "Upload and organize the source documents your team approves.", "/knowledge-base"],
   ["Locations and settings", "Maintain location details and shared workspace settings.", "/admin/settings"],
 ];

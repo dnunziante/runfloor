@@ -84,3 +84,11 @@
 .shell .content .incident-table th:first-child { width:240px; }
 
 .shell .content .incident-table-wrap { position:relative; }
+
+.cq-print-notes { display:none; }
+@media print {
+ .opal-launcher,.opal-panel,.shell .cq-left,.shell .cq-deal { display:none!important; }
+ .shell { display:block!important; }
+ .shell .cq-summary { position:static!important; width:100%!important; max-width:none!important; break-inside:avoid; box-shadow:none; }
+ .shell .cq-print-notes { display:block; white-space:pre-wrap; }
+}

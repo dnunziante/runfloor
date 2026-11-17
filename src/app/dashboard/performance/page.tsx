@@ -51,6 +51,7 @@ export default async function Dashboard({ searchParams }: { searchParams: Promis
 
       {data.team && <section className="personal-controls" aria-label="Dashboard view controls"><Link className={data.scope === "company" ? "active" : ""} href="/dashboard/performance?view=company">Company</Link><Selector label="Location" name="locationId" value={data.selectedLocation} options={data.locations} hidden={{ view: "location" }}/><Selector label="Employee" name="employeeId" value={data.selectedEmployee} options={employees} hidden={{ view: "employee", locationId: data.selectedLocation }}/></section>}
 
+      <p className="field-help">These are activity and adoption measures, not dealership sales results. Counts use available recorded history for the selected scope; Sales Analytics uses its selected date range.</p>
       <section className="personal-metrics" aria-label="Performance summary">{cards.filter((card) => ENABLE_SALES_COACHING || !["Training completed", "Team confidence"].includes(card.label)).map(({ label, value, Icon }) => <article key={label}><span className="personal-icon"><Icon aria-hidden="true"/></span><div><small>{label}</small><strong>{value}</strong><span>Current activity</span></div></article>)}</section>
 
       <section className="personal-grid">
