@@ -724,3 +724,4 @@
 @media(max-width:760px){.cq-money-field,.cq-money-field:has(small){grid-template-columns:minmax(0,1fr)}.cq-field-actions{margin-left:0;width:100%;justify-content:flex-end}.cq-money-field .cq-label-input{border-color:var(--orange)}}
 
 @media(min-width:761px) and (max-width:1400px){.cq-layout{grid-template-columns:minmax(0,1.15fr) minmax(0,.85fr)}.cq-summary{grid-column:1/-1;position:static}.cq-deal{position:static}}
+.cq-card>.cq-label-help{margin:0 0 12px;line-height:1.5}
