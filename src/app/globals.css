@@ -716,3 +716,5 @@
 .utility-group a:focus-visible{outline:2px solid #ff9b79;outline-offset:-2px}
 @media(min-width:761px){.sidebar-collapsed .utility-label,.sidebar-collapsed .utility-group .module-chevron,.sidebar-collapsed .utility-group .module-links{display:none}.sidebar-collapsed .utility-group summary{justify-content:center;padding-inline:0}}
 @media(max-width:760px){.sidebar{height:100dvh}.utility-group summary,.utility-group .module-links a{min-height:44px}}
+
+.shell .content .rv-bulk-catalog-toolbar{flex-wrap:wrap}
