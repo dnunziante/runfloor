@@ -92,3 +92,20 @@
  .shell .cq-summary { position:static!important; width:100%!important; max-width:none!important; break-inside:avoid; box-shadow:none; }
  .shell .cq-print-notes { display:block; white-space:pre-wrap; }
 }
+
+/* Catalog controls must fit their grid column before the table scrolls. */
+.shell .content .rv-product-admin-workspace > * { min-width:0; max-width:100%; }
+.shell .content .rv-admin-models .table { min-width:950px; }
+.shell .content .rv-admin-models > form.grid { grid-template-columns:repeat(auto-fit,minmax(min(100%,150px),1fr))!important; }
+.shell .content .rv-admin-models > form.grid > div:last-child { grid-column:1/-1; }
+@media(max-width:1180px) {
+ .shell .content .rv-product-admin-workspace:has(.rv-admin-models tbody tr) .rv-admin-models { grid-row:1; }
+ .shell .content .rv-admin-models > form.grid { grid-template-columns:repeat(2,minmax(0,1fr))!important; }
+}
+@media(max-width:760px) {
+ .shell .content .rv-admin-product-form { display:grid; grid-template-columns:minmax(0,1fr)!important; }
+ .shell .content .rv-admin-product-form :is(.input,.grid) { min-width:0; }
+}
+@media(max-width:600px) {
+ .shell .content .rv-admin-models > form.grid { grid-template-columns:minmax(0,1fr)!important; }
+}

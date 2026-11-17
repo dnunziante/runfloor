@@ -29,8 +29,8 @@ export function AdminGrowthScoringEditor({ opportunities, initialWeights, persis
   const validScores = Object.values(scores).every((score) => Object.values(score).every((value) => Number.isInteger(value) && value >= 1 && value <= 5));
   const visible = useMemo(() => opportunities.filter((item) => (category === "All opportunities" || item.category === category) && (item.title.toLowerCase().includes(search.toLowerCase().trim()) || item.category.toLowerCase().includes(search.toLowerCase().trim()))).sort((a, b) => calculateGrowthPriority(scores[b.slug] ?? b.score, weights) - calculateGrowthPriority(scores[a.slug] ?? a.score, weights)), [opportunities, category, search, scores, weights]);
 
-  function setWeight(key: keyof GrowthScore, value: number) { setWeights((current) => ({ ...current, [key]: value })); setMessage(""); }
-  function setRating(slug: string, key: keyof GrowthScore, value: number) { setScores((current) => ({ ...current, [slug]: { ...current[slug], [key]: value } })); setMessage(""); }
+  function setWeight(key: keyof GrowthScore, value: number) { setWeights((current) => ({ ...current, [key]: value })); setMessage("Changes are pending. Save to apply across this workspace."); }
+  function setRating(slug: string, key: keyof GrowthScore, value: number) { setScores((current) => ({ ...current, [slug]: { ...current[slug], [key]: value } })); setMessage("Changes are pending. Save to apply across this workspace."); }
   async function submit() {
     if (!validWeights) { setMessage("Weights must be whole numbers totaling exactly 100."); return; }
     if (!validScores) { setMessage("Every rating must be a whole number from 1 to 5."); return; }
