@@ -6,7 +6,7 @@ const targets = { sales: 100, coaching: 90, growth: 80, operations: 95, riskLimi
 
 test("location rollups calculate assigned sales, coaching, growth, and operations", () => {
   const [result] = buildLocationRollups({ locations: [{ id: "one", name: "North" }], sales: [{ locationId: "one", target: 100, actual: 90 }], coaching: [{ locationId: "one", status: "completed" }, { locationId: "one", status: "in_progress" }], growth: [{ locationId: "one", tasks: [{ complete: true }, { complete: false }] }], operations: [{ locationName: "North", steps: [{ complete: true }] }], alerts: [], targets });
-  assert.deepEqual(result, { location: "North", salesPace: 90, coachingCompletion: 50, growthCompletion: 50, operationsCompletion: 100, openRisks: 0, signal: "Needs attention" });
+  assert.deepEqual(result, { location: "North", salesPace: 90, coachingCompletion: null, growthCompletion: 50, operationsCompletion: 100, openRisks: 0, signal: "Needs attention" });
 });
 
 test("location rollups leave unassigned measures unavailable", () => {

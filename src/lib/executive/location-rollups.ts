@@ -1,3 +1,4 @@
+import { ENABLE_SALES_COACHING } from "../features.ts";
 export type RollupTargets = { sales: number; coaching: number; growth: number; operations: number; riskLimit: number };
 export type RollupLocation = { id: string; name: string };
 export type RollupSales = { locationId: string; target: number; actual: number };
@@ -13,7 +14,7 @@ export function buildLocationRollups(input: { locations: RollupLocation[]; sales
     const sales = input.sales.filter((item) => item.locationId === location.id);
     const salesTarget = sales.reduce((total, item) => total + item.target, 0);
     const salesPace = salesTarget > 0 ? Math.round(sales.reduce((total, item) => total + item.actual, 0) / salesTarget * 100) : null;
-    const coaching = input.coaching.filter((item) => item.locationId === location.id);
+    const coaching = (ENABLE_SALES_COACHING ? input.coaching : []).filter((item) => item.locationId === location.id);
     const coachingCompletion = completion(coaching.filter((item) => item.status === "completed").length, coaching.length);
     const growthTasks = input.growth.filter((item) => item.locationId === location.id).flatMap((item) => item.tasks);
     const growthCompletion = completion(growthTasks.filter((item) => item.complete).length, growthTasks.length);

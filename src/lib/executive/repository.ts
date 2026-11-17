@@ -1,3 +1,4 @@
+import { ENABLE_SALES_COACHING, isFeatureDestinationEnabled } from "@/lib/features";
 import "server-only";
 
 import { canManageExecutiveTargets, canViewExecutive } from "@/lib/auth/permissions";
@@ -47,7 +48,7 @@ const validMonth = (value?: string) => /^\d{4}-\d{2}$/.test(value ?? "") ? value
 export async function getExecutiveWorkspace(period?: string): Promise<ExecutiveWorkspace> {
   const viewer = await getViewer();
   const requestedPeriod = validMonth(period);
-  if (viewer?.demo) return { persistence: "demo", error: "", canView: true, canEditTargets: true, canManageReviews: true, targets: defaultExecutiveTargets, metrics: executiveMetrics, signals: executiveSignals, priorities: rankExecutivePriorities(), locations: executiveLocations, risks: executiveRisks, wins: executiveWins, reportingPeriod: requestedPeriod, availablePeriods: [requestedPeriod], reviews: {} };
+  if (viewer?.demo) return { persistence: "demo", error: "", canView: true, canEditTargets: true, canManageReviews: true, targets: defaultExecutiveTargets, metrics: executiveMetrics.filter(item => ENABLE_SALES_COACHING || !/coaching|development/i.test(item.label)), signals: executiveSignals.filter(item => isFeatureDestinationEnabled(item.href)), priorities: rankExecutivePriorities().filter(item => isFeatureDestinationEnabled(item.href)).map((item, index) => ({ ...item, rank: index + 1 })), locations: executiveLocations, risks: executiveRisks.filter(item => isFeatureDestinationEnabled(item.href)), wins: executiveWins, reportingPeriod: requestedPeriod, availablePeriods: [requestedPeriod], reviews: {} };
   if (!viewer) return { persistence: "supabase", error: "Sign in to view Executive reporting.", canView: false, canEditTargets: false, canManageReviews: false, targets: defaultExecutiveTargets, metrics: [], signals: [], priorities: [], locations: [], risks: [], wins: [], reportingPeriod: requestedPeriod, availablePeriods: [requestedPeriod], reviews: {} };
 
   const canView = canViewExecutive(viewer.role);
@@ -101,13 +102,13 @@ export async function getExecutiveWorkspace(period?: string): Promise<ExecutiveW
   if (highRisks.length > targets.highRiskLimit) priorityInputs.push({ id: "high-risk-operations", score: 100, title: "Resolve high-severity operational risks", area: "Operations", reason: `${highRisks.length} persisted high-severity alert${highRisks.length === 1 ? " is" : "s are"} above the configured limit of ${targets.highRiskLimit}.`, action: "Confirm an owner and due date for each open high-severity alert.", href: "/operations/alerts", urgency: "Act now" });
   if (operations !== null && operations < targets.operationsCompletion) priorityInputs.push({ id: "operations-completion", score: 80 + (targets.operationsCompletion - operations), title: "Raise operational completion", area: "Operations", reason: `Checklist completion is ${operations}%, below the ${targets.operationsCompletion}% tenant target.`, action: "Review incomplete checklist steps by location before adding new recurring work.", href: "/operations/performance", urgency: "This week" });
   if (growth !== null && growth < targets.growthCompletion) priorityInputs.push({ id: "growth-completion", score: 70 + (targets.growthCompletion - growth), title: "Advance active growth work", area: "Growth", reason: `Growth task completion is ${growth}%, below the ${targets.growthCompletion}% tenant target.`, action: "Confirm the owner and next incomplete task for each active growth plan.", href: "/growth/plans", urgency: "This week" });
-  if (coaching !== null && coaching < targets.coachingCompletion) priorityInputs.push({ id: "coaching-completion", score: 60 + (targets.coachingCompletion - coaching), title: "Improve coaching follow-through", area: "People", reason: `Completed coaching sessions are ${coaching}%, below the ${targets.coachingCompletion}% tenant target.`, action: "Review incomplete sessions and assign the next focused practice activity.", href: "/coach/review", urgency: "This week" });
+  if (ENABLE_SALES_COACHING && coaching !== null && coaching < targets.coachingCompletion) priorityInputs.push({ id: "coaching-completion", score: 60 + (targets.coachingCompletion - coaching), title: "Improve coaching follow-through", area: "People", reason: `Completed coaching sessions are ${coaching}%, below the ${targets.coachingCompletion}% tenant target.`, action: "Review incomplete sessions and assign the next focused practice activity.", href: "/coach/review", urgency: "This week" });
   const priorities = priorityInputs.sort((a, b) => b.score - a.score).map((item, index) => ({ id: item.id, title: item.title, area: item.area, reason: item.reason, action: item.action, href: item.href, urgency: item.urgency, rank: index + 1 }));
 
   const locations: LocationSummary[] = buildLocationRollups({
     locations: locationsResult.data ?? [],
     sales: currentSalesRows.map((item) => ({ locationId: item.location_id, target: Number(item.revenue_target), actual: Number(item.revenue_actual) })),
-    coaching: (coachingResult.data ?? []).map((item) => ({ locationId: item.location_id, status: item.status })),
+    coaching: (ENABLE_SALES_COACHING ? coachingResult.data ?? [] : []).map((item) => ({ locationId: item.location_id, status: item.status })),
     growth: (growthResult.data ?? []).map((item) => ({ locationId: item.location_id, tasks: (item.growth_action_plan_tasks ?? []).map((task) => ({ complete: task.is_complete })) })),
     operations: checklistRows.map((item) => ({ locationName: item.location_name, steps: ((item.operations_checklist_steps ?? []) as Array<{ is_complete: boolean }>).map((step) => ({ complete: step.is_complete })) })),
     alerts: (alertsResult.data ?? []).map((item) => ({ locationName: item.location_name, status: item.status })),
@@ -122,5 +123,5 @@ export async function getExecutiveWorkspace(period?: string): Promise<ExecutiveW
   ];
   const reviews = Object.fromEntries((reviewsResult.data ?? []).map((item) => [item.priority_key, { id: item.id, priorityKey: item.priority_key, reportingPeriod: item.reporting_period, status: item.status, ownerName: item.owner_name, dueDate: item.due_date ?? "", reviewNote: item.review_note, updatedAt: item.updated_at } as ExecutivePriorityReview]));
   const firstError = [targetsResult, locationsResult, salesResult, coachingResult, growthResult, checklistsResult, alertsResult, improvementsResult, reviewsResult].find((result) => result.error)?.error;
-  return { persistence: "supabase", error: firstError?.message ?? "", canView, canEditTargets: canManageExecutiveTargets(viewer.role), canManageReviews: true, targets, metrics, signals, priorities, locations, risks, wins, reportingPeriod: requestedPeriod, availablePeriods, reviews };
+  return { persistence: "supabase", error: firstError?.message ?? "", canView, canEditTargets: canManageExecutiveTargets(viewer.role), canManageReviews: true, targets, metrics: metrics.filter(item => ENABLE_SALES_COACHING || !/coaching|development/i.test(item.label)), signals: signals.filter(item => isFeatureDestinationEnabled(item.href)), priorities, locations, risks, wins: wins.filter(item => ENABLE_SALES_COACHING || !/coaching/i.test(item)), reportingPeriod: requestedPeriod, availablePeriods, reviews };
 }

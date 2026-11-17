@@ -1,3 +1,4 @@
+import { productPrice, productTitle, visibleSpecification, specificationValue } from "@/lib/products/presentation";
 import { ProductTypeSelector } from "@/components/product-type-selector";
 import { getViewer } from "@/lib/auth/viewer";
 import { hasPagePermission } from "@/lib/auth/role-permissions";
@@ -28,9 +29,10 @@ export default async function ProductSalesGuidePage({ params }: { params: Promis
   const canManage = Boolean(viewer && ["platform_owner", "tenant_admin", "manager"].includes(viewer.role) && hasPagePermission(viewer.role, "/products", viewer.permissions));
   const competitor = product.productType === "competitor_product";
   const guide = product.salesGuide;
+  const guideSections = Object.values(guide).filter(value => Array.isArray(value) ? value.length : Boolean(value)).length;
   const specifications = [
     ["Frame", product.range], ["Passenger capacity", product.seats], ["Powertrain", product.powertrain], ["Dimensions", product.dimensions], ["Running distance", product.runningDistance], ["Turning radius", product.turningRadius], ["Max load capacity", product.maxLoadCapacity],
-    ...Object.entries(product.specifications || {}).map(([key, value]) => [specificationLabel(key), value]),
+    ...Object.entries(product.specifications || {}).filter(([key]) => visibleSpecification(key)).map(([key, value]) => [specificationLabel(key), specificationValue(key, value)]),
   ].filter(([, value]) => value !== null && value !== undefined && String(value).trim() !== "").map(([label, value]) => [String(label), String(value)]) as Array<[string, string]>;
 
   return <AppShell title="Product Sales Guide">
@@ -38,18 +40,18 @@ export default async function ProductSalesGuidePage({ params }: { params: Promis
     {canManage && <ProductTypeSelector key={product.id} productId={product.id} productType={product.productType} readOnly={viewer?.demo}/>}
     <section className="sales-guide-hero card">
       <div className={`sales-guide-image ${product.color} ${product.imageUrl ? "has-image" : ""}`} style={product.imageUrl ? {backgroundImage:`url(${product.imageUrl})`} : undefined} role="img" aria-label={`${product.name} primary product image`}/>
-      <div><span className="badge blue">{product.status}</span><h2>{product.name} · {product.model}</h2><p>{product.description}</p><div className="chips"><span className="chip">{product.range}</span><span className="chip">{product.seats}</span><span className="chip">{product.powertrain}</span>{product.highlights.map((highlight) => <span className="chip" key={highlight}>{highlight}</span>)}</div><strong className="price">{competitor && !product.price ? "Price not provided" : `Starting at $${product.price.toLocaleString()}`}</strong></div>
+      <div><span className="badge blue">{product.status}</span><h2>{productTitle(product)}</h2><p>{product.description}</p><div className="chips"><span className="chip">{product.range}</span><span className="chip">{product.seats}</span><span className="chip">{product.powertrain}</span>{product.highlights.map((highlight) => <span className="chip" key={highlight}>{highlight}</span>)}</div><strong className="price">{productPrice(product) == null ? "Price not provided" : `Starting at $${productPrice(product)!.toLocaleString()}`}</strong></div>
     </section>
     <section className="card product-specifications-card" aria-labelledby="product-specifications-heading"><div className="guide-section-title"><ClipboardCheck size={20}/><h2 id="product-specifications-heading">Product specifications</h2></div>{specifications.length ? <div className="product-specifications">{specifications.map(([label, value]) => <Specification key={label} label={label} value={value}/>)}</div> : <p className="guide-empty">No approved product specifications have been added yet.</p>}</section>
-    <div className="grid grid-2 sales-guide-grid">
-      <section className="card"><div className="guide-section-title"><Users size={20}/><h2>Best-fit customer</h2></div>{guide.bestFitCustomer ? <p>{guide.bestFitCustomer}</p> : <p className="guide-empty">Your administrator has not added best-fit guidance yet.</p>}</section>
-      <section className="card"><div className="guide-section-title"><ShieldCheck size={20}/><h2>Key selling points</h2></div><GuideList items={guide.sellingPoints} empty="No approved selling points have been added yet."/></section>
-      <section className="card"><div className="guide-section-title"><CircleHelp size={20}/><h2>Discovery questions</h2></div><GuideList items={guide.discoveryQuestions} empty="No discovery questions have been added yet."/></section>
-      <section className="card"><div className="guide-section-title"><ClipboardCheck size={20}/><h2>Product demonstration</h2></div><GuideList items={guide.demonstrationSteps} empty="No demonstration steps have been added yet."/></section>
-      <section className="card"><div className="guide-section-title"><CircleHelp size={20}/><h2>Objections and responses</h2></div><GuideList items={guide.objectionResponses} empty="No approved objection responses have been added yet."/></section>
-      <section className="card"><div className="guide-section-title"><PackagePlus size={20}/><h2>Accessories and upgrades</h2></div><GuideList items={guide.accessoryOpportunities} empty="No accessory opportunities have been added yet."/></section>
-      <section className="card"><h2>Follow-up guidance</h2>{guide.followUpNotes ? <p>{guide.followUpNotes}</p> : <p className="guide-empty">No follow-up guidance has been added yet.</p>}</section>
-      <section className="card guide-disclaimer"><h2>Required disclaimers</h2>{guide.disclaimers ? <p>{guide.disclaimers}</p> : <p className="guide-empty">No product-specific disclaimers have been added. Follow current company policy.</p>}</section>
+    {guideSections < 8 && <p className="card guide-empty">Sales guidance is incomplete. Available sections and specifications are shown below; confirm missing guidance with your administrator. Published indicates catalog visibility, not a complete sales playbook.</p>}<div className="grid grid-2 sales-guide-grid">
+      {guide.bestFitCustomer && <section className="card"><div className="guide-section-title"><Users size={20}/><h2>Best-fit customer</h2></div>{guide.bestFitCustomer ? <p>{guide.bestFitCustomer}</p> : <p className="guide-empty">Your administrator has not added best-fit guidance yet.</p>}</section>}
+      {guide.sellingPoints.length > 0 && <section className="card"><div className="guide-section-title"><ShieldCheck size={20}/><h2>Key selling points</h2></div><GuideList items={guide.sellingPoints} empty="No approved selling points have been added yet."/></section>}
+      {guide.discoveryQuestions.length > 0 && <section className="card"><div className="guide-section-title"><CircleHelp size={20}/><h2>Discovery questions</h2></div><GuideList items={guide.discoveryQuestions} empty="No discovery questions have been added yet."/></section>}
+      {guide.demonstrationSteps.length > 0 && <section className="card"><div className="guide-section-title"><ClipboardCheck size={20}/><h2>Product demonstration</h2></div><GuideList items={guide.demonstrationSteps} empty="No demonstration steps have been added yet."/></section>}
+      {guide.objectionResponses.length > 0 && <section className="card"><div className="guide-section-title"><CircleHelp size={20}/><h2>Objections and responses</h2></div><GuideList items={guide.objectionResponses} empty="No approved objection responses have been added yet."/></section>}
+      {guide.accessoryOpportunities.length > 0 && <section className="card"><div className="guide-section-title"><PackagePlus size={20}/><h2>Accessories and upgrades</h2></div><GuideList items={guide.accessoryOpportunities} empty="No accessory opportunities have been added yet."/></section>}
+      {guide.followUpNotes && <section className="card"><h2>Follow-up guidance</h2>{guide.followUpNotes ? <p>{guide.followUpNotes}</p> : <p className="guide-empty">No follow-up guidance has been added yet.</p>}</section>}
+      {guide.disclaimers && <section className="card guide-disclaimer"><h2>Required disclaimers</h2>{guide.disclaimers ? <p>{guide.disclaimers}</p> : <p className="guide-empty">No product-specific disclaimers have been added. Follow current company policy.</p>}</section>}
     </div>
   </AppShell>;
 }

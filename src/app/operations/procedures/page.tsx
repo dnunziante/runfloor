@@ -6,11 +6,12 @@ import { ProcedureLibraryManagement } from "@/components/procedure-library-manag
 import { getViewer } from "@/lib/auth/viewer";
 import { getViewerIndustryTemplateKey } from "@/lib/organizations/industry";
 
-export default async function OperationsProceduresPage() {
+export default async function OperationsProceduresPage({ searchParams }: { searchParams: Promise<{ procedure?: string }> }) {
+  const { procedure } = await searchParams;
   const [data, snapshot, viewer] = await Promise.all([getOperationsWorkspace(), getProcedureLibrary("tenant"), getViewer()]);
   const templateKey = viewer ? await getViewerIndustryTemplateKey(viewer) : null;
   const isRv = templateKey === "rv";
   const isGolfCart = templateKey === "golf-cart";
-  const manager = <OperationsProcedureManager key={JSON.stringify([data.procedures.map(item => [item.id,item.updatedAt]),data.procedureCategories])} managementReady={!snapshot.error && data.persistence !== "demo"} initialProcedures={data.procedures} initialCategories={data.procedureCategories} persistence={data.persistence} initialError={data.error} canManage={data.canManage} isRv={isRv} isGolfCart={isGolfCart}/>;
+  const manager = <OperationsProcedureManager initialProcedureId={procedure} key={JSON.stringify([procedure, data.procedures.map(item => [item.id,item.updatedAt]),data.procedureCategories])} managementReady={!snapshot.error && data.persistence !== "demo"} initialProcedures={data.procedures} initialCategories={data.procedureCategories} persistence={data.persistence} initialError={data.error} canManage={data.canManage} isRv={isRv} isGolfCart={isGolfCart}/>;
   return <AppShell title="Procedure Templates" industry={isRv ? "rv" : isGolfCart ? "golf-cart" : undefined}>{data.persistence === "demo" ? manager : <ProcedureLibraryManagement scope="tenant" snapshot={snapshot} canManage={data.canManage}>{manager}</ProcedureLibraryManagement>}</AppShell>;
 }

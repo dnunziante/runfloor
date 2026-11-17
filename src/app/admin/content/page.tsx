@@ -16,7 +16,7 @@ const sections = [
 ];
 
 export default function AdminContentPage() {
-  return <AppShell title="Admin · Sales Content"><PageHeader eyebrow="Content manager" title="Sales content" description="Load approved BGC material now so it is ready for controlled AI testing later." />
+  return <AppShell title="Admin · Sales Content"><PageHeader eyebrow="Content manager" title="Sales content" description="Manage approved sales material for your workspace. Review drafts before publishing for staff." />
     <div className="grid grid-3">{sections.filter(([, , href]) => isFeatureDestinationEnabled(href)).map(([title, description, href]) => <div className="card" key={title}><h2>{title}</h2><p>{description}</p><Link className="btn btn-secondary" href={href}>Manage</Link></div>)}</div>
   </AppShell>;
 }

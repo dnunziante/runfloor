@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 
-const rvCategories = ["Class A", "Class B", "Class C", "Travel Trailers", "Fifth Wheels", "Toy Haulers", "Pop-Up Campers"] as const;
+const rvCategories = ["Class A", "Class B", "Class C", "Travel Trailer", "Fifth Wheel", "Toy Hauler", "Pop-Up Camper", "Truck Camper", "Destination Trailer"] as const;
 
 export function RvCategoryField({ name = "productCategory", value = "", label = "Category", onValueChange }: { name?: string; value?: string; label?: string; onValueChange?: (value: string) => void }) {
   const isStandardCategory = rvCategories.includes(value as (typeof rvCategories)[number]);

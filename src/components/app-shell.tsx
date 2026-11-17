@@ -1,10 +1,11 @@
 "use client";
 
+import { WorkspaceLocations } from "./workspace-locations";
 import Link from "next/link";
 import { ENABLE_SALES_COACHING } from "@/lib/features";
 import { usePathname, useRouter } from "next/navigation";
 import { ArrowLeft, Boxes, ChevronDown, ChevronsLeft, ChevronsRight, Home, LogOut, Menu, X } from "lucide-react";
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { logout } from "@/app/auth/actions";
 import { WorkspaceSearch } from "@/components/workspace-search";
 import { BrandLogo } from "@/components/brand-logo";
@@ -17,6 +18,12 @@ import type { Viewer } from "@/lib/auth/viewer";
 export function AppShell({ children, title, industry }: { children: React.ReactNode; title: string; industry?: "rv" | "golf-cart" }) {
   const pathname = usePathname();
   const router = useRouter();
+  const [locationNames, setLocationNames] = useState<string[]>([]);
+  const [workspaceError, setWorkspaceError] = useState("");
+  const [switchingWorkspace, setSwitchingWorkspace] = useState(false);
+  const [locationError, setLocationError] = useState("");
+  const sidebarRef = useRef<HTMLElement>(null);
+  const menuRef = useRef<HTMLButtonElement>(null);
   const [open, setOpen] = useState(false);
   const [collapsed, setCollapsed] = useState(false);
   const [workspaces, setWorkspaces] = useState<{ id: string; name: string }[]>([]);
@@ -35,20 +42,39 @@ export function AppShell({ children, title, industry }: { children: React.ReactN
       .then((data) => {
         if (!data) return;
         setViewer(data);
+        setLocationNames(data.locations || []);
+        setLocationError(data.locationError || "");
         if (!data.demo) fetch("/api/auth/workspaces").then((response) => response.ok ? response.json() : null).then((workspaceData) => workspaceData && setWorkspaces(workspaceData.workspaces || [])).catch(() => undefined);
       })
       .catch(() => undefined);
   }, []);
 
+  useEffect(() => {
+    if (!open) return;
+    const sidebar = sidebarRef.current;
+    const menuButton = menuRef.current;
+    const controls = () => Array.from(sidebar?.querySelectorAll<HTMLElement>('a[href],button,select,summary,input') || []).filter(element => element.getBoundingClientRect().width > 0 && !element.closest('details:not([open]) .module-links'));
+    controls()[0]?.focus();
+    function keydown(event: KeyboardEvent) {
+      if (event.key === "Escape") { event.preventDefault(); setOpen(false); }
+      if (event.key !== "Tab") return;
+      const items = controls(), first = items[0], last = items.at(-1);
+      if (event.shiftKey && document.activeElement === first) { event.preventDefault(); last?.focus(); }
+      else if (!event.shiftKey && document.activeElement === last) { event.preventDefault(); first?.focus(); }
+    }
+    document.addEventListener("keydown", keydown);
+    return () => { document.removeEventListener("keydown", keydown); menuButton?.focus(); };
+  }, [open]);
+
   async function changeWorkspace(organizationId: string) {
     if (!organizationId || organizationId === viewer.organizationId) return;
-    const response = await fetch("/api/auth/workspaces", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ organizationId }) });
-    if (!response.ok) return;
-    window.dispatchEvent(new Event("opal:reset"));
-    const workspace = workspaces.find((item) => item.id === organizationId);
-    setViewer((current) => ({ ...current, organizationId, organizationName: workspace?.name || current.organizationName }));
-    router.refresh();
-    if (pathname !== "/dashboard") router.push("/dashboard");
+    setSwitchingWorkspace(true); setWorkspaceError("");
+    try {
+      const response = await fetch("/api/auth/workspaces", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ organizationId }) });
+      if (!response.ok) throw new Error("Workspace could not be changed. Your current workspace is still selected. Try again.");
+      window.dispatchEvent(new Event("opal:reset"));
+      window.location.assign(new URL("/dashboard", window.location.origin).href);
+    } catch { setWorkspaceError("Workspace could not be changed. Your current workspace is still selected. Try again."); setSwitchingWorkspace(false); }
   }
 
   const roleLabel = viewer.role === "platform_owner" ? "Platform Owner" : viewer.role === "tenant_admin" ? "Tenant Admin" : viewer.role === "manager" ? "Manager" : "Salesperson";
@@ -62,10 +88,10 @@ export function AppShell({ children, title, industry }: { children: React.ReactN
   const expandedWorkspace = activeWorkspace(pathname) ?? (pathname === "/dashboard" ? "sales" : undefined);
   return <div className={`shell ${!ENABLE_SALES_COACHING ? "coaching-disabled" : ""} ${collapsed ? "sidebar-collapsed" : ""} ${isRv ? "rv-shell" : ""} ${isGolfCart ? "golf-cart-shell" : ""}`}>
     {open && <button className="scrim" aria-label="Close menu" onClick={() => setOpen(false)} />}
-    <aside className={`sidebar ${open ? "sidebar-open" : ""}`}>
+    <aside ref={sidebarRef} className={`sidebar ${open ? "sidebar-open" : ""}`}>
       <div className="brand-row sidebar-controls"><button className="icon-btn collapse-sidebar" aria-label={collapsed ? "Expand sidebar" : "Collapse sidebar"} onClick={() => setCollapsed((value) => !value)}>{collapsed ? <ChevronsRight size={22}/> : <ChevronsLeft size={22}/>}</button><button className="icon-btn close-nav" aria-label="Close menu" onClick={() => setOpen(false)}><X size={20}/></button></div>
       <Link className="sidebar-logo" href="/dashboard" aria-label="RunFloor dashboard" onClick={() => setOpen(false)}><BrandLogo priority/></Link>
-      <div className="workspace"><span className="avatar avatar-square">{viewer.organizationName.charAt(0)}</span><span><small>{viewer.demo ? "Demo workspace" : "Viewing workspace"}</small>{workspaces.length > 1 ? <select className="workspace-select" value={viewer.organizationId} onChange={(event) => changeWorkspace(event.target.value)} aria-label="Switch workspace">{workspaces.map((workspace) => <option key={workspace.id} value={workspace.id}>{workspace.name}</option>)}</select> : <strong>{viewer.organizationName}</strong>}</span>{workspaces.length > 1 ? null : <ChevronDown size={16}/>}</div>
+      <div className="workspace"><span className="avatar avatar-square">{viewer.organizationName.charAt(0)}</span><span><small>{viewer.demo ? "Demo workspace" : "Viewing workspace"}</small>{workspaces.length > 1 ? <select disabled={switchingWorkspace} className="workspace-select" value={viewer.organizationId} onChange={(event) => changeWorkspace(event.target.value)} aria-label="Switch workspace">{workspaces.map((workspace) => <option key={workspace.id} value={workspace.id}>{workspace.name}</option>)}</select> : <strong>{viewer.organizationName}</strong>}</span>{workspaces.length > 1 ? null : <ChevronDown size={16}/>}</div>
       <nav className="nav module-nav" aria-label="Main navigation">
         <Link className={pathname === "/dashboard" ? "active" : ""} href="/dashboard" aria-current={pathname === "/dashboard" ? "page" : undefined} onClick={() => setOpen(false)}><Home size={18}/><span>Home</span></Link>
         {navigation.map((workspace) => {
@@ -96,8 +122,8 @@ export function AppShell({ children, title, industry }: { children: React.ReactN
         </nav><div className="profile"><span className="avatar">{viewer.initials}</span><span><strong>{viewer.fullName}</strong><small>{roleLabel}</small></span><form action={logout} onSubmit={() => window.dispatchEvent(new Event("opal:reset"))}><button className="logout-button" type="submit"><LogOut size={17}/><span>{viewer.demo ? "Exit demo" : "Sign out"}</span></button></form></div><div className="sidebar-motto">People <i/> Processes <i/> Profit</div></div>
     </aside>
     <main className="main">
-      <header className="topbar"><div className="topbar-title"><button className="icon-btn menu-btn" aria-label="Open menu" onClick={() => setOpen(true)}><Menu size={21}/></button><button className="btn btn-ghost" type="button" onClick={() => router.back()} aria-label="Go back to the previous page"><ArrowLeft size={16}/> Back</button><strong>{title}</strong></div><div className="top-actions"><WorkspaceSearch permissions={viewer.permissions} role={viewer.role} industry={industry ?? viewer.industryTemplateKey}/><span className="status-dot" title={viewer.demo ? "Demo environment" : "Connected"}/><span className="avatar">{viewer.initials}</span></div></header>
-      <div className="content">{children}</div>
+      <header className="topbar"><div className="topbar-title"><button ref={menuRef} aria-expanded={open} className="icon-btn menu-btn" aria-label="Open menu" onClick={() => setOpen(true)}><Menu size={21}/></button><button className="btn btn-ghost" type="button" onClick={() => router.back()} aria-label="Go back to the previous page"><ArrowLeft size={16}/> Back</button><strong>{title}</strong></div><div className="top-actions"><WorkspaceSearch permissions={viewer.permissions} role={viewer.role} industry={industry ?? viewer.industryTemplateKey}/><span className="status-dot" title={viewer.demo ? "Demo environment" : "Connected"}/><span className="avatar">{viewer.initials}</span></div></header>
+      <div className="content" onClick={event => { const anchor = (event.target as Element).closest?.('a[href^="#"]'); const id = anchor?.getAttribute("href")?.slice(1); if (id) { const panel = document.getElementById(id)?.closest("details.workspace-create-panel"); if (panel instanceof HTMLDetailsElement) panel.open = true; } }}><WorkspaceLocations.Provider value={locationNames}>{switchingWorkspace && <p role="status">Switching workspace…</p>}{workspaceError && <p className="form-error" role="alert">{workspaceError}</p>}{locationError && <p role="alert" className="form-error">Workspace locations could not be loaded. Refresh before assigning location-specific work.</p>}{children}</WorkspaceLocations.Provider></div>
     </main>
   </div>;
 }

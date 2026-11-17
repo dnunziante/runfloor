@@ -47,6 +47,7 @@ import { documentText, procedureDocument } from "@/lib/procedures/document";
 import { ProcedureContent } from "@/components/procedure-content";
 
 export function OperationsProcedureManager({
+  initialProcedureId,
   initialProcedures = [],
   initialCategories = defaultOperationsProcedureCategories,
   persistence = "demo",
@@ -56,6 +57,7 @@ export function OperationsProcedureManager({
   isRv = false,
   isGolfCart = false,
 }: {
+  initialProcedureId?: string;
   initialProcedures?: OperationsProcedureRecord[];
   initialCategories?: OperationsProcedureCategory[];
   persistence?: OperationsPersistence;
@@ -89,7 +91,7 @@ export function OperationsProcedureManager({
   const [status, setStatus] =
     useState<OperationsProcedureRecord["status"]>("Draft");
   const selected = procedures.find((item) => item.id === selectedId) ?? null;
-  const [readingId, setReadingId] = useState<string | null>(null);
+  const [readingId, setReadingId] = useState<string | null>(initialProcedures.some(item => item.id === initialProcedureId) ? initialProcedureId! : null);
   const reading = procedures.find((item) => item.id === readingId) ?? null;
   const category = categories.find((item) => item.id === selectedCategory);
   const orderedCategories = [...categories].sort((left, right) => {

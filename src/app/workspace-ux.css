@@ -1,0 +1,86 @@
+/* Staff workspaces: retain artwork and brand; put controls within reach. */
+.shell .content { min-width:0; }
+.shell .content :is(section,header)[class*="hero"], .shell .content .cq-hero {
+ min-height:0!important; padding:22px 24px!important; margin-bottom:18px;
+}
+.shell .content :is(section,header)[class*="hero"] h1, .shell .content .cq-hero h1 { font-size:clamp(24px,2.5vw,34px)!important; line-height:1.2!important; max-width:720px; margin:6px 0!important; }
+.shell .content :is(section,header)[class*="hero"] p { max-width:720px; font-size:14px!important; }
+.shell .content :is(section,header)[class*="hero"] blockquote { display:none; }
+.shell .content :is(section,header)[class*="hero"] h1 br { display:none; }
+.shell .content :is(section,header)[class*="hero"] h1 em::before { content:" "; }
+.shell .content .cq-hero>div>div, .shell .content .rv-cq-product-art, .shell .content .rv-cq-trade, .shell .content .rv-cq-summary-art { display:none; }
+.shell .content :is(.cq-layout,.cq-left,.cq-deal,.cq-summary,.operations-incident-register,.operations-incident-layout,.operations-handoff-layout,.rs-layout,.alert-layout,.checklist-workspace-grid,.table-wrap,.admin-product-layout)>* { min-width:0; }
+.shell .content :is(input,select,textarea) { max-width:100%; }
+.shell .content :is(.table-wrap,.incident-table-wrap,.alert-table-wrap,.improvement-table-wrap,.exec-table-wrap) { max-width:100%; overflow-x:auto; }
+.shell .content :is(.incident-table,.alert-table-wrap table) { min-width:850px; }
+.shell .content :is(.operations-incident-layout,.operations-handoff-layout,.rs-layout,.alert-layout).has-work { grid-template-columns:minmax(0,1fr)!important; }
+.shell .content .has-work>aside { max-width:none!important; }
+.shell .content .checklist-workspace-grid.has-work { grid-template-columns:repeat(2,minmax(0,1fr)); }
+.shell .content .checklist-workspace-grid.has-work .checklist-assigned { grid-column:1/-1; grid-row:1; }
+.shell .content .checklist-assigned-list article { grid-template-columns:minmax(0,1fr) auto auto!important; }
+.shell .content .checklist-step-list { display:grid; gap:12px; padding:14px 0; }
+.shell .content .checklist-step-list label { display:flex; align-items:flex-start; gap:10px; white-space:normal; font-size:14px; }
+.shell .content .checklist-step-list label>span { display:block; height:auto; background:none; }
+.shell .content .checklist-step-list input { width:20px; height:20px; flex-shrink:0; }
+.shell .content .checklist-scope { display:flex; flex-wrap:wrap; gap:8px; }
+.shell .content .checklist-scope select { width:auto; }
+.shell .content .cq-confirm { display:flex; gap:10px; align-items:flex-start; margin:16px 0; font-size:13px; line-height:1.5; }
+.shell .content .cq-confirm input { width:20px; height:20px; flex-shrink:0; }
+.shell .content button:disabled,.shell .content a[aria-disabled="true"] { opacity:.5; cursor:not-allowed; }
+.shell :is(a,button,input,select,summary,textarea):focus-visible { outline:3px solid #f97316; outline-offset:3px; }
+.shell .sidebar-controls .icon-btn { color:#fff; background:#ffffff12; }
+.shell .content .message-template-results { align-items:start; }
+.shell .content .message-template-results article p { font-size:13px; line-height:1.5; }
+.shell .content .sales-guide-image:not(.has-image)::after,.shell .content .product-visual:not(.has-image)::after { content:"Product image not provided"; position:absolute; inset:auto 8px 8px; padding:6px; background:#182333d9; color:white; font-size:12px; text-align:center; }
+@media(min-width:901px){.shell .close-nav,.shell .menu-btn { display:none!important; }}
+@media(max-width:900px){.shell .collapse-sidebar { display:none!important; }.shell .close-nav,.shell .menu-btn { display:inline-flex!important; }}
+@media(max-width:760px){
+ .shell .content :is(section,header)[class*="hero"],.shell .content .cq-hero { padding:18px 16px!important; }
+ .shell .content .checklist-workspace-grid.has-work { display:flex; flex-direction:column; }
+ .shell .content .checklist-workspace-grid.has-work .checklist-assigned { order:-1; }
+ .shell .content :is(.cq-layout,.cq-fields,.cq-money,.cq-finance-fields,.operations-incident-toolbar) { grid-template-columns:minmax(0,1fr)!important; }
+ .shell .content .cq-summary { position:static; }
+ .shell .content .cq-actions { display:flex; flex-wrap:wrap; gap:8px; }
+ .shell .content .cq-actions>* { flex:1 1 140px; min-height:44px; }
+ .shell .content :is(input,select,textarea) { font-size:16px!important; }
+ .shell .content :is(button,.btn,summary) { min-height:40px; }
+ .shell .content .checklist-assigned-list article { display:flex; flex-wrap:wrap; }
+}
+@media print {
+ .shell .sidebar,.shell .topbar,.shell .cq-actions,.shell .cq-save,.shell .cq-reset,.shell .cq-confirm,.shell .cq-hero,.shell .cq-addons,.shell .cq-mode {display:none!important;}
+ .shell .main {margin:0!important;} .shell .content{padding:0!important;}
+ .shell .cq-layout {display:block!important;} .shell .cq-summary{break-inside:avoid;}
+}
+
+.workspace-create-panel>summary { padding:14px 18px; border:1px solid var(--line); border-radius:10px; color:var(--ink); background:var(--card,#fff); font-weight:700; cursor:pointer; }
+.workspace-create-panel[open]>summary {margin-bottom:12px;}
+
+/* Keep tablet navigation consistent with the drawer controls. */
+@media(max-width:900px){
+ .shell,.shell.sidebar-collapsed { display:block!important; }
+ .shell .sidebar { position:fixed; left:-310px; top:0; width:300px; max-width:calc(100vw - 48px); height:100dvh; }
+ .shell .sidebar.sidebar-open { left:0; }
+ .shell .main { width:100%; min-width:0; }
+ .shell .topbar { gap:10px; }
+ .shell .topbar-title { min-width:0; flex:1; }
+ .shell .topbar-title>strong { overflow:hidden; text-overflow:ellipsis; }
+ .shell .top-actions { min-width:0; flex:0 0 auto; }
+ .shell .top-actions .search-btn { width:40px; min-width:40px; padding:8px; }
+ .shell .top-actions .search-btn :is(span,kbd) { display:none; }
+}
+.shell .content .incident-table { table-layout:fixed; }
+.shell .content .incident-table :is(th,td) { padding:10px; overflow-wrap:anywhere; white-space:normal; }
+.shell .content .incident-table-wrap { width:100%; contain:inline-size; }
+.shell .content .incident-table td { vertical-align:top; }
+.shell .content .incident-table td:first-child { width:230px; }
+.shell .content .incident-table td strong,.shell .content .incident-table td small { display:block; }
+.shell .content .incident-row-actions { position:relative; }
+.shell .content .incident-row-actions>div { position:absolute; z-index:5; right:0; min-width:180px; padding:12px; background:var(--card); border:1px solid var(--line); border-radius:8px; }
+.shell .content .incident-metric>div { display:flex; flex-direction:column; gap:4px; }
+.shell .content .incident-metric strong { font-size:28px; }
+
+.shell .content .operations-incident-register { overflow:hidden; }
+.shell .content table.incident-table { min-width:1050px; }
+.shell .content .incident-table th:first-child { width:240px; }
+
+.shell .content .incident-table-wrap { position:relative; }

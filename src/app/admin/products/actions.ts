@@ -2,6 +2,7 @@
 
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
+import { getViewerIndustryTemplateKey } from "@/lib/organizations/industry";
 import { getViewer } from "@/lib/auth/viewer";
 import { createClient } from "@/lib/supabase/server";
 import { normalizeGolfCartSpecifications } from "@/lib/products/golf-cart-specifications";
@@ -154,9 +155,7 @@ export async function createProduct(
     return { error: "Choose a catalog family for an Our Product, enter a product name, and use a valid non-negative price.", success: "" };
   }
   const supabase = await createClient();
-  const { data: organization } = await supabase.from("organizations").select("industry_template_id").eq("id", viewer.organizationId).maybeSingle();
-  const { data: template } = organization?.industry_template_id ? await supabase.from("industry_templates").select("template_key").eq("id", organization.industry_template_id).maybeSingle() : { data: null };
-  const isRv = template?.template_key === "rv";
+  const isRv = await getViewerIndustryTemplateKey(viewer) === "rv";
   const productCategory = (isRv && submittedProductCategory === "Other" ? String(formData.get("productCategoryOther") || "") : submittedProductCategory).trim().slice(0, 120);
   if (modelYear !== null && (!Number.isInteger(modelYear) || modelYear < 1900 || modelYear > 2200)) return { error: "Enter a valid model year.", success: "" };
   if (!isRv && (!allowedFrames.has(rangeText) || !allowedCapacities.has(seatsText) || !allowedPowertrains.has(powertrainText))) {
@@ -311,9 +310,7 @@ export async function updateProduct(
     return { error: "Enter a product name and a valid non-negative price.", success: "" };
   }
   const supabase = await createClient();
-  const { data: organization } = await supabase.from("organizations").select("industry_template_id").eq("id", viewer.organizationId).maybeSingle();
-  const { data: template } = organization?.industry_template_id ? await supabase.from("industry_templates").select("template_key").eq("id", organization.industry_template_id).maybeSingle() : { data: null };
-  const isRv = template?.template_key === "rv";
+  const isRv = await getViewerIndustryTemplateKey(viewer) === "rv";
   const productCategory = (isRv && submittedProductCategory === "Other" ? String(formData.get("productCategoryOther") || "") : submittedProductCategory).trim().slice(0, 120);
   if (!isRv && (!allowedFrames.has(rangeText) || !allowedCapacities.has(seatsText) || !allowedPowertrains.has(powertrainText))) {
     return { error: "Choose a valid frame, capacity, and powertrain.", success: "" };

@@ -1,3 +1,4 @@
+import { getViewerIndustryTemplateKey } from "@/lib/organizations/industry";
 import { redirect } from "next/navigation";
 import { ProductFamilyImageManager } from "@/components/product-family-image-manager";
 import { CompetitorFamilyForm } from "@/components/competitor-family-form";
@@ -13,6 +14,7 @@ export default async function AdminCompetitorsPage({ searchParams }: { searchPar
   const viewer = await getViewer();
   if (!viewer?.organizationId || !["tenant_admin", "platform_owner", "manager"].includes(viewer.role)) redirect("/dashboard");
   const [result, familyResult, filters] = await Promise.all([getTenantProducts({ includeDrafts: true }), getTenantProductFamilies(true), searchParams]);
+  const isRv = await getViewerIndustryTemplateKey(viewer) === "rv";
   const allProducts = result.products.filter((product) => product.productType === "competitor_product");
   const belongs = (product: typeof allProducts[number], family: typeof familyResult.families[number]) => product.familyId === family.id || (!product.familyId && (product.brand || product.manufacturer || "").trim().toLowerCase() === family.name.trim().toLowerCase());
   const families = familyResult.families.map((family) => ({ ...family, productCount: allProducts.filter((product) => belongs(product, family)).length }));
@@ -23,7 +25,7 @@ export default async function AdminCompetitorsPage({ searchParams }: { searchPar
     {result.error && <section className="card error-card"><h2>Competitor catalog unavailable</h2><p>{result.error}</p></section>}
     {familyResult.error && <p className="form-error" role="alert">{familyResult.error}</p>}
     <CompetitorWorkspace products={products} allProducts={allProducts} families={families} selectedFamily={selectedFamily}
-      productForm={<AdminProductForm key={selectedFamily?.id || "all"} families={families} initialFamilyId={selectedFamily?.id} initialBrand={selectedFamily?.name} competitorOnly/>}
+      productForm={<AdminProductForm isRv={isRv} key={selectedFamily?.id || "all"} families={families} initialFamilyId={selectedFamily?.id} initialBrand={selectedFamily?.name} competitorOnly/>}
       familyForm={<CompetitorFamilyForm/>}
       familyManager={<ProductFamilyImageManager families={families} organizationId={viewer.organizationId} competitor/>}
       bulkImport={<ProductBulkImport competitorOnly/>}

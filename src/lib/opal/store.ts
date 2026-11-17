@@ -1,4 +1,5 @@
 import "server-only";
+import { getViewer } from "@/lib/auth/viewer";
 import { readFile, writeFile, mkdir, rename } from "node:fs/promises";
 import path from "node:path";
 import { createClient } from "@/lib/supabase/server";
@@ -13,7 +14,7 @@ export async function versions(): Promise<Article[]> {
  if(error)throw new Error("Help articles are temporarily unavailable. Contact support@runfloorai.com.");
  return (data??[]).map(r=>({...r.payload,status:r.status,version:r.version})) as Article[];
 }
-export async function published(role: HelpRole) { return (await versions()).filter(a=>visible(a,role)); }
+export async function published(role: HelpRole) { const viewer = await getViewer(); const articles = viewer?.demo && !opalPreview() ? seed as Article[] : await versions(); return articles.filter(a=>visible(a,role)); }
 export async function saveArticle(article: Article) {
  if(!validArticle(article))throw new Error("Check the article fields.");
  if(article.status==="published"&&(!article.verified||article.needsReview||!article.evidence.trim()))throw new Error("Verify the guide, add evidence, and clear Needs review before publishing.");

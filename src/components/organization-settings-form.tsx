@@ -17,7 +17,7 @@ export function OrganizationSettingsForm({ settings, locations, canSave }: { set
       <label><span className="label">Default location</span><select className="input" name="defaultLocationId" defaultValue={settings.defaultLocationId} disabled={!canSave}><option value="">No default location</option>{locations.map((location) => <option key={location.id} value={location.id}>{location.name}</option>)}</select></label>
     </div>
     <section className="callout"><strong>Knowledge Base</strong><p>Information the AI can use as company facts. Manage documents in Knowledge Base. AI communication behavior is managed separately in AI Communication Standards.</p></section>
-    {!canSave && <p className="demo-note">Sign in as a tenant administrator to save organization settings to the shared workspace.</p>}
+    {!canSave && <p className="demo-note">Sign in as a workspace administrator to save organization settings to the shared workspace.</p>}
     {state.error && <p className="form-error" role="alert">{state.error}</p>}
     {state.success && <p className="form-success" role="status">{state.success}</p>}
     <button className="btn btn-primary" type="submit" disabled={!canSave || pending}>{pending ? "Saving…" : "Save shared settings"}</button>

@@ -14,6 +14,6 @@ test("reports exact missing sales and assignment gaps without estimating", () =>
   const result = buildExecutiveReadiness({ ...completeInput, approvedLocationIds: ["a"], coachingUnassigned: 1, reviewCompleted: false });
   assert.equal(result.missingSales, 1);
   assert.equal(result.checks.find((check) => check.id === "sales")?.ready, false);
-  assert.equal(result.checks.find((check) => check.id === "coaching")?.ready, false);
+  assert.equal(result.checks.some((check) => check.id === "coaching"), false);
   assert.equal(result.readyRequired, 4);
 });

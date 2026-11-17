@@ -1,4 +1,5 @@
 "use server";
+import { validateWorkspaceLocation } from "@/lib/locations";
 
 import { revalidatePath } from "next/cache";
 import { canManageOperations } from "@/lib/auth/permissions";
@@ -16,6 +17,7 @@ function refresh(id?: string) {
 
 export async function submitImprovement(input: { kind: ProcessImprovement["kind"]; title: string; description: string; department: string; location: string; frequency: ProcessImprovement["frequency"]; impact: ImprovementLevel; urgency: ImprovementLevel }) {
   const viewer = await getViewer();
+  const locationError = await validateWorkspaceLocation(input.location); if (locationError) return { error: locationError };
   if (!viewer || viewer.demo) return { error: "Sign in to save an improvement to the shared workspace." };
   if (input.title.trim().length < 2 || input.description.trim().length < 20 || !departments.includes(input.department) || !levels.includes(input.impact) || !levels.includes(input.urgency)) return { error: "Complete the title, description, department, impact, and urgency fields." };
   const supabase = await createClient();

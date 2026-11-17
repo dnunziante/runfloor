@@ -244,7 +244,7 @@
       "Select the reporting period and View period.",
       "Review the snapshot, agenda, accountability, and decisions.",
       "Enter your Review Notes.",
-      "Select Save notes and complete review or Mark review complete."
+      "Select Save notes & complete review. This saves the notes and records completion together."
     ],
     "evidence": "src/components/monthly-review-controls.tsx; src/app/executive/review/actions.ts",
     "roles": [

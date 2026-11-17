@@ -2,6 +2,7 @@ import { OpalWidget } from "@/components/opal-widget";
 import type { Metadata } from "next";
 import "./globals.css";
 import "./brand.css";
+import "./workspace-ux.css";
 import { brand } from "@/lib/brand";
 
 export const metadata: Metadata = {

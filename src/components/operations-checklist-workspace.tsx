@@ -1,4 +1,6 @@
 "use client";
+import { useSaveFeedback } from "./use-save-feedback";
+import { WorkspaceLocationOptions } from "./workspace-locations";
 
 import Link from "next/link";
 import { useEffect, useState } from "react";
@@ -17,9 +19,15 @@ type Props = {
 
 export function OperationsChecklistWorkspace({ initialChecklists = [], initialProcedures = [], persistence = "demo", initialError = "" }: Props) {
   const [checklists, setChecklists] = useState<OperationsChecklistRecord[] | null>(persistence === "supabase" ? initialChecklists : null);
+  const [scope, setScope] = useState("all");
+  const [viewerName, setViewerName] = useState("");
+  const [locationFilter, setLocationFilter] = useState("All locations");
+  const [ownerFilter, setOwnerFilter] = useState("");
+  useEffect(() => { fetch("/api/auth/context").then(response => response.json()).then(viewer => setViewerName(viewer.fullName || "")).catch(() => undefined); }, []);
   const [error, setError] = useState(initialError);
+  const saveFeedback = useSaveFeedback(setError);
   const [title, setTitle] = useState("");
-  const [location, setLocation] = useState("Charleston");
+  const [location, setLocation] = useState("All locations");
   const [owner, setOwner] = useState("");
   const [dueDate, setDueDate] = useState("");
   const [stepsText, setStepsText] = useState("");
@@ -83,29 +91,29 @@ export function OperationsChecklistWorkspace({ initialChecklists = [], initialPr
 
   if (checklists === null && !error) return <div className="card operations-loading"><LoaderCircle className="spin"/><div><h2>Loading checklists</h2><p>Preparing your operational work.</p></div></div>;
 
-  return <section className="checklist-workspace">
+  return <section className="checklist-workspace">{saveFeedback.saving && <p role="status">Saving…</p>}
     <nav className="checklist-action-tabs" aria-label="Checklist actions">
       <a className="active" href="#checklist-builder"><Plus/> Create checklist</a>
       <Link href="/operations/procedures"><ClipboardCheck/> Templates</Link>
-      <a href="#assigned-checklists"><UserRound/> My assignments</a>
-      <a href="#assigned-checklists"><ListChecks/> All checklists</a>
+      <a href="#assigned-checklists" onClick={() => setScope("mine")}><UserRound/> My assignments</a>
+      <a href="#assigned-checklists" onClick={() => setScope("all")}><ListChecks/> All checklists</a>
     </nav>
     {error && <p className="form-error checklist-error"><AlertTriangle/>{error}</p>}
-    <div className="checklist-workspace-grid">
+    <div className={`checklist-workspace-grid ${checklists?.length ? "has-work" : ""}`}>
       <section className="checklist-panel checklist-builder" id="checklist-builder">
         <span className="checklist-kicker">Checklist builder</span><h2>{draft ? "Review checklist" : "Create a checklist"}</h2><p>Start from scratch or use an existing procedure to save time.</p>
-        {!draft && <div className="checklist-methods"><button className={method === "manual" ? "active" : ""} onClick={() => setMethod("manual")} type="button"><Plus/> Create manually</button><button className={method === "document" ? "active" : ""} onClick={() => setMethod("document")} type="button"><FileText/> Generate from document</button></div>}
-        {!draft && method === "manual" && <form className="checklist-builder-form" onSubmit={createChecklist}>
+        {!draft && <div className="checklist-methods"><button className={method === "manual" ? "active" : ""} onClick={() => setMethod("manual")} type="button"><Plus/> Create manually</button><button disabled={persistence === "demo"} title={persistence === "demo" ? "Sign in to generate a checklist from an approved document" : undefined} className={method === "document" ? "active" : ""} onClick={() => setMethod("document")} type="button"><FileText/> Generate from document</button></div>}
+        {!draft && method === "manual" && <form className="checklist-builder-form" onSubmit={event => void saveFeedback.submit(event, createChecklist)} aria-busy={saveFeedback.saving}>
           <label className="wide">Checklist title *<input required value={title} onChange={(event) => setTitle(event.target.value)} placeholder="e.g. End of Day Store Closure"/></label>
-          <label>Location *<select value={location} onChange={(event) => setLocation(event.target.value)}><option>Charleston</option><option>Summerville</option><option>All locations</option></select></label>
+          <label>Location *<select value={location} onChange={(event) => setLocation(event.target.value)}><WorkspaceLocationOptions/></select></label>
           <label>Owner *<input required value={owner} onChange={(event) => setOwner(event.target.value)} placeholder="Select owner"/></label>
           <label>Due date *<input required type="date" value={dueDate} onChange={(event) => setDueDate(event.target.value)}/></label>
           <label>Checklist steps *<textarea required rows={3} value={stepsText} onChange={(event) => setStepsText(event.target.value)} placeholder={'One step per line\nConfirm closing walk\nSecure inventory'}/></label>
-          <button className="checklist-submit wide"><span>Create checklist</span><ArrowRight/></button>
+          <button disabled={saveFeedback.saving} className="checklist-submit wide"><span>Create checklist</span><ArrowRight/></button>
         </form>}
         {!draft && method === "document" && <form className="checklist-builder-form" onSubmit={generateChecklist}>
           <label className="wide">Operational document *<input name="file" required type="file" accept=".pdf,.docx,.md,.txt"/></label>
-          <label>Location *<select value={location} onChange={(event) => setLocation(event.target.value)}><option>Charleston</option><option>Summerville</option><option>All locations</option></select></label>
+          <label>Location *<select value={location} onChange={(event) => setLocation(event.target.value)}><WorkspaceLocationOptions/></select></label>
           <label>Owner *<input required value={owner} onChange={(event) => setOwner(event.target.value)}/></label>
           <label>Due date<input type="date" value={dueDate} onChange={(event) => setDueDate(event.target.value)}/></label>
           <label>Instructions<textarea name="instruction" rows={3}/></label>
@@ -115,14 +123,16 @@ export function OperationsChecklistWorkspace({ initialChecklists = [], initialPr
       </section>
       <section className="checklist-panel checklist-templates">
         <header><h2>Recent templates</h2><Link href="/operations/procedures">View all</Link></header>
-        <div>{initialProcedures.slice(0, 5).map((procedure) => <Link href="/operations/procedures" key={procedure.id}><span><ClipboardCheck/></span><div><strong>{procedure.title}</strong><small>{procedure.category}</small></div><em>{procedure.status}</em><MoreVertical/></Link>)}</div>
+        <div>{initialProcedures.slice(0, 5).map((procedure) => <Link href={`/operations/procedures?procedure=${encodeURIComponent(procedure.id)}`} key={procedure.id}><span><ClipboardCheck/></span><div><strong>{procedure.title}</strong><small>{procedure.category}</small></div><em>{procedure.status}</em><MoreVertical/></Link>)}</div>
         {!initialProcedures.length && <p className="checklist-empty-copy">No procedure templates are available yet.</p>}
         <Link className="checklist-panel-link" href="/operations/procedures"><BookOpen/> Browse template library</Link>
       </section>
       <section className="checklist-panel checklist-assigned" id="assigned-checklists">
         <header><h2>Assigned checklists</h2><Link href="/operations/calendar">View all</Link></header>
-        <div className="checklist-scope"><button className="active">My checklists</button><Link href="/operations/calendar">All locations</Link><Link href="/operations/performance">All owners</Link></div>
-        <div className="checklist-assigned-list">{checklists?.slice(0, 5).map((checklist) => { const done = checklist.steps.filter((step) => step.complete).length; const progress = checklist.steps.length ? Math.round(done / checklist.steps.length * 100) : 0; return <article key={checklist.id}><input aria-label={`Complete next step for ${checklist.title}`} checked={progress === 100} onChange={() => { const next = checklist.steps.find((step) => !step.complete) ?? checklist.steps.at(-1); if (next) toggleStep(checklist.id, next.id); }} type="checkbox"/><div><strong>{checklist.title}</strong><small>{checklist.location} · {checklist.owner}</small><span><i style={{ width: `${progress}%` }}/></span></div><b>{done}/{checklist.steps.length}</b><time><CalendarDays/> {formatOperationsDate(checklist.dueDate)}</time><MoreVertical/></article>})}</div>
+        <div className="checklist-scope"><button type="button" className={scope === "mine" ? "active" : ""} onClick={() => setScope("mine")}>My assignments</button><button type="button" className={scope === "all" ? "active" : ""} onClick={() => setScope("all")}>All checklists</button><select className="input" aria-label="Filter checklists by location" value={locationFilter} onChange={event => setLocationFilter(event.target.value)}><option>All locations</option>{Array.from(new Set(checklists?.map(item => item.location))).filter(name => name !== "All locations").map(name => <option key={name}>{name}</option>)}</select><select className="input" aria-label="Filter checklists by owner" value={ownerFilter} onChange={event => setOwnerFilter(event.target.value)}><option value="">All owners</option>{Array.from(new Set(checklists?.map(item => item.owner))).map(name => <option key={name}>{name}</option>)}</select></div>
+        {scope === "mine" && <p className="field-help">Showing checklists assigned to {viewerName || "your signed-in name"}. Team-owned work is available under All checklists.</p>}
+        <div className="checklist-assigned-list">{checklists?.filter(item => (scope !== "mine" || item.owner.toLowerCase() === viewerName.toLowerCase()) && (locationFilter === "All locations" || item.location === locationFilter || item.location === "All locations") && (!ownerFilter || item.owner === ownerFilter)).map(checklist => { const done = checklist.steps.filter(step => step.complete).length; const progress = checklist.steps.length ? Math.round(done / checklist.steps.length * 100) : 0; return <article key={checklist.id}><div><strong>{checklist.title}</strong><small>{checklist.location} · {checklist.owner}</small><span><i style={{ width: `${progress}%` }}/></span><details><summary>{progress === 100 ? "Review completed steps" : done ? "Resume checklist" : "View checklist steps"}</summary><div className="checklist-step-list">{checklist.steps.map(step => <label key={step.id}><input type="checkbox" checked={step.complete} onChange={() => toggleStep(checklist.id, step.id)}/><span>{step.title}</span></label>)}</div></details></div><b>{done}/{checklist.steps.length}</b><time><CalendarDays/> {formatOperationsDate(checklist.dueDate)}</time></article>})}</div>
+
         {!checklists?.length && <p className="checklist-empty-copy">Create the first checklist to begin tracking work.</p>}
         <a className="checklist-panel-link" href="#assigned-checklists"><ListChecks/> View all assigned checklists <ArrowRight/></a>
       </section>

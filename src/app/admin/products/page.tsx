@@ -7,7 +7,7 @@ import { ProductFamilyImageManager } from "@/components/product-family-image-man
 import { RvProductModels } from "@/components/rv-product-models";
 import { getViewer } from "@/lib/auth/viewer";
 import { getTenantProductFamilies, getTenantProducts } from "@/lib/products/data";
-import { createAdminClient } from "@/lib/supabase/admin";
+import { getViewerIndustryTemplateKey } from "@/lib/organizations/industry";
 import { AdminProductCatalogDashboard } from "@/components/admin-product-catalog-dashboard";
 import { Boxes, FileText, Package, Plus, Tags, Upload, Users } from "lucide-react";
 import { RvCatalogCreator } from "@/components/rv-catalog-creator";
@@ -15,15 +15,9 @@ import { RvCatalogCreator } from "@/components/rv-catalog-creator";
 export default async function AdminProductsPage({ searchParams }: { searchParams: Promise<{ family?: string; create?: string; tools?: string; q?: string; type?: string; brand?: string; rvType?: string; year?: string; status?: string; sort?: string; direction?: string }> }) {
   const { family: requestedFamilyId = "", create, tools, ...rvFilters } = await searchParams;
   const [result, familyResult, viewer] = await Promise.all([getTenantProducts({ includeDrafts: true }), getTenantProductFamilies(), getViewer()]);
-  const supabase = createAdminClient();
-  const { data: organization } = viewer?.organizationId
-    ? await supabase.from("organizations").select("industry_template_id").eq("id", viewer.organizationId).maybeSingle()
-    : { data: null };
-  const { data: template } = organization?.industry_template_id
-    ? await supabase.from("industry_templates").select("template_key").eq("id", organization.industry_template_id).maybeSingle()
-    : { data: null };
-  const isGolfCartWorkspace = template?.template_key === "golf-cart";
-  const isRvWorkspace = template?.template_key === "rv";
+  const templateKey = viewer ? await getViewerIndustryTemplateKey(viewer) : null;
+  const isGolfCartWorkspace = templateKey === "golf-cart";
+  const isRvWorkspace = templateKey === "rv";
   const categoryOrder = ["activev-pulse", "bintelli-beyond", "bintelli-nexus", "sivo-edge", "accessories", "warranties"];
   const categories = [
     ...categoryOrder

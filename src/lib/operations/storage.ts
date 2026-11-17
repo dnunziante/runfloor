@@ -64,6 +64,6 @@ export function readOperationsIncidents(): OperationsIncidentRecord[] { const sa
 export function writeOperationsIncidents(incidents: OperationsIncidentRecord[]) { window.localStorage.setItem(operationsIncidentStorageKey, JSON.stringify(incidents)); }
 
 export function formatOperationsDate(value: string) {
-  const [year, month, day] = value.split("-").map(Number);
+  const [year, month, day] = value.split("T")[0].split("-").map(Number);
   return year && month && day ? new Date(year, month - 1, day).toLocaleDateString() : "Not set";
 }

@@ -10,7 +10,7 @@ export default async function AdminGrowthPage() {
       <section className={styles.hero} aria-labelledby="admin-growth-title">
         <p className={styles.kicker}>Tenant configuration</p>
         <h1 id="admin-growth-title">Set how this business<br /><span>prioritizes growth.</span></h1>
-        <p>Adjust formula weights and opportunity ratings while keeping every result deterministic and explainable.</p>
+        <p>Adjust formula weights and opportunity ratings while keeping every result consistent and explainable.</p>
         <blockquote>“The right focus today builds a bigger tomorrow.”<small>— RunFloor</small></blockquote>
       </section>
       {data.error && <div className={styles.error} role="alert"><strong>Scoring configuration unavailable</strong><p>{data.error}</p></div>}

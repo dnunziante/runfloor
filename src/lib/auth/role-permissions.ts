@@ -12,7 +12,7 @@ export const permissionDefinitions = [
   { key: "comparisons", label: "Competitors & Comparisons", section: "Sales", roles: all },
   { key: "messages", label: "Message Center", section: "Sales", roles: all },
   { key: "knowledge", label: "Knowledge Base", section: "Sales", roles: all },
-  { key: "calculator", label: "Quote & Loan Calculator", section: "Sales", roles: all },
+  { key: "calculator", label: "Quote & Financing Calculator", section: "Sales", roles: all },
   { key: "sales_reports", label: "Sales Dashboard & Analytics", section: "Sales", roles: all },
   { key: "coaching", label: "Sales Coaching & Training", section: "Sales", roles: all },
   { key: "operations", label: "Operations workspace", section: "Workspaces", roles: all },
