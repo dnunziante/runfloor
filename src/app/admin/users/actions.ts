@@ -40,10 +40,10 @@ export async function inviteUser(_previousState: InviteUserState, formData: Form
   const phone = String(formData.get("phone") || "").trim();
   const email = String(formData.get("email") || "").trim().toLowerCase();
   const role = String(formData.get("role") || "");
-  const locationId = String(formData.get("locationId") || "");
+  const locationId = viewer.role === "platform_owner" ? String(formData.get("locationId") || "") : "";
   const requestedOrganizationId = String(formData.get("organizationId") || "");
   const organizationId = viewer.role === "platform_owner" && uuidPattern.test(requestedOrganizationId) ? requestedOrganizationId : viewer.organizationId;
-  const locationRequired = role !== "tenant_admin";
+  const locationRequired = viewer.role === "platform_owner" && role !== "tenant_admin";
   if (!organizationId || !firstName || !lastName || !phone || !/^\S+@\S+\.\S+$/.test(email) || !validRoles.has(role) || (locationRequired && !uuidPattern.test(locationId))) {
     return { error: "Enter a first name, last name, phone, email, role, and location.", success: "" };
   }
@@ -62,9 +62,10 @@ export async function inviteUser(_previousState: InviteUserState, formData: Form
 
     const existingUserId = await findAuthUserByEmail(admin, email);
     if (existingUserId) {
-      const { data: existingMembership, error: membershipLookupError } = await admin.from("organization_memberships").select("id, status").eq("organization_id", organizationId).eq("user_id", existingUserId).maybeSingle();
+      const { data: existingMembership, error: membershipLookupError } = await admin.from("organization_memberships").select("id, status, location_id").eq("organization_id", organizationId).eq("user_id", existingUserId).maybeSingle();
       if (membershipLookupError) return { error: "The existing user's tenant access could not be checked.", success: "" };
       if (existingMembership?.status === "active") return { error: "", success: `This user already has access to ${organization.name}.` };
+      if (existingMembership && viewer.role !== "platform_owner") return { error: "This user already has a membership. The Platform Admin manages pending or disabled access.", success: "" };
       const membershipValues = { organization_id: organizationId, user_id: existingUserId, role, location_id: location?.id ?? null, status: "active" as const };
       const { error: membershipError } = existingMembership
         ? await admin.from("organization_memberships").update(membershipValues).eq("id", existingMembership.id)
@@ -154,7 +155,7 @@ export async function changeUserRole(_previousState: ChangeRoleState, formData: 
 
 export async function changeUserLocation(_previousState: ChangeLocationState, formData: FormData): Promise<ChangeLocationState> {
   const viewer = await getViewer();
-  if (viewer?.demo || !viewer || !["tenant_admin", "platform_owner"].includes(viewer.role)) return { error: "Only an Admin can change locations.", success: "" };
+  if (viewer?.demo || !viewer || viewer.role !== "platform_owner") return { error: "Only the Platform Admin can assign user locations.", success: "" };
   const membershipId = String(formData.get("membershipId") || "");
   const locationId = String(formData.get("locationId") || "");
   if (!uuidPattern.test(membershipId) || (locationId && !uuidPattern.test(locationId))) return { error: "Choose a valid location.", success: "" };
@@ -171,8 +172,8 @@ export async function changeUserLocation(_previousState: ChangeLocationState, fo
 
 export async function updateUserCredentials(_previousState: UpdateCredentialsState, formData: FormData): Promise<UpdateCredentialsState> {
   const viewer = await getViewer();
-  if (viewer?.demo || !viewer || !["tenant_admin", "platform_owner"].includes(viewer.role)) {
-    return { error: "Only an Admin can edit user credentials.", success: "" };
+  if (viewer?.demo || !viewer || viewer.role !== "platform_owner") {
+    return { error: "Only the Platform Admin can edit user credentials.", success: "" };
   }
 
   const membershipId = String(formData.get("membershipId") || "");
@@ -226,7 +227,7 @@ export async function updateUserCredentials(_previousState: UpdateCredentialsSta
 export async function removeUserFromWorkspace(_previousState: RemoveUserState, formData: FormData): Promise<RemoveUserState> {
   const viewer = await getViewer();
   const membershipId = String(formData.get("membershipId") || "");
-  if (viewer?.demo || !viewer || !["tenant_admin", "platform_owner"].includes(viewer.role) || !uuidPattern.test(membershipId)) return { error: "Only an Admin can remove users.", success: "" };
+  if (viewer?.demo || !viewer || viewer.role !== "platform_owner" || !uuidPattern.test(membershipId)) return { error: "Only the Platform Admin can remove users.", success: "" };
   const supabase = await createClient();
   const { data: membership } = await supabase.from("organization_memberships").select("user_id, organization_id, role, status").eq("id", membershipId).maybeSingle();
   if (!membership || (viewer.role !== "platform_owner" && membership.organization_id !== viewer.organizationId)) return { error: "That user is outside your workspace.", success: "" };
@@ -245,8 +246,8 @@ export async function reactivateUserInWorkspace(_previousState: ReactivateUserSt
   const viewer = await getViewer();
   const membershipId = String(formData.get("membershipId") || "");
   const requestedLocationId = String(formData.get("locationId") || "");
-  if (viewer?.demo || !viewer || !["tenant_admin", "platform_owner"].includes(viewer.role) || !uuidPattern.test(membershipId)) {
-    return { error: "Only an Admin can reactivate users.", success: "" };
+  if (viewer?.demo || !viewer || viewer.role !== "platform_owner" || !uuidPattern.test(membershipId)) {
+    return { error: "Only the Platform Admin can reactivate users.", success: "" };
   }
 
   const supabase = await createClient();
