@@ -1,3 +1,6 @@
+import { ProductTypeSelector } from "@/components/product-type-selector";
+import { getViewer } from "@/lib/auth/viewer";
+import { hasPagePermission } from "@/lib/auth/role-permissions";
 import Link from "next/link";
 import { ArrowLeft, CheckCircle2, CircleHelp, ClipboardCheck, PackagePlus, ShieldCheck, Users } from "lucide-react";
 import { notFound } from "next/navigation";
@@ -21,6 +24,8 @@ export default async function ProductSalesGuidePage({ params }: { params: Promis
   const { slug } = await params;
   const { product } = await getTenantProductBySlug(slug);
   if (!product) notFound();
+  const viewer = await getViewer();
+  const canManage = Boolean(viewer && ["platform_owner", "tenant_admin", "manager"].includes(viewer.role) && hasPagePermission(viewer.role, "/products", viewer.permissions));
   const competitor = product.productType === "competitor_product";
   const guide = product.salesGuide;
   const specifications = [
@@ -30,6 +35,7 @@ export default async function ProductSalesGuidePage({ params }: { params: Promis
 
   return <AppShell title="Product Sales Guide">
     <PageHeader eyebrow={competitor ? "Competitor model" : "Approved product guidance"} title={`${product.name} sales guide`} description={`${product.model} · Use this guide to prepare and lead a consistent customer conversation.`} action={<Link className="btn btn-ghost" href={competitor ? "/competitors" : "/products"}><ArrowLeft size={16}/> {competitor ? "Competitor Library" : "Product Library"}</Link>}/>
+    {canManage && <ProductTypeSelector key={product.id} productId={product.id} productType={product.productType} readOnly={viewer?.demo}/>}
     <section className="sales-guide-hero card">
       <div className={`sales-guide-image ${product.color} ${product.imageUrl ? "has-image" : ""}`} style={product.imageUrl ? {backgroundImage:`url(${product.imageUrl})`} : undefined} role="img" aria-label={`${product.name} primary product image`}/>
       <div><span className="badge blue">{product.status}</span><h2>{product.name} · {product.model}</h2><p>{product.description}</p><div className="chips"><span className="chip">{product.range}</span><span className="chip">{product.seats}</span><span className="chip">{product.powertrain}</span>{product.highlights.map((highlight) => <span className="chip" key={highlight}>{highlight}</span>)}</div><strong className="price">{competitor && !product.price ? "Price not provided" : `Starting at $${product.price.toLocaleString()}`}</strong></div>
