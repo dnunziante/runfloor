@@ -1,0 +1,1 @@
+create index organization_role_permissions_updated_by_idx on public.organization_role_permissions(updated_by);

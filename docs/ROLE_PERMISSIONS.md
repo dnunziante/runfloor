@@ -8,9 +8,9 @@ Server requests read current permissions rather than relying on browser state or
 
 ## Release status
 
-Implementation and migration are prepared but not published. Automatic approval review rejected the production migration because its restrictive policies affect existing organization tables. Explicit approval is required before applying `20261116230922_role_permissions.sql` and deploying the application that reads the new table. Do not deploy the application first.
+The user approved the production permission controls and deployment on November 16, 2026. The role-permissions migration is applied, along with the follow-up actor index. Existing role defaults remain unchanged until a position is edited.
 
-The migration has been exercised in an isolated PostgreSQL-compatible local database. Checks cover saved changes, hierarchy, Manager ceilings, Sales write denial, cross-workspace isolation, conflicting revisions, audit integrity, and direct database read restrictions. Default policies leave current access unchanged until a position is edited. Production security advisors and a verification query are still required after approved migration application.
+The migration has been exercised in an isolated PostgreSQL-compatible local database. Checks cover saved changes, hierarchy, Manager ceilings, Sales write denial, cross-workspace isolation, conflicting revisions, audit integrity, and direct database read restrictions. Default policies leave current access unchanged until a position is edited. Production verification confirmed RLS is enabled, no position overrides were created by deployment, and 50 existing tables have restrictive area policies. Security advisors reported no new role-permission security warnings. Existing unrelated platform advisories remain outside this release.
 
 ## Local preview
 
