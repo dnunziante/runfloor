@@ -26,9 +26,9 @@ const access = load("src/lib/products/compare-sell.ts", {
 });
 const ids = [1, 2, 3].map(id => `10000000-0000-0000-0000-00000000000${id}`);
 const products = [
-  { id: ids[0], name: "Beyond", model: "Beyond", modelYear: 2027, brand: "Bintelli", modelVariant: "4FF", highlights: ["Power steering"], specifications: { frameMaterial: "Aluminum", originalSource: "internal import metadata" } },
-  { id: ids[1], name: "S4F", model: "S4F", modelYear: 2026, brand: "Aries EV", modelVariant: "2WD", highlights: [], specifications: { powerSteering: "" } },
-  { id: ids[2], name: "Onward", model: "Onward", brand: "Club Car", highlights: [] },
+  { id: ids[0], name: "Beyond", productType: "our_product", model: "Beyond", modelYear: 2027, brand: "Bintelli", modelVariant: "4FF", highlights: ["Power steering"], specifications: { frameMaterial: "Aluminum", originalSource: "internal import metadata" } },
+  { id: ids[1], name: "S4F", productType: "competitor_product", model: "S4F", modelYear: 2026, brand: "Aries EV", modelVariant: "2WD", highlights: [], specifications: { powerSteering: "" } },
+  { id: ids[2], name: "Onward", productType: "our_product", model: "Onward", brand: "Club Car", highlights: [] },
 ];
 
 function fixture({ viewer = { organizationId: "tenant-a", role: "salesperson" }, records = products, industry = "golf-cart", creditError } = {}) {
@@ -69,14 +69,14 @@ test("Compare & Sell checks sign-in, plan, and both permissions before accessing
 });
 
 test("Compare & Sell uses exact approved selections in order and treats missing competitor data as unconfirmed", async () => {
-  const request = fixture();
-  const response = await request.submit({ productIds: [ids[1], ids[0]], notes: "Easy steering", products: [{ name: "Forged client facts" }] });
+  const request = fixture({ records: [...products].reverse() });
+  const response = await request.submit({ notes: "Easy steering", products: [{ name: "Forged client facts" }] });
   assert.equal(response.status, 200);
   assert.equal(request.calls[0][1], "tenant-a");
   const [, , context, instructions, preferences] = request.calls[1];
   const facts = JSON.parse(context);
-  assert.deepEqual(facts.map(product => [product.title, product.year, product.variant]), [["2026 Aries EV S4F 2WD", 2026, "2WD"], ["2027 Bintelli Beyond 4FF", 2027, "4FF"]]);
-  assert.deepEqual(facts[0].specifications, []);
+  assert.deepEqual(facts.map(product => [product.title, product.year, product.variant]), [["2027 Bintelli Beyond 4FF", 2027, "4FF"], ["2026 Aries EV S4F 2WD", 2026, "2WD"]]);
+  assert.deepEqual(facts[1].specifications, []);
   assert.doesNotMatch(context, /Forged client facts|internal import metadata|Onward/);
   assert.match(instructions, /unconfirmed/);
   assert.match(instructions, /Never infer a competitor lacks a feature/);
@@ -95,6 +95,45 @@ test("Compare & Sell accepts three authorized RV models and rejects duplicate or
   assert.equal((await incomplete.submit()).status, 404);
   assert.equal((await incomplete.submit({ productIds: [ids[0], ids[0]] })).status, 400);
   assert.equal(incomplete.calls.length, 1);
+});
+
+test("Compare & Sell leads with the selected Our Product for all actions and preserves verified trade-offs", async () => {
+  for (const [action, guidance] of [["pitch", /30-second pitch/], ["objection", /follow-up question/], ["demo", /side-by-side demo/]]) {
+    for (const productIds of [ids.slice(0, 2), ids]) {
+      for (const industry of ["golf-cart", "rv", null]) {
+        const competitor = { ...products[1], specifications: { backupCamera: true, powerSteering: "" } };
+        const own = { ...products[0], specifications: { ...products[0].specifications, backupCamera: false } };
+        const request = fixture({ industry, records: [products[2], competitor, own] });
+        const response = await request.submit({ action, productIds, notes: "A backup camera is a must-have." });
+        assert.equal(response.status, 200);
+        const { answer, sources } = await response.json();
+        assert.match(answer, /^### Start with 2027 Bintelli Beyond 4FF \[P1\]/);
+        assert.equal(sources.length, productIds.length);
+        const [, , context, instructions] = request.calls[1];
+        const facts = JSON.parse(context);
+        assert.deepEqual(facts.map(({ source, productType }) => [source, productType]), [
+          ["[P1]", "Our Product"], ["[P2]", "Competitor Product"],
+          ...(productIds.length === 3 ? [["[P3]", "Our Product"]] : []),
+        ]);
+        assert.deepEqual(facts[1].specifications, [["Backup Camera", "Yes"]]);
+        assert.ok(facts[0].specifications.some(([label, value]) => label === "Backup Camera" && value === "No"));
+        assert.match(instructions, guidance);
+        assert.match(instructions, /strongest verified selling point/);
+        assert.match(instructions, /Acknowledge verified competitor strengths/);
+        assert.match(instructions, /without claiming overall superiority/);
+        assert.match(instructions, /another model we carry would fit/);
+        assert.match(instructions, /End with one practical next step/);
+      }
+    }
+  }
+});
+
+test("Compare & Sell checks the selector roles against catalog records before metering AI", async () => {
+  for (const productIds of [[ids[1], ids[0]], [ids[0], ids[2], ids[1]]]) {
+    const request = fixture();
+    assert.equal((await request.submit({ productIds })).status, 400);
+    assert.equal(request.calls.filter(([name]) => name === "AI").length, 0);
+  }
 });
 
 test("Compare & Sell returns metering restrictions after a single AI attempt", async () => {
