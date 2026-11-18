@@ -47,4 +47,20 @@ Do not merge this backend-dependent release into production before approval of t
 - QA Supabase security advisors reviewed. Existing trigger/advisory notices remain; the catalog RPC retains its existing authenticated/service-only ACL and explicit membership/visibility/rate checks. No new anonymous table or RPC access is introduced.
 - Local QA identities, keys, logs and helper scripts are ignored under `.qa`; none are committed.
 
-Final local checks (2026-11-18): `pnpm test` **235 passed, 0 failed**; `pnpm lint` **0 errors, 12 pre-existing warnings**; `pnpm build` **passed**; `pnpm typecheck` **passed**. No production migrations or production deployments have been performed by this change.
+Final local checks (2026-11-18): `pnpm test` **235 passed, 0 failed**; `pnpm lint` **0 errors, 12 pre-existing warnings**; `pnpm build` **passed**; `pnpm typecheck` **passed**. These local checks were completed before the approved production release recorded below.
+
+
+## Approved production release — 2026-11-18
+
+The owner explicitly approved PR #34 at head 7ae4e58 and its six-migration release plan in this session. PR #34 merged as **0d60498b528594384c2b44bde0d542947dd5ff1e** at 17:08:04 UTC.
+
+- Backup availability checked in the original Refyntra/RunFloor Supabase dashboard: latest physical backup **2026-11-18 11:20:02 UTC**, with Restore available. No restore was performed.
+- All six migrations in the plan succeeded on **cqwcagnrgxokbrswhbfj**. Postflight confirmed RLS enabled, zero automatically enrolled personal accounts, Solo catalog inactive, no anonymous activation permission, and no authenticated-client AI reservation permission.
+- RunFloor production registration flags: Free enabled, Solo enabled, **live Stripe disabled**. No live prices, subscriptions or payments were created.
+- Vercel confirmed both public domains belong to RunFloor project **prj_HKCNaB2PwcqQdzMRQiAlbyPiqjz6**. The same approved settings therefore apply to both. The older separate Commandly Demo Git deployment also completed successfully; no unrelated project configuration was changed.
+- RunFloor production deployment **dpl_EZooitdpYPUgqE2KMQw8KkJ26sjY** succeeded. GitHub reports success for both **Vercel – runfloor** and **Vercel – commandly-demo** on the exact merge commit.
+- Verified HTTP 200 on both production landing pages and all six plan-specific signup pages. Confirmed advertised plan names, 500/2,000-credit quantities, preloaded-library claim, matching selected signup options and enabled submit controls.
+- Manually verified the live pricing page on desktop and mobile: three columns / stacked cards, no horizontal overflow, FAQs below cards. No real customer account was created during production verification.
+- Public URLs: https://refyntra-demo.vercel.app/#pricing and https://commandly-rho.vercel.app/#pricing.
+
+Remaining commercial setup is intentionally separate: approve live Solo payment activation, verified live catalog and portal settings, and full Stripe lifecycle acceptance before enabling any real charge. Solo registration currently provides effective Free access until confirmed payment. Marketing was not modified.
