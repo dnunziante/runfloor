@@ -1,18 +1,21 @@
 "use client";
-import { useActionState } from "react";
+import { useActionState, useState } from "react";
 import { activateTrial, signupTrial } from "@/app/signup/actions";
 
-export function TrialSignupForm({ activate = false, dealership = "", fullName = "", phone = "" }: { activate?: boolean; dealership?: string; fullName?: string; phone?: string }) {
+export function TrialSignupForm({ activate = false, dealership = "", fullName = "", phone = "", plan = "complete", soloEnabled = false }: { activate?: boolean; dealership?: string; fullName?: string; phone?: string; plan?: string; soloEnabled?: boolean }) {
+  const [selectedPlan, setSelectedPlan] = useState(plan);
   const [state, action, pending] = useActionState(activate ? activateTrial : signupTrial, { message: "" });
   return <form action={action} className="rv-signup-form">
     <p><small>* Required fields</small></p>
+    <label>Plan<select className="input" name="plan" value={selectedPlan} onChange={e => setSelectedPlan(e.target.value)}><option value="complete">RunFloor Complete — 7-day trial, then $99/month per location</option><option value="sales_solo" disabled={!soloEnabled}>RunFloor Sales Solo — $25/month, one user{!soloEnabled ? " (not yet available)" : ""}</option></select></label>
+    {selectedPlan === "sales_solo" && <p>Sales only. Includes up to $5 of AI provider cost each paid month. Payment is required before Sales access; no automatic overages.</p>}
     <label><span>Dealership name <span aria-hidden="true">*</span></span><input name="dealership" autoComplete="organization" defaultValue={dealership} minLength={2} maxLength={120} required/></label>
     <label><span>Primary contact name <span aria-hidden="true">*</span></span><input name="fullName" autoComplete="name" defaultValue={fullName} minLength={2} maxLength={120} required/></label>
     {!activate && <label><span>Email address <span aria-hidden="true">*</span></span><input name="email" type="email" autoComplete="email" maxLength={254} required/></label>}
     <label>Phone number (optional)<input name="phone" type="tel" autoComplete="tel" defaultValue={phone} maxLength={40}/></label>
     {!activate && <label><span>Password <span aria-hidden="true">*</span></span><input name="password" type="password" autoComplete="new-password" minLength={12} maxLength={128} required/><small>At least 12 characters.</small></label>}
     {state.message && <p role="status">{state.message}</p>}
-    <button className="btn btn-primary" disabled={pending} type="submit">{pending ? "Please wait…" : activate ? "Activate My 7-Day Free Trial" : "Start Your 7-Day Free Trial"}</button>
-    <p>No credit card required. No automatic charges.</p>
+    <button className="btn btn-primary" disabled={pending} type="submit">{pending ? "Please wait…" : selectedPlan === "sales_solo" ? activate ? "Create My Sales Solo Account" : "Create My Sales Solo Login" : activate ? "Activate My 7-Day Free Trial" : "Start Your 7-Day Free Trial"}</button>
+    <p>{selectedPlan === "sales_solo" ? "Payment is completed separately through secure checkout." : "No credit card required. No automatic charges."}</p>
   </form>;
 }

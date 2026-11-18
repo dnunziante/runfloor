@@ -35,6 +35,7 @@ export async function inviteUser(_previousState: InviteUserState, formData: Form
     return { error: "Only an Admin can invite users.", success: "" };
   }
 
+  if (viewer.plan?.plan_key === "sales_solo" && viewer.role !== "platform_owner") return { error: "Sales Solo includes one user and does not allow invitations.", success: "" };
   const firstName = String(formData.get("firstName") || "").trim();
   const lastName = String(formData.get("lastName") || "").trim();
   const phone = String(formData.get("phone") || "").trim();
@@ -133,6 +134,7 @@ export async function changeUserRole(_previousState: ChangeRoleState, formData: 
   if (viewer?.demo || !viewer || !["tenant_admin", "platform_owner"].includes(viewer.role)) {
     return { error: "Only an Admin can change roles.", success: "" };
   }
+  if (viewer.plan?.plan_key === "sales_solo" && viewer.role !== "platform_owner") return { error: "Sales Solo does not allow role assignment.", success: "" };
   const membershipId = String(formData.get("membershipId") || "");
   const role = String(formData.get("role") || "");
   if (!uuidPattern.test(membershipId) || !["tenant_admin", "manager", "salesperson"].includes(role)) {

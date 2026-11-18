@@ -5,11 +5,11 @@ import { getWorkspaceNavigation } from "@/lib/navigation";
 import { navigationIcons } from "@/components/navigation-icons";
 import type { AppRole } from "@/lib/auth/viewer";
 
-export function WorkspaceLaunchpad({ role }: { role: AppRole }) {
-  return <nav className="workspace-launchpad" aria-label="Business workspaces">{getWorkspaceNavigation(role).map((workspace) => {
+export function WorkspaceLaunchpad({ role, planKey }: { role: AppRole; planKey?: string }) {
+  return <nav className="workspace-launchpad" aria-label="Business workspaces">{getWorkspaceNavigation(role).filter(workspace => planKey !== "sales_solo" || workspace.id === "sales").map((workspace) => {
     const Icon = navigationIcons[workspace.icon];
     const dashboard = workspace.id === "sales" ? "/dashboard/performance" : `/${workspace.id}`;
     const assistant = workspace.id === "sales" ? "/assistant" : `/${workspace.id}/assistant`;
-    return <section key={workspace.id}><Link href={dashboard}><Icon size={23}/><span><strong>{workspace.label}</strong><small>{workspace.id === "sales" ? ENABLE_SALES_COACHING ? "Revenue, inventory and coaching" : "Revenue, inventory and sales tools" : workspace.id === "operations" ? "Daily work and execution" : "Management and growth"}</small></span><ArrowRight size={17}/></Link><Link href={assistant}><Bot size={16}/>{workspace.id === "executive" ? "Open AI Advisor" : "Open AI Assistant"}</Link></section>;
+    return <section key={workspace.id}><Link href={dashboard}><Icon size={23}/><span><strong>{workspace.label}</strong><small>{workspace.id === "sales" ? ENABLE_SALES_COACHING && planKey !== "sales_solo" ? "Revenue, inventory and coaching" : "Revenue, inventory and sales tools" : workspace.id === "operations" ? "Daily work and execution" : "Management and growth"}</small></span><ArrowRight size={17}/></Link><Link href={assistant}><Bot size={16}/>{workspace.id === "executive" ? "Open AI Advisor" : "Open AI Assistant"}</Link></section>;
   })}</nav>;
 }

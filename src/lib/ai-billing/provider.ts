@@ -5,7 +5,7 @@ import { AsyncLocalStorage } from "node:async_hooks";
 import { getViewer } from "@/lib/auth/viewer";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { boundRequest, providerUsage } from "./money";
-type BillingContext = { organizationId: string; userId: string };
+type BillingContext = { organizationId: string; userId: string; locationId?: string | null };
 const contexts = new AsyncLocalStorage<BillingContext>();
 export function withAiBillingContext<T>(
   context: BillingContext,
@@ -42,7 +42,8 @@ export async function meteredOpenAI(
   const fingerprint = createHash("sha256")
     .update(JSON.stringify([path, operation, bounds.payload]))
     .digest("hex");
-  const incoming = (await headers()).get("x-runfloor-ai-request");
+  let incoming: string | null = null;
+  try { incoming = (await headers()).get("x-runfloor-ai-request"); } catch { /* Background jobs use their explicit billing context. */ }
   const nonce =
     incoming && /^[0-9a-f-]{36}$/i.test(incoming)
       ? incoming
@@ -65,6 +66,10 @@ export async function meteredOpenAI(
     digest.slice(16, 20),
     digest.slice(20, 32),
   ].join("-");
+  let location = context.locationId ?? null;
+  if (process.env.RUNFLOOR_RV_BILLING_ENABLED === "true" && !contexts.getStore()) {
+    location = (await cookies()).get("rf-billing-location")?.value || null;
+  }
   const { error: reserveError } = await admin.rpc("reserve_ai_usage", {
     target_org: context.organizationId,
     target_user: context.userId,
@@ -74,11 +79,11 @@ export async function meteredOpenAI(
     max_input: bounds.input,
     max_output: bounds.output,
     input_fingerprint: fingerprint,
-    ...(process.env.RUNFLOOR_RV_BILLING_ENABLED === "true" ? { target_location: (await cookies()).get("rf-billing-location")?.value || null } : {}),
+    ...(process.env.RUNFLOOR_RV_BILLING_ENABLED === "true" ? { target_location: location } : {}),
   });
   if (reserveError)
     throw new AiCreditError(
-      reserveError.message.includes("Insufficient")
+      reserveError.message.includes("Sales Solo") ? reserveError.message : reserveError.message.includes("Insufficient")
         ? "Your company has insufficient AI credits for this request. Open AI Usage & Billing to buy more."
         : "AI credit accounting is unavailable or this model needs configured pricing. No AI request was sent.",
     );

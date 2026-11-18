@@ -1,4 +1,5 @@
 import "server-only";
+import { limitPermissions, type AccountPlan } from "@/lib/plans/policy";
 import { defaultPermissions, type RolePermissions } from "./role-permissions";
 
 import { cookies } from "next/headers";
@@ -21,6 +22,7 @@ export type Viewer = {
   role: AppRole;
   demo: boolean;
   permissions?: RolePermissions;
+  plan?: AccountPlan;
 };
 
 export const demoViewer: Viewer = {
@@ -98,7 +100,15 @@ export async function getViewer(): Promise<Viewer | null> {
     if (error) throw new Error("Workspace permissions could not be verified.");
     if (permissionRow) permissions = permissionRow.permissions;
   }
+  let plan: AccountPlan | undefined;
+  if (organizationId) {
+    const { data, error } = await supabase.from("account_subscription_plans").select("*").eq("organization_id", organizationId).maybeSingle();
+    if (error) throw new Error("Account plan could not be verified.");
+    plan = data || undefined;
+    if (plan?.plan_key === "sales_solo" && !isPlatformOwner) permissions = limitPermissions(permissions);
+  }
   return {
+    plan,
     permissions,
     id: user.id,
     email: user.email || "",

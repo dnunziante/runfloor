@@ -27,7 +27,7 @@ export function AppShell({ children, title, industry }: { children: React.ReactN
   const [open, setOpen] = useState(false);
   const [collapsed, setCollapsed] = useState(false);
   const [workspaces, setWorkspaces] = useState<{ id: string; name: string }[]>([]);
-  const [viewer, setViewer] = useState<Pick<Viewer, "fullName" | "initials" | "organizationId" | "organizationName" | "role" | "demo" | "permissions"> & { industryTemplateKey?: string }>({
+  const [viewer, setViewer] = useState<Pick<Viewer, "fullName" | "initials" | "organizationId" | "organizationName" | "role" | "demo" | "permissions" | "plan"> & { industryTemplateKey?: string }>({
     fullName: "User",
     initials: "U",
     organizationId: "",
@@ -80,9 +80,9 @@ export function AppShell({ children, title, industry }: { children: React.ReactN
   const roleLabel = viewer.role === "platform_owner" ? "Platform Owner" : viewer.role === "tenant_admin" ? "Tenant Admin" : viewer.role === "manager" ? "Manager" : "Salesperson";
   const isRv = industry === "rv" || viewer.industryTemplateKey === "rv";
   const isGolfCart = industry === "golf-cart" || viewer.industryTemplateKey === "golf-cart";
-  const navigation = getWorkspaceNavigation(viewer.role, industry ?? viewer.industryTemplateKey).map(workspace => ({ ...workspace, groups: workspace.groups.map(group => ({ ...group, items: group.items.filter(item => hasPagePermission(viewer.role, item.href, viewer.permissions)) })).filter(group => group.items.length) })).filter(workspace => workspace.groups.length);
+  const navigation = getWorkspaceNavigation(viewer.role, industry ?? viewer.industryTemplateKey).map(workspace => ({ ...workspace, groups: workspace.groups.map(group => ({ ...group, items: group.items.filter(item => hasPagePermission(viewer.role, item.href, viewer.permissions, viewer.plan?.plan_key)) })).filter(group => group.items.length) })).filter(workspace => workspace.groups.length);
   const activeItem = activeNavigationItem(pathname, navigation);
-  const sidebarGroups = getSidebarNavigation(viewer.role).map(group => ({ ...group, items: group.items.map(item => item.href === "/admin/settings" && !hasPagePermission(viewer.role, item.href, viewer.permissions) ? { ...item, href: "/admin/settings/roles" } : item).filter(item => hasPagePermission(viewer.role, item.href, viewer.permissions)) })).filter(group => group.items.length);
+  const sidebarGroups = getSidebarNavigation(viewer.role).map(group => ({ ...group, items: group.items.map(item => item.href === "/admin/settings" && viewer.plan?.plan_key !== "sales_solo" && !hasPagePermission(viewer.role, item.href, viewer.permissions, viewer.plan?.plan_key) ? { ...item, href: "/admin/settings/roles" } : item).filter(item => hasPagePermission(viewer.role, item.href, viewer.permissions, viewer.plan?.plan_key)) })).filter(group => group.items.length);
   const activeFooterItem = activeItem ? undefined : activeSidebarItem(pathname, sidebarGroups);
   const activeFooterGroup = sidebarGroups.find(group => group.items.some(item => item.href === activeFooterItem?.href))?.id;
   const expandedWorkspace = activeWorkspace(pathname) ?? (pathname === "/dashboard" ? "sales" : undefined);

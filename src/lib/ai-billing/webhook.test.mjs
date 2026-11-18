@@ -51,6 +51,7 @@ function route({
     },
   };
   const deps = {
+    "@/lib/plans/webhook": { handleSoloEvent: async () => false },
     "@/lib/billing/webhook": { handleRvBillingEvent: async () => false },
     "next/server": {
       NextResponse: {

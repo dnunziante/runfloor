@@ -9,8 +9,8 @@ export default async function Activate() {
   const db = await createClient();
   const { data: { user } } = await db.auth.getUser();
   if (!user || !user.email_confirmed_at) return <main className="rv-signup"><h1>Verify your email to get started.</h1><p>Then sign in to activate your dealership.</p><Link href="/login?next=/signup/activate">Sign in</Link></main>;
-  let draft: { dealership?: string; fullName?: string; phone?: string } = {};
+  let draft: { dealership?: string; fullName?: string; phone?: string; plan?: string } = {};
   try { draft = JSON.parse((await cookies()).get("rf-trial-draft")?.value || "{}"); } catch { /* Defaults can be entered again on another device. */ }
   const phone = typeof draft.phone === "string" ? draft.phone : typeof user.user_metadata?.contact_phone === "string" ? user.user_metadata.contact_phone : "";
-  return <main className="rv-signup"><section><h1>Welcome to RunFloor.</h1><p>Confirm your dealership to activate 7 days of access and 100 shared AI credits.</p><TrialSignupForm activate dealership={typeof draft.dealership === "string" ? draft.dealership : ""} fullName={typeof draft.fullName === "string" ? draft.fullName : ""} phone={phone}/><Link href="/dashboard">Return to an existing workspace</Link></section></main>;
+  return <main className="rv-signup"><section><h1>Welcome to RunFloor.</h1><p>{draft.plan === "sales_solo" ? "Confirm your account, then subscribe to Sales Solo for $25/month with a $5 monthly AI allowance." : "Confirm your dealership to activate 7 days of access and 100 shared AI credits."}</p><TrialSignupForm activate plan={draft.plan === "sales_solo" ? "sales_solo" : "complete"} soloEnabled={process.env.RUNFLOOR_SALES_SOLO_ENABLED === "true"} dealership={typeof draft.dealership === "string" ? draft.dealership : ""} fullName={typeof draft.fullName === "string" ? draft.fullName : ""} phone={phone}/><Link href="/dashboard">Return to an existing workspace</Link></section></main>;
 }

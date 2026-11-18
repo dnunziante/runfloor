@@ -1,3 +1,4 @@
+import { OwnProfileForm } from "@/components/own-profile-form";
 import Link from "next/link";
 import { AppShell } from "@/components/app-shell";
 import { OrganizationSettingsForm } from "@/components/organization-settings-form";
@@ -8,7 +9,9 @@ import { getOrganizationLocations } from "@/lib/locations";
 import { getOrganizationSettings } from "@/lib/organizations/settings";
 
 export default async function SettingsPage() {
-  const [locationResult, settings, viewer] = await Promise.all([getOrganizationLocations(), getOrganizationSettings(), getViewer()]);
+  const viewer = await getViewer();
+  if (viewer?.plan?.plan_key === "sales_solo" && viewer.role !== "platform_owner") return <AppShell title="My account"><PageHeader title="My Sales Solo account" description="Manage your profile, sales materials, and subscription."/><OwnProfileForm name={viewer.fullName} email={viewer.email}/><section className="card" style={{marginTop:18}}><h2>My sales materials</h2><div className="rv-billing-actions"><Link className="btn" href="/admin/products">Manage products</Link><Link className="btn" href="/knowledge-base">Manage documents</Link><Link className="btn" href="/admin/content">Manage sales templates</Link><Link className="btn" href="/billing">Subscription and AI allowance</Link></div><p>Your plan includes one user. Team permissions and location assignments are managed by the Platform Admin.</p></section></AppShell>;
+  const [locationResult, settings] = await Promise.all([getOrganizationLocations(), getOrganizationSettings()]);
   const canSave = Boolean(viewer && !viewer.demo && ["tenant_admin", "platform_owner"].includes(viewer.role));
 
   return <AppShell title="Admin · Settings">

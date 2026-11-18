@@ -55,7 +55,8 @@ export function boundRequest(path: string, payload: Record<string, unknown>) {
     throw new Error("AI request type has not been approved for metering.");
   const bounded = { ...payload };
   if (!embedding) {
-    bounded.max_completion_tokens = 8192;
+    const requested = Number(payload.max_completion_tokens);
+    bounded.max_completion_tokens = Number.isSafeInteger(requested) && requested > 0 ? Math.min(requested, 8192) : 8192;
     delete bounded.max_tokens;
   }
   const serialized = JSON.stringify(bounded);
@@ -72,7 +73,7 @@ export function boundRequest(path: string, payload: Record<string, unknown>) {
     throw new Error(
       "This AI input is too large. Split the document into smaller files.",
     );
-  return { payload: bounded, input, output: embedding ? 0 : 8192 };
+  return { payload: bounded, input, output: embedding ? 0 : Number(bounded.max_completion_tokens) };
 }
 export function creditLabel(units: number) {
   return (units / UNITS_PER_CREDIT).toLocaleString("en-US", {

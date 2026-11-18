@@ -15,16 +15,17 @@ function provider({
   },
   settlementError = null,
   network = false,
+  background = false,
 } = {}) {
   const calls = [];
   const deps = {
     "server-only": {},
     "node:crypto": { createHash },
     "next/headers": {
-      headers: async () =>
-        new Headers({
+      headers: async () => { if (background) throw Error("No request headers"); return new Headers({
           "x-runfloor-ai-request": "10000000-0000-0000-0000-000000000001",
-        }),
+        }); },
+      cookies: async () => { throw Error("Background work must not request cookies"); },
     },
     "node:async_hooks": { AsyncLocalStorage },
     "@/lib/auth/viewer": {
@@ -59,7 +60,7 @@ function provider({
       assert.ok(name in deps, name);
       return deps[name];
     },
-    process: { env: { OPENAI_API_KEY: "test-placeholder" } },
+    process: { env: { OPENAI_API_KEY: "test-placeholder", RUNFLOOR_RV_BILLING_ENABLED: background ? "true" : "false" } },
     crypto,
     Headers,
     AbortSignal,
@@ -75,12 +76,11 @@ function provider({
   });
   return {
     calls,
-    request: () =>
-      exports.meteredOpenAI(
+    request: () => { const work = () => exports.meteredOpenAI(
         "chat/completions",
         { model: "gpt-5-mini", messages: [] },
         "assistant",
-      ),
+      ); return background ? exports.withAiBillingContext({organizationId:"background-company",userId:"background-user"}, work) : work(); },
   };
 }
 test("exhaustion stops before any provider call", async () => {
@@ -120,4 +120,8 @@ test("explicit unbilled rejection releases reservation", async () => {
 test("accounting failure never reports success", async () => {
   const p = provider({ settlementError: { message: "offline" } });
   await assert.rejects(p.request(), /reconciliation/);
+});
+
+test("background AI work reserves and settles its explicit account without browser cookies",async()=>{
+ const p=provider({background:true});await p.request();assert.equal(p.calls[0].name,'reserve_ai_usage');assert.equal(p.calls[0].args.target_org,'background-company');assert.equal(p.calls[0].args.target_user,'background-user');assert.equal(p.calls[0].args.target_location,null);assert.equal(p.calls.at(-1).name,'finish_ai_usage');
 });

@@ -1,3 +1,4 @@
+import { SoloAdmin } from "@/components/solo-admin";
 import { getViewer } from "@/lib/auth/viewer";
 import { redirect } from "next/navigation";
 import Link from "next/link";
@@ -91,6 +92,7 @@ export default async function AdminAiBilling({
     );
   return shell(
     <div className="ai-billing-grid">
+      <SoloAdmin/>
       {query.message && (
         <p role="status" className="callout">
           {query.message}
