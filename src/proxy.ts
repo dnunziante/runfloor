@@ -1,4 +1,4 @@
-import { soloAllowsPath, planPaid } from "@/lib/plans/policy";
+import { soloAllowsPath, planPaid, isSoloPlan, isFreeSolo, freeAllowsPath, effectivePlanKey } from "@/lib/plans/policy";
 import { defaultPermissions, hasPagePermission } from "@/lib/auth/role-permissions";
 import type { AppRole } from "@/lib/auth/viewer";
 import { isFeatureDestinationEnabled } from "@/lib/features";
@@ -83,11 +83,11 @@ export async function proxy(request: NextRequest) {
 
   const { data: plan, error: planError } = membership ? await supabase.from("account_subscription_plans").select("*").eq("organization_id", membership.organization_id).maybeSingle() : { data: null, error: null };
   if (planError) return NextResponse.json({ error: "Account plan could not be verified." }, { status: 503 });
-  const solo = !profile?.is_platform_owner && plan?.plan_key === "sales_solo";
+  const solo = !profile?.is_platform_owner && isSoloPlan(plan?.plan_key);
   if (solo) {
     const path = request.nextUrl.pathname;
     const accountPath = path === "/admin/settings" || path.startsWith("/billing") || path.startsWith("/help") || path.startsWith("/api/opal");
-    const allowed = soloAllowsPath(path) && (accountPath || planPaid(plan));
+    const allowed = isFreeSolo(plan) ? freeAllowsPath(path) && (request.method === "GET" || path === "/admin/settings" || path === "/billing") : soloAllowsPath(path) && (accountPath || planPaid(plan));
     if (!allowed) {
       if (path.startsWith("/api/") || request.method !== "GET") return NextResponse.json({ error: "This action is outside your Sales Solo subscription.", billingUrl: "/billing" }, { status: 403 });
       return NextResponse.redirect(new URL(planPaid(plan) ? "/dashboard?access=restricted" : "/billing", request.url));
@@ -107,7 +107,7 @@ export async function proxy(request: NextRequest) {
     const { data: permissionRow, error: permissionError } = await supabase.from("organization_role_permissions").select("permissions").eq("organization_id", membership.organization_id).eq("role", membership.role).maybeSingle();
     if (permissionError) return NextResponse.json({ error: "Workspace permissions could not be verified. Try again shortly." }, { status: 503 });
     const permissions = permissionRow?.permissions ?? defaultPermissions(membership.role as AppRole);
-    if (!hasPagePermission(membership.role as AppRole, request.nextUrl.pathname, permissions, solo ? "sales_solo" : undefined)) {
+    if (!hasPagePermission(membership.role as AppRole, request.nextUrl.pathname, permissions, solo ? effectivePlanKey(plan) : undefined)) {
       if (request.method !== "GET" || request.nextUrl.pathname.startsWith("/api/")) return NextResponse.json({ error: "Your position does not have access to this area." }, { status: 403 });
       const denied = NextResponse.redirect(new URL("/dashboard?access=restricted", request.url));
       response.cookies.getAll().forEach(cookie => denied.cookies.set(cookie));

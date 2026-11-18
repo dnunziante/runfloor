@@ -1,4 +1,5 @@
 "use server";
+import { isFreeSolo } from "@/lib/plans/policy";
 
 import { revalidatePath } from "next/cache";
 import { getViewer } from "@/lib/auth/viewer";
@@ -10,6 +11,7 @@ export type ProductTypeState = { error: string; success: string; productType?: P
 
 export async function saveProductType(_previous: ProductTypeState, formData: FormData): Promise<ProductTypeState> {
   const viewer = await getViewer();
+  if (isFreeSolo(viewer?.plan) && viewer?.role !== "platform_owner") throw new Error("Upgrade to Sales Solo to edit inventory, documents or templates.");
   if (!viewer || viewer.demo || !viewer.organizationId || !["platform_owner", "tenant_admin", "manager"].includes(viewer.role) || !hasPagePermission(viewer.role, "/products", viewer.permissions)) return { error: "Sign in with product management access to change the product type.", success: "" };
   const id = String(formData.get("productId") || "");
   const productType = formData.get("productType");

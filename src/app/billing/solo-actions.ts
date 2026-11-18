@@ -1,4 +1,5 @@
 "use server";
+import { isSoloPlan } from "@/lib/plans/policy";
 import { randomBytes, randomUUID } from "node:crypto";
 import { redirect } from "next/navigation";
 import { getViewer } from "@/lib/auth/viewer";
@@ -20,7 +21,7 @@ export async function startSoloCheckout() {
   let destination: string;
   try {
     const { viewer, plan, stripe, stripeAccount, live, db } = await account();
-    if (plan.plan_key !== "sales_solo") throw new Error("This account already has a different plan.");
+    if (!isSoloPlan(plan.plan_key)) throw new Error("This account already has a different plan.");
     const price = await soloPrice(stripe, stripeAccount, live);
     let customer = plan.stripe_customer_id;
     if (!customer) {

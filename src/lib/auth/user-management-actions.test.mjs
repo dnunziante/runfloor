@@ -1,3 +1,4 @@
+import * as planPolicy from "../plans/policy.ts";
 import assert from 'node:assert/strict';
 import test from 'node:test';
 import vm from 'node:vm';
@@ -5,9 +6,9 @@ import { readFileSync } from 'node:fs';
 import ts from 'typescript';
 
 const organizationId = 'f17b4961-6312-4a6d-88a2-e89fa181eb01';
-function fixture(role, allowAdd = false, membership = null) {
+function fixture(role, allowAdd = false, membership = null, plan = null) {
   const calls = [];
-  const viewer = { id: 'admin-user', organizationId, role, demo: false };
+  const viewer = { id: 'admin-user', organizationId, role, demo: false, plan };
   function from(table) {
     assert.ok(allowAdd, 'A rejected action must not reach the database');
     assert.notEqual(table, 'locations', 'Account Admin must not resolve a supplied location');
@@ -21,6 +22,7 @@ function fixture(role, allowAdd = false, membership = null) {
     'next/cache': { revalidatePath() {} },
     '@/lib/auth/viewer': { getViewer: async () => viewer },
     '@/lib/supabase/server': { createClient: async () => ({ from }) },
+    "@/lib/plans/policy": planPolicy,
     '@/lib/supabase/admin': { createAdminClient: () => ({ from }) },
   };
   const exports = {};
@@ -65,3 +67,5 @@ test('adding a user cannot reactivate or relocate an existing pending or disable
     assert.equal(f.calls.length, 0);
   }
 });
+
+test('Free owner Admin cannot invoke invitations or role assignment through another allowed page',async()=>{const f=fixture('tenant_admin',false,null,{plan_key:'sales_solo_free',status:'free'});const form=new FormData();form.set('email','not-sent@example.com');form.set('role','tenant_admin');for(const action of ['inviteUser','changeUserRole']){assert.equal(typeof f.actions[action],'function');const result=await f.actions[action]({},form);assert.ok(result.error);assert.equal(f.calls.length,0);}});

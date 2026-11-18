@@ -8,6 +8,8 @@ function publicError(error: unknown) { return error instanceof Error ? error.mes
 
 export async function processKnowledgeDocument(input: { documentId: string; organizationId: string; locationId: string | null; productId: string | null; sourceName: string; file: File }) {
   const admin = createAdminClient();
+  const access=await admin.rpc("solo_document_processing_access",{target_org:input.organizationId});
+  if(access.error || access.data!==true)return {indexed:false,error:"Document processing is unavailable for this account."};
   let chunkCount = 0;
   await admin.from("knowledge_documents").update({ status: "processing", processing_error: null }).eq("id", input.documentId).eq("organization_id", input.organizationId);
   try {

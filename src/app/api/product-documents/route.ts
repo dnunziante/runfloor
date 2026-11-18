@@ -1,3 +1,4 @@
+import { isFreeSolo } from "@/lib/plans/policy";
 import { NextResponse } from "next/server";
 import { getViewer } from "@/lib/auth/viewer";
 import { createAdminClient } from "@/lib/supabase/admin";
@@ -8,6 +9,7 @@ const slug = (value: string) => value.toLowerCase().replace(/[^a-z0-9]+/g, "-").
 
 export async function POST(request: Request) {
   const viewer = await getViewer();
+  if (isFreeSolo(viewer?.plan) && viewer?.role !== "platform_owner") return NextResponse.json({error:"Upgrade to Sales Solo to upload documents."},{status:403});
   if (!viewer?.organizationId || !["tenant_admin", "platform_owner", "manager"].includes(viewer.role)) return NextResponse.json({ error: "Manager access is required." }, { status: 403 });
   const form = await request.formData();
   const files = form.getAll("files").filter((item): item is File => item instanceof File);

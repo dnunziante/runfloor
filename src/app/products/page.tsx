@@ -1,15 +1,19 @@
+import { isFreeSolo } from "@/lib/plans/policy";
+import { SoloUpgradePrompt } from "@/components/solo-upgrade-prompt";
 import { AppShell } from "@/components/app-shell";
 import { BarChart3, Car, FileText, PackageCheck, ShieldCheck, Users } from "lucide-react";
 import { PageHeader } from "@/components/page-header";
 import { ProductFamilyLibrary } from "@/components/product-family-library";
 import { ProductLibrary } from "@/components/product-library";
 import { ProductLibraryActions } from "@/components/product-catalog-management";
-import { getTenantProductFamilies, getTenantProducts } from "@/lib/products/data";
+import { getTenantProductFamilies, getTenantProducts, getSoloSharedCatalog } from "@/lib/products/data";
 import { getViewer } from "@/lib/auth/viewer";
 import { getViewerIndustryTemplateKey } from "@/lib/organizations/industry";
 
-export default async function ProductsPage() {
-  const [result, productResult, viewer] = await Promise.all([getTenantProductFamilies(), getTenantProducts(), getViewer()]);
+export default async function ProductsPage({searchParams}:{searchParams:Promise<{page?:string;q?:string;brand?:string;rvType?:string;year?:string}>}) {
+  const viewer=await getViewer();
+  if(isFreeSolo(viewer?.plan)){const filters=await searchParams;const catalog=await getSoloSharedCatalog({...filters,page:Number(filters.page)||1});return <AppShell title="Products" industry="rv"><main className="rv-products"><SoloUpgradePrompt/>{catalog.error ? <section className="card" role="alert">{catalog.error}</section> : <ProductLibrary products={catalog.products} live={false} isRv remote={catalog}/>}</main></AppShell>;}
+  const [result, productResult] = await Promise.all([getTenantProductFamilies(), getTenantProducts()]);
   const templateKey = viewer ? await getViewerIndustryTemplateKey(viewer) : null;
   const isRv = templateKey === "rv";
   const isGolfCart = templateKey === "golf-cart";

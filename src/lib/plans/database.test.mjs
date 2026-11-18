@@ -11,7 +11,7 @@ test('Sales Solo migrations enforce paid periods, actual-cost cap and commercial
  alter table profiles add column full_name text;
  alter table organizations alter column id set default gen_random_uuid();
  alter table organizations add column name text;alter table organizations add column slug text unique;alter table organizations add column industry_template_id uuid;
- create table industry_templates(id uuid primary key default gen_random_uuid(),template_key text,is_enabled boolean,is_available_during_signup boolean);
+ create table industry_templates(id uuid primary key default gen_random_uuid(),template_key text,is_enabled boolean,is_available_during_signup boolean,is_public_demo_visible boolean default true,is_internal_only boolean default false);
  insert into industry_templates(template_key,is_enabled,is_available_during_signup) values('rv',true,true);
  alter table locations add column name text;alter table locations add column sort_order int default 0;alter table locations add unique(id,organization_id);
  create type membership_status as enum('active','invited','suspended');
@@ -21,6 +21,8 @@ test('Sales Solo migrations enforce paid periods, actual-cost cap and commercial
  create table organization_invitations(id uuid primary key default gen_random_uuid(),organization_id uuid,email text,status text default 'pending');
  create table platform_workspace_contexts(user_id uuid primary key,active_organization_id uuid);
  create table organization_role_permissions(organization_id uuid,role public.organization_role,permissions jsonb);
+ create table industry_template_products(id uuid primary key default gen_random_uuid(),industry_template_id uuid,family_name text default 'RVs',name text,model text default '',model_year integer default 2026,model_variant text default '',specifications jsonb default '{}',description text default '',base_price_cents bigint default 0,range_text text default '',seats_text text default '',powertrain_text text default '',product_type text default 'our_product',manufacturer text default '',product_category text default 'Travel Trailer',sort_order integer default 0);
+ alter table industry_templates enable row level security;alter table industry_template_products enable row level security;create policy fixture_templates on industry_templates for select to authenticated using(true);create policy fixture_catalog on industry_template_products for select to authenticated using(true);grant select on industry_templates,industry_template_products to authenticated;
  create schema storage;create table storage.objects(id uuid primary key default gen_random_uuid(),name text);
  alter table storage.objects enable row level security;
  `);
@@ -30,6 +32,8 @@ test('Sales Solo migrations enforce paid periods, actual-cost cap and commercial
  }
  for(const table of ['organization_memberships','organization_member_locations','organization_invitations','organization_role_permissions','locations']) await db.exec(`alter table ${table} enable row level security;create policy fixture_member on ${table} for all to authenticated using(private.is_org_member(organization_id)) with check(private.is_org_member(organization_id));grant all on ${table} to authenticated;`);
  for(const name of ['20261117160000_sales_solo.sql','20261117161000_sales_solo_events.sql','20261117162000_sales_solo_hardening.sql']) await db.exec(readFileSync('supabase/migrations/'+name,'utf8'));
+ await db.exec(readFileSync("supabase/migrations/20261118022850_sales_solo_free.sql","utf8"));
+ await db.exec(readFileSync("supabase/migrations/20261118030001_solo_free_catalog_guards.sql","utf8"));
  await q('insert into auth.users values($1,now()),($2,null)',[owner,other]);await q('insert into profiles(id) values($1),($2)',[owner,other]);
  await assert.rejects(q("select activate_sales_solo($1,'QA','QA Owner')",[other]),/Verify your email/);
  const org=(await q("select activate_sales_solo($1,'Solo QA','QA Owner') org",[owner]))[0].org;
@@ -106,6 +110,34 @@ test('Sales Solo migrations enforce paid periods, actual-cost cap and commercial
   const key=id();await q("select reserve_ai_usage($1,$2,$3,'renewal','qa-solo',500000,0)",[fresh,other,key]);
   await assert.rejects(q("select reserve_ai_usage($1,$2,$3,'renewal','qa-solo',1,0)",[fresh,other,id()]),/monthly AI cost limit/);
   assert.equal(Number((await q('select count(*) n from ai_credit_grants where organization_id=$1',[fresh]))[0].n),2);
+ });
+ await t.test('Free signup, catalog scope, no AI, no writes, paid conversion and expiration fallback',async()=>{
+  const uid='20000000-0000-0000-0000-000000000033';await q('insert into auth.users values($1,now())',[uid]);await q('insert into profiles(id) values($1)',[uid]);
+  const orgFree=(await q("select activate_sales_solo_free($1,'Free QA','Free Owner') org",[uid]))[0].org;
+  assert.equal((await q("select activate_sales_solo_free($1,'Free QA','Free Owner') org",[uid]))[0].org,orgFree);
+  assert.equal((await q('select role from organization_memberships where organization_id=$1',[orgFree]))[0].role,'tenant_admin');
+  assert.equal((await q('select count(*)::int n from ai_credit_grants where organization_id=$1',[orgFree]))[0].n,0);
+  await assert.rejects(q("select reserve_ai_usage($1,$2,$3,'help','qa-solo',1,0)",[orgFree,uid,id()]),/Free does not include AI/);
+  await assert.rejects(q("insert into products(organization_id,label) values($1,'blocked trusted write')",[orgFree]),/requires verified paid/);
+  await q("insert into industry_template_products(industry_template_id,name,product_type) select id,'Public model '||n,case when n%2=0 then 'our_product' else 'competitor_product' end from industry_templates cross join generate_series(1,65) n where template_key='rv'");
+  await q("select set_config('request.jwt.claim.sub',$1,false)",[uid]);await db.exec('set role authenticated');
+  const first=(await q('select solo_shared_catalog() c'))[0].c;assert.equal(first.products.length,48);assert.equal(new Set(first.products.map(p=>p.id)).size,48);assert.equal(first.has_more,true);assert.ok(first.products.every(p=>p.name.startsWith('Public model')));
+  const second=(await q("select solo_shared_catalog(2) c"))[0].c;assert.equal(second.products.length,17);assert.equal(second.has_more,false);assert.equal((await q("select * from industry_template_products")).length,0);
+  const searched=(await q("select solo_shared_catalog(1,'Public model 3','{}',true) c"))[0].c;assert.ok(searched.products.some(p=>p.product_type==='our_product'));assert.ok(searched.products.some(p=>p.product_type==='competitor_product'));
+  await assert.rejects(q("update organization_memberships set role='manager' where organization_id=$1",[orgFree]),/does not include team/);
+  await assert.rejects(q("insert into products(organization_id,label) values($1,'blocked client write')",[orgFree]),/requires verified paid|row-level security/);
+  await assert.rejects(q("select solo_shared_catalog(1001)"),/Invalid catalog/);await db.exec('reset role');
+  assert.equal((await q('select solo_document_processing_access($1) allowed',[orgFree]))[0].allowed,false);
+  await q("update industry_templates set is_public_demo_visible=false where template_key='rv'");await db.exec('set role authenticated');await assert.rejects(q('select solo_shared_catalog()'),/Shared catalog unavailable/);await db.exec('reset role');await q("update industry_templates set is_public_demo_visible=true where template_key='rv'");
+  await q('update solo_catalog_request_limits set requests=120 where user_id=$1',[uid]);await db.exec('set role authenticated');await assert.rejects(q('select solo_shared_catalog()'),/request limit reached/);await db.exec('reset role');await q('update solo_catalog_request_limits set requests=0 where user_id=$1',[uid]);
+  await q("update account_subscription_plans set stripe_customer_id='cus_free',stripe_account_id='acct_qa',livemode=false where organization_id=$1",[orgFree]);
+  const ev=(key,paid,status='active')=>q("select apply_sales_solo_event($1,'invoice.paid',40,$2,'cus_free','acct_qa',false,'sub_free','price_qa',$3,$4,$5,null,$6)",[key,orgFree,status,now,end,paid]);
+  await ev('free-unpaid',null);assert.equal((await q('select plan_key from account_subscription_plans where organization_id=$1',[orgFree]))[0].plan_key,'sales_solo_free');
+  await ev('free-paid','in_free_paid');await ev('free-paid','in_free_paid');assert.equal((await q('select plan_key from account_subscription_plans where organization_id=$1',[orgFree]))[0].plan_key,'sales_solo');
+  assert.equal((await q('select count(*)::int n from ai_credit_grants where organization_id=$1',[orgFree]))[0].n,1);
+  await ev('free-cancel',null,'canceled');assert.equal((await q('select private.account_paid($1) p',[orgFree]))[0].p,false);
+  await assert.rejects(q("select reserve_ai_usage($1,$2,$3,'background','qa-solo',1,0)",[orgFree,uid,id()]),/requires a paid subscription/);
+  await db.exec('set role authenticated');assert.equal((await q('select solo_shared_catalog() c'))[0].c.products.length,48);await db.exec('reset role');
  });
  } finally {await db.close();}
 });

@@ -1,3 +1,4 @@
+import { isSoloPlan } from "@/lib/plans/policy";
 import { getViewer } from "@/lib/auth/viewer";
 import { createClient } from "@/lib/supabase/server";
 import { redirect } from "next/navigation";
@@ -18,7 +19,7 @@ export default async function AiUsage({
   searchParams: Promise<Record<string, string | undefined>>;
 }) {
   const viewer = await getViewer();
-  if (viewer?.plan?.plan_key === "sales_solo") redirect("/billing");
+  if (isSoloPlan(viewer?.plan?.plan_key)) redirect("/billing");
   if (viewer && !viewer.demo && process.env.RUNFLOOR_RV_BILLING_ENABLED === "true") { const db = await createClient(); const { data } = await db.rpc("rv_access_state", { target_org: viewer.organizationId }); if (data?.managed) redirect("/billing"); }
   if (!viewer) redirect("/login");
   const filters = await searchParams;

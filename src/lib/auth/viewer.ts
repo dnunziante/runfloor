@@ -1,5 +1,5 @@
 import "server-only";
-import { limitPermissions, type AccountPlan } from "@/lib/plans/policy";
+import { limitPermissions, isSoloPlan, isFreeSolo, type AccountPlan } from "@/lib/plans/policy";
 import { defaultPermissions, type RolePermissions } from "./role-permissions";
 
 import { cookies } from "next/headers";
@@ -105,7 +105,7 @@ export async function getViewer(): Promise<Viewer | null> {
     const { data, error } = await supabase.from("account_subscription_plans").select("*").eq("organization_id", organizationId).maybeSingle();
     if (error) throw new Error("Account plan could not be verified.");
     plan = data || undefined;
-    if (plan?.plan_key === "sales_solo" && !isPlatformOwner) permissions = limitPermissions(permissions);
+    if (isSoloPlan(plan?.plan_key) && !isPlatformOwner) permissions = limitPermissions(permissions, isFreeSolo(plan));
   }
   return {
     plan,

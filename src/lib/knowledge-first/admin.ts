@@ -1,3 +1,4 @@
+import { isFreeSolo } from "@/lib/plans/policy";
 import "server-only";
 import { getViewer, type Viewer } from "@/lib/auth/viewer";
 import { createClient } from "@/lib/supabase/server";
@@ -7,7 +8,7 @@ import { isKnowledgeCollection } from "@/lib/knowledge/collections";
 import { normalizeSettings, validDomain } from "./policy";
 import type { KnowledgeSettings } from "./types";
 
-export function isKnowledgeAdmin(viewer: Viewer | null) { return Boolean(viewer?.organizationId && !viewer.demo && ["tenant_admin", "platform_owner"].includes(viewer.role)); }
+export function isKnowledgeAdmin(viewer: Viewer | null) { return Boolean(viewer?.organizationId && !isFreeSolo(viewer.plan) && !viewer.demo && ["tenant_admin", "platform_owner"].includes(viewer.role)); }
 export async function knowledgeAdmin() {
   const viewer = await getViewer();
   return isKnowledgeAdmin(viewer) ? viewer : null;

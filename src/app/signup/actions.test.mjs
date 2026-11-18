@@ -4,7 +4,7 @@ import { readFileSync } from "node:fs";
 import vm from "node:vm";
 import ts from "typescript";
 
-function fixture(user = null) {
+function fixture(user = null, freeEnabled = false) {
   const calls = [];
   const dependencies = {
     "next/navigation": { redirect: path => { throw new Error(`redirect:${path}`); } },
@@ -23,7 +23,7 @@ function fixture(user = null) {
   };
   const exports = {};
   const compiled = ts.transpileModule(readFileSync("src/app/signup/actions.ts", "utf8"), { compilerOptions: { module: ts.ModuleKind.CommonJS, target: ts.ScriptTarget.ES2022 } }).outputText;
-  vm.runInNewContext(compiled, { exports, require: name => { assert.ok(name in dependencies, name); return dependencies[name]; }, process: { env: { RUNFLOOR_RV_BILLING_ENABLED: "true", APP_URL: "https://example.invalid" } } });
+  vm.runInNewContext(compiled, { exports, require: name => { assert.ok(name in dependencies, name); return dependencies[name]; }, process: { env: { RUNFLOOR_RV_BILLING_ENABLED: "true", RUNFLOOR_SALES_SOLO_FREE_ENABLED: freeEnabled ? "true" : "false", APP_URL: "https://example.invalid" } } });
   return { actions: exports, calls };
 }
 function form(changes = {}) {
@@ -76,4 +76,10 @@ test("successful activation saves the phone only to the verified user's existing
   assert.equal(update[3], "id");
   assert.equal(update[4], "owner-a");
   assert.ok(f.calls.findIndex(call => call[0] === "activate") < f.calls.findIndex(call => call[0] === "profile"));
+});
+
+test("Free signup stays gated and activation uses verified owner identity without Stripe",async()=>{
+ const blocked=fixture(null);await blocked.actions.signupTrial({message:''},form({plan:'sales_solo_free'}));assert.equal(blocked.calls.length,0);
+ const f=fixture({id:'verified-owner',email_confirmed_at:'2026-11-17'},true);await assert.rejects(f.actions.activateTrial({message:''},form({plan:'sales_solo_free',actor:'forged-user'})),/redirect:\/products/);
+ const call=f.calls.find(c=>c[0]==='activate');assert.equal(call[1],'activate_sales_solo_free');assert.equal(call[2].actor,'verified-owner');assert.equal(call[2].company,'Example RV');
 });

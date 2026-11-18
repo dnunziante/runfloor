@@ -1,4 +1,5 @@
 import "server-only";
+import { isFreeSolo } from "@/lib/plans/policy";
 import { createHash } from "node:crypto";
 import { cookies, headers } from "next/headers";
 import { AsyncLocalStorage } from "node:async_hooks";
@@ -28,6 +29,7 @@ export async function meteredOpenAI(
   if (!key)
     throw new AiCreditError("The secure OpenAI connection is not configured.");
   const viewer = contexts.getStore() ? null : await getViewer();
+  if (isFreeSolo(viewer?.plan)) throw new AiCreditError("Upgrade to Sales Solo to use AI.");
   const context =
     contexts.getStore() ??
     (viewer && !viewer.demo

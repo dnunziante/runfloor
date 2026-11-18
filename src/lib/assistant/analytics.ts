@@ -1,3 +1,4 @@
+import { isSoloPlan } from "@/lib/plans/policy";
 import "server-only";
 import { getViewer } from "@/lib/auth/viewer";
 import { createClient } from "@/lib/supabase/server";
@@ -10,7 +11,7 @@ const tally = (items: string[]) => Object.entries(items.reduce<Record<string, nu
 
 export async function getAssistantAnalytics(input: { view?: string; location?: string; rep?: string; days?: string }) {
   const viewer = await getViewer(); if (!viewer?.organizationId || viewer.demo) return { allowed: false, reason: "Sign in to view Sales Assistant analytics." } as const;
-  const supabase = await createClient(); const solo=viewer.plan?.plan_key === "sales_solo" && viewer.role!=="platform_owner"; const isAdmin = !solo && (viewer.role === "tenant_admin" || viewer.role === "platform_owner");
+  const supabase = await createClient(); const solo=isSoloPlan(viewer.plan?.plan_key) && viewer.role!=="platform_owner"; const isAdmin = !solo && (viewer.role === "tenant_admin" || viewer.role === "platform_owner");
   const [{ data: memberships }, { data: assignments }] = await Promise.all([supabase.from("organization_memberships").select("user_id,role,location_id,profiles(full_name),locations(name)").eq("organization_id", viewer.organizationId).eq("status", "active"), supabase.from("organization_member_locations").select("location_id").eq("organization_id", viewer.organizationId).eq("user_id", viewer.id)]);
   const managerLocations = (assignments || []).map((item) => item.location_id); const permittedMembers = ((memberships || []) as unknown as Member[]).filter((member) => isAdmin || member.user_id === viewer.id || (!solo && viewer.role === "manager" && member.location_id && managerLocations.includes(member.location_id)));
   const permittedLocations = [...new Map(permittedMembers.filter((m) => m.location_id).map((m) => [m.location_id!, m.locations?.name || "Unassigned"])).entries()].map(([id, name]) => ({ id, name }));

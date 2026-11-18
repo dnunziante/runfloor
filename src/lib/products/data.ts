@@ -1,4 +1,7 @@
 import "server-only";
+import { unstable_cache } from "next/cache";
+import { cache } from "react";
+import { isFreeSolo, isSoloPlan } from "@/lib/plans/policy";
 
 import { getViewer } from "@/lib/auth/viewer";
 import { demoProductFamilies as demoFamilies, demoProducts } from "@/lib/demo/catalog";
@@ -74,13 +77,15 @@ type TemplateProductRow = {
 
 const templateFamilyId = (name: string) => `demo-rv-${name.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "") || "products"}`;
 
+function templateDTOs(rows: TemplateProductRow[]): ProductDTO[] { return rows.map((row) => ({ id: row.id, familyId: templateFamilyId(row.family_name), name: row.name, slug: `rv-${row.id}`, model: row.model, brand: String(row.specifications?.brand || row.manufacturer), manufacturer: row.manufacturer, modelYear: row.model_year, modelVariant: row.model_variant, productType: row.product_type, productCategory: row.product_category, specifications: row.specifications ?? {}, description: row.description, price: row.base_price_cents / 100, range: row.range_text, seats: row.seats_text, powertrain: row.powertrain_text, dimensions: "", runningDistance: "", turningRadius: "", maxLoadCapacity: "", sortOrder: row.sort_order, highlights: [], color: "orange", imageUrl: null, imageUrls: [], imagePaths: [], salesGuide: emptySalesGuide, status: "Published" })); }
+
 async function getPublicRvTemplateProducts(): Promise<ProductResult> {
   const admin = createAdminClient();
   const { data: template, error: templateError } = await admin.from("industry_templates").select("id").eq("template_key", "rv").eq("is_enabled", true).maybeSingle();
   if (templateError || !template) return { products: [], source: "supabase", error: "The RV demo catalog is unavailable." };
   const { data, error } = await admin.from("industry_template_products").select("id,family_name,name,model,model_year,model_variant,specifications,description,base_price_cents,range_text,seats_text,powertrain_text,product_type,manufacturer,product_category,sort_order").eq("industry_template_id", template.id).order("sort_order").order("name");
   if (error) return { products: [], source: "supabase", error: "The RV demo catalog is unavailable." };
-  return { source: "supabase", products: ((data ?? []) as TemplateProductRow[]).map((row) => ({ id: row.id, familyId: templateFamilyId(row.family_name), name: row.name, slug: `rv-${row.id}`, model: row.model, brand: String(row.specifications?.brand || row.manufacturer), manufacturer: row.manufacturer, modelYear: row.model_year, modelVariant: row.model_variant, productType: row.product_type, productCategory: row.product_category, specifications: row.specifications ?? {}, description: row.description, price: row.base_price_cents / 100, range: row.range_text, seats: row.seats_text, powertrain: row.powertrain_text, dimensions: "", runningDistance: "", turningRadius: "", maxLoadCapacity: "", sortOrder: row.sort_order, highlights: [], color: "orange", imageUrl: null, imageUrls: [], imagePaths: [], salesGuide: emptySalesGuide, status: "Published" })) };
+  return { source: "supabase", products: templateDTOs((data ?? []) as TemplateProductRow[]) };
 }
 
 async function getPublicRvTemplateFamilies(): Promise<ProductFamilyResult> {
@@ -128,6 +133,7 @@ function toDTO(row: ProductRow, imageUrls: string[] = [], imagePaths: string[] =
 
 export async function getTenantProducts(options: { includeDrafts?: boolean; familyId?: string } = {}): Promise<ProductResult> {
   const viewer = await getViewer();
+  if (isFreeSolo(viewer?.plan)) return getSoloSharedCatalog();
   if (viewer?.demo && !isLocalDemoMode() && isSupabaseConfigured()) {
     const result = await getPublicRvTemplateProducts();
     return options.familyId ? { ...result, products: result.products.filter((product) => product.familyId === options.familyId) } : result;
@@ -190,6 +196,7 @@ export async function getTenantProducts(options: { includeDrafts?: boolean; fami
 
 export async function getTenantProductFamilies(competitor = false): Promise<ProductFamilyResult> {
   const viewer = await getViewer();
+  if (isFreeSolo(viewer?.plan)) return {families:[],source:"supabase"};
   if (viewer?.demo && !isLocalDemoMode() && isSupabaseConfigured()) return competitor ? { families: [], source: "supabase" } : getPublicRvTemplateFamilies();
   if (isLocalDemoMode() || !isSupabaseConfigured()) return { families: competitor ? [] : demoFamilies, source: "demo" };
   if (!viewer?.organizationId) return { families: [], source: "supabase", error: "Your account is not assigned to an organization." };
@@ -231,6 +238,7 @@ export async function getTenantProductFamilyBySlug(slug: string) {
 }
 
 export async function getTenantProductBySlug(slug: string) {
+  const viewer=await getViewer();if(isSoloPlan(viewer?.plan?.plan_key) && slug.startsWith("rv-")){const shared=await getSoloSharedCatalog({selected:[slug.slice(3)]});return {product:shared.products.find(p=>p.slug===slug)||null,error:shared.error};}
   const result = await getTenantProducts();
   return { product: result.products.find((product) => product.slug === slug) || null, error: result.error };
 }
@@ -239,3 +247,20 @@ export async function getTenantProductById(id: string) {
   const result = await getTenantProducts({ includeDrafts: true });
   return { product: result.products.find((product) => product.id === id) || null, error: result.error };
 }
+
+
+type CatalogInput = { page?: number; q?: string; brand?: string; rvType?: string; year?: string; selected?: string[]; comparison?: boolean };
+export type SharedCatalog = ProductResult & { page: number; hasMore: boolean; brands: string[]; categories: string[]; years: number[] };
+const catalogArgs = (input: CatalogInput) => ({page_number: Math.min(1000,Math.max(1,Math.floor(input.page || 1))),search_text:(input.q || "").slice(0,80),selected_ids:(input.selected || []).filter(id=>/^[0-9a-f]{8}(?:-[0-9a-f]{4}){3}-[0-9a-f]{12}$/i.test(id)).slice(0,3),comparison:!!input.comparison,brand_filter:(input.brand || "").slice(0,120),category_filter:(input.rvType || "").slice(0,120),year_filter:/^\d{4}$/.test(input.year || "") ? Number(input.year) : null});
+const cachedCatalog = unstable_cache(async (key: string) => {
+ const db=createAdminClient();const result=await db.rpc("solo_shared_catalog",JSON.parse(key));if(result.error)throw new Error("Shared catalog unavailable");return result.data;
+},["solo-authorized-rv-catalog-v1"],{revalidate:60});
+const readSharedCatalog = cache(async (key: string): Promise<SharedCatalog> => {
+ const args=JSON.parse(key);const empty:SharedCatalog={products:[],source:"supabase",page:args.page_number,hasMore:false,brands:[],categories:[],years:[]};
+ const viewer=await getViewer();if(!viewer || viewer.demo || !isSoloPlan(viewer.plan?.plan_key))return {...empty,error:"Sign in to a Solo account to browse the shared catalog."};
+ const db=await createClient();let data;
+ if(process.env.SUPABASE_SERVICE_ROLE_KEY){const access=await db.rpc("solo_catalog_access");if(access.error)return {...empty,error:"Catalog access is temporarily unavailable. Please try again shortly."};try{data=await cachedCatalog(key);}catch{return {...empty,error:"The authorized shared catalog is unavailable."};}}
+ else {const result=await db.rpc("solo_shared_catalog",args);if(result.error)return {...empty,error:"Catalog access is temporarily unavailable. Please try again shortly."};data=result.data;}
+ return {...empty,products:templateDTOs(data.products || []),hasMore:!!data.has_more,brands:(data.brands || []).filter(Boolean),categories:(data.categories || []).filter(Boolean),years:data.years || []};
+});
+export async function getSoloSharedCatalog(input: CatalogInput = {}) {return readSharedCatalog(JSON.stringify(catalogArgs(input)));}

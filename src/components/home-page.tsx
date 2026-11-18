@@ -1,4 +1,4 @@
-import { soloAllowsPath } from "@/lib/plans/policy";
+import { soloAllowsPath, isFreeSolo } from "@/lib/plans/policy";
 import { RvTrialStatus } from "@/components/rv-trial-status";
 import { ENABLE_SALES_COACHING } from "@/lib/features";
 import { WorkspaceLaunchpad } from "@/components/workspace-launchpad";
@@ -19,6 +19,7 @@ export default async function Home({ searchParams }: { searchParams: Promise<{ v
   if (filters.view || filters.locationId || filters.employeeId) redirect(`/dashboard/performance?${new URLSearchParams(Object.entries(filters).filter((entry): entry is [string,string] => Boolean(entry[1])))}`);
   const viewer = await getViewer();
   if (!viewer) redirect("/login");
+  if(isFreeSolo(viewer.plan)) redirect(viewer.permissions?.inventory === false ? viewer.permissions?.comparisons === false ? "/billing" : "/comparisons" : "/products");
   const [data, templateKey] = await Promise.all([getDashboardData({}), getViewerIndustryTemplateKey(viewer)]);
   const isRv = templateKey === "rv";
   const isGolfCart = templateKey === "golf-cart";

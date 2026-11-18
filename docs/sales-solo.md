@@ -25,3 +25,16 @@ Platform Administration > AI Billing shows account plan, subscription status, us
 Stripe test product: prod_VeFKMoUkNPcli5. Monthly test price: price_1UcwpiGPqrVHSJaAP5ODvjpr. Test mode only. Do not copy these identifiers into a live catalog.
 
 Hosted QA project: runfloor-billing-qa (xcjokbopvhwtfzwvkysx). Disposable account and synthetic subscription fixtures are isolated there. Synthetic events test the ledger; they do not prove Stripe webhook delivery. Never commit QA passwords or server keys.
+
+
+## Sales Solo Free
+
+Free is a permanent one-user account with no subscription, payment card or AI grant. The owner is the existing Admin role; a separate commercial policy permits only shared catalog browsing, non-AI comparisons, own profile/password, static Help and upgrade billing. Canceled or expired paid Solo accounts use the same effective Free access without deleting their paid records. Complete accounts keep their existing lifecycle.
+
+The authorized source is the existing RV industry template catalog, already marked enabled, public-demo-visible and not internal-only. Free never reads tenant inventory, documents or dealer-specific pricing. A restricted RPC returns only approved template fields. No catalog records are copied per account. Inventory reads are paginated at 48 rows; comparison options are bounded and retain at most three explicit selections plus fallback models. Search and brand/category/year filters run on the server. Shared reads cache for 60 seconds after an authenticated authorization/rate check; direct RPC reads are limited to 120 per user per minute. Revoking public visibility blocks subsequent access checks even if a cached result exists.
+
+Free blocks AI at the provider wrapper, database reservation entry point, Help provider, upload handlers, document-processing preflight and routes. A paid checkout return or failed invoice never grants access or allowance. Only a verified paid latest invoice atomically converts Free to paid Solo and creates the existing $5 monthly grant. Platform role changes cannot bypass the plan. Only Platform Admin can override seat limits, with an audit; Free AI remains zero.
+
+Apply the Free migration and catalog guard follow-up after the three paid Solo migrations. RUNFLOOR_SALES_SOLO_FREE_ENABLED defaults false and must remain false until actual browser signup, desktop/mobile and Stripe acceptance checks pass. The existing Solo QA branch has preview-only database overrides; production credentials and provider/Stripe secrets are not used there. Do not turn on registration or describe browser/payment checks as passed based on API or synthetic-event tests.
+
+No AI cost is incurred by Free's permitted paths. Authentication, database queries, server execution and traffic still use the existing hosting allowance and can incur operating costs. There is no separate infrastructure per free account.

@@ -1,3 +1,4 @@
+import * as planPolicy from "../plans/policy.ts";
 import test from "node:test";
 import assert from "node:assert/strict";
 import vm from "node:vm";
@@ -31,6 +32,7 @@ function provider({
     "@/lib/auth/viewer": {
       getViewer: async () => ({ id: "user", organizationId: "company" }),
     },
+    "@/lib/plans/policy": planPolicy,
     "@/lib/supabase/admin": {
       createAdminClient: () => ({
         rpc: async (name, args) => {

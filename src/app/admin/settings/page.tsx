@@ -1,3 +1,5 @@
+import { isFreeSolo, isSoloPlan } from "@/lib/plans/policy";
+import { SoloUpgradePrompt } from "@/components/solo-upgrade-prompt";
 import { OwnProfileForm } from "@/components/own-profile-form";
 import Link from "next/link";
 import { AppShell } from "@/components/app-shell";
@@ -10,7 +12,7 @@ import { getOrganizationSettings } from "@/lib/organizations/settings";
 
 export default async function SettingsPage() {
   const viewer = await getViewer();
-  if (viewer?.plan?.plan_key === "sales_solo" && viewer.role !== "platform_owner") return <AppShell title="My account"><PageHeader title="My Sales Solo account" description="Manage your profile, sales materials, and subscription."/><OwnProfileForm name={viewer.fullName} email={viewer.email}/><section className="card" style={{marginTop:18}}><h2>My sales materials</h2><div className="rv-billing-actions"><Link className="btn" href="/admin/products">Manage products</Link><Link className="btn" href="/knowledge-base">Manage documents</Link><Link className="btn" href="/admin/content">Manage sales templates</Link><Link className="btn" href="/billing">Subscription and AI allowance</Link></div><p>Your plan includes one user. Team permissions and location assignments are managed by the Platform Admin.</p></section></AppShell>;
+  if (viewer && isSoloPlan(viewer.plan?.plan_key) && viewer.role !== "platform_owner") return <AppShell title="My account"><PageHeader title="My Sales Solo account" description={isFreeSolo(viewer.plan) ? "Manage your own profile and upgrade your plan." : "Manage your profile, sales materials, and subscription."}/><OwnProfileForm name={viewer.fullName} email={viewer.email}/>{isFreeSolo(viewer.plan) ? <SoloUpgradePrompt/> : <section className="card" style={{marginTop:18}}><h2>My sales materials</h2><div className="rv-billing-actions"><Link className="btn" href="/admin/products">Manage products</Link><Link className="btn" href="/knowledge-base">Manage documents</Link><Link className="btn" href="/admin/content">Manage sales templates</Link><Link className="btn" href="/billing">Subscription and AI allowance</Link></div><p>Your plan includes one user. Team permissions and location assignments are managed by the Platform Admin.</p></section>}</AppShell>;
   const [locationResult, settings] = await Promise.all([getOrganizationLocations(), getOrganizationSettings()]);
   const canSave = Boolean(viewer && !viewer.demo && ["tenant_admin", "platform_owner"].includes(viewer.role));
 

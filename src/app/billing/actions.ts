@@ -1,4 +1,5 @@
 "use server";
+import { isSoloPlan } from "@/lib/plans/policy";
 import { randomBytes, randomUUID } from "node:crypto";
 import { cookies } from "next/headers";
 import { redirect } from "next/navigation";
@@ -11,7 +12,7 @@ import { createClient } from "@/lib/supabase/server";
 async function authorizedLocation(form: FormData) {
   const viewer = await getViewer();
   if (!viewer || !canManageBilling(viewer)) throw new Error("Only dealership administrators can manage billing.");
-  if (viewer.plan?.plan_key === "sales_solo") throw new Error("Use Sales Solo subscription management.");
+  if (isSoloPlan(viewer.plan?.plan_key)) throw new Error("Use Sales Solo subscription management.");
   const row = (await getLocationBilling(viewer)).find(item => item.location_id === String(form.get("locationId") || ""));
   if (!row) throw new Error("Location not found.");
   return { viewer, row };
@@ -97,7 +98,7 @@ export async function saveOnboarding(form: FormData) {
 export async function addPaidLocation(form: FormData) {
   const viewer = await getViewer();
   if (!viewer || !canManageBilling(viewer)) throw new Error("Only dealership administrators can add locations.");
-  if (viewer.plan?.plan_key === "sales_solo") throw new Error("Sales Solo does not include location administration.");
+  if (isSoloPlan(viewer.plan?.plan_key)) throw new Error("Sales Solo does not include location administration.");
   const { error } = await createAdminClient().rpc("add_rv_paid_location", { actor: viewer.id, target_org: viewer.organizationId, location_name: String(form.get("locationName") || "").trim() });
   if (error) redirect("/billing?error=The%20location%20could%20not%20be%20added.");
   redirect("/billing");

@@ -59,3 +59,13 @@ test('unpaid Solo retains self service while Sales requires a paid period',async
   assert.equal((await request('tenant_admin','/assistant',{plan})).url,'https://runfloor.test/billing');
   assert.equal((await request('tenant_admin','/api/assistant',{plan,method:'POST'})).status,403);
 });
+
+test('Free and expired Solo allow read-only shared browsing while rejecting paid tools and forged POSTs',async()=>{
+ for(const plan of [{...soloPlan,plan_key:'sales_solo_free',status:'free',paid_start:null,paid_until:null},{...soloPlan,status:'canceled'}])for(const role of ['tenant_admin','manager','salesperson']){
+  for(const path of ['/products','/comparisons','/billing'])assert.equal((await request(role,path,{plan})).status,200,role+path);
+  for(const path of ['/operations','/executive','/assistant','/messages','/quote-calculator','/admin/products','/admin/users','/admin/settings/roles','/api/opal','/api/product-documents','/api/products/bulk-import'])assert.equal((await request(role,path,{plan,method:'POST'})).status,403,role+path);
+  assert.equal((await request(role,'/products',{plan,method:'POST'})).status,403);
+ }
+ const plan={...soloPlan,plan_key:'sales_solo_free',status:'free'};
+ assert.equal((await request('tenant_admin','/admin/settings',{plan,method:'POST'})).status,200);
+});
