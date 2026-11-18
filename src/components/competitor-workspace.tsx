@@ -4,14 +4,15 @@ import { useState, type ReactNode } from "react";
 import Link from "next/link";
 import { Archive, ArrowRight, BookOpen, Boxes, Building2, CheckCircle2, Download, FileUp, LayoutGrid, ListFilter, Plus, Search, Tags, Zap } from "lucide-react";
 import { AdminProductCategoryList } from "@/components/admin-product-category-list";
+import { manufacturerKey, manufacturerLabel, manufacturerOptions } from "@/lib/products/manufacturer";
 import type { ProductDTO, ProductFamilyDTO } from "@/lib/products/types";
 import "./competitor-workspace.css";
 
 const sections = ["Overview", "Products", "Brand families", "Import / Extract", "Archived"] as const;
 type Section = typeof sections[number];
 
-export function CompetitorWorkspace({ products, allProducts, families, selectedFamily, productForm, extraction, familyManager, familyForm, bulkImport }: {
-  products: ProductDTO[]; allProducts: ProductDTO[]; families: ProductFamilyDTO[]; selectedFamily?: ProductFamilyDTO;
+export function CompetitorWorkspace({ products, allProducts, families, selectedFamily, productForm, extraction, familyManager, familyForm, bulkImport, isGolfCart = false }: {
+  isGolfCart?: boolean; products: ProductDTO[]; allProducts: ProductDTO[]; families: ProductFamilyDTO[]; selectedFamily?: ProductFamilyDTO;
   productForm: ReactNode; extraction: ReactNode; familyManager: ReactNode; familyForm: ReactNode; bulkImport: ReactNode;
 }) {
   const [section, setSection] = useState<Section>("Overview");
@@ -20,16 +21,17 @@ export function CompetitorWorkspace({ products, allProducts, families, selectedF
   const [category, setCategory] = useState("");
   const [status, setStatus] = useState("");
   const [createFamily, setCreateFamily] = useState(false);
-  const brandName = (product: ProductDTO) => product.brand || product.manufacturer || "Brand not provided";
-  const brands = Array.from(new Set(products.map(brandName))).sort();
+  const brandName = (product: ProductDTO) => isGolfCart ? manufacturerLabel(product) : product.brand || product.manufacturer || "Brand not provided";
+  const groupKey = isGolfCart ? manufacturerKey : brandName;
+  const brands = isGolfCart ? manufacturerOptions(products) : Array.from(new Set(products.map(brandName))).sort().map((name) => [name, name]);
   const categories = Array.from(new Set(products.map((product) => product.productCategory).filter((value): value is string => Boolean(value)))).sort();
-  const shown = products.filter((product) => (!query || [product.name, product.model, product.modelYear, brandName(product)].join(" ").toLowerCase().includes(query.trim().toLowerCase())) && (!brand || brandName(product) === brand) && (!category || product.productCategory === category) && (section === "Archived" ? product.status === "Archived" : !status || product.status === status));
-  const groups = brands.map((name) => ({ id: name, name, slug: name, description: "", imageUrl: null, imagePath: null, productCount: 0, products: shown.filter((product) => brandName(product) === name) })).filter((group) => group.products.length);
+  const shown = products.filter((product) => (!query || [product.name, product.model, product.modelYear, brandName(product)].join(" ").toLowerCase().includes(query.trim().toLowerCase())) && (!brand || groupKey(product) === brand) && (!category || product.productCategory === category) && (section === "Archived" ? product.status === "Archived" : !status || product.status === status));
+  const groups = brands.map(([key, name]) => ({ id: key, name, slug: name, description: "", imageUrl: null, imagePath: null, productCount: 0, products: shown.filter((product) => groupKey(product) === key) })).filter((group) => group.products.length);
   const show = (...values: Section[]) => values.includes(section);
   function go(value: Section) { setSection(value); }
   function exportProducts() {
     const cell = (value: unknown) => { let text = String(value ?? ""); if (/^[=+@\-\t\r]/.test(text)) text = `'${text}`; return `"${text.replaceAll('"', '""')}"`; };
-    const rows = [["Brand", "Model Name", "Configuration", "Model Year", "Category", "Price", "Status"], ...shown.map((product) => [brandName(product), product.name, product.model, product.modelYear, product.productCategory, product.price, product.status])];
+    const rows = [[isGolfCart ? "Manufacturer" : "Brand", "Model Name", "Configuration", "Model Year", "Category", "Price", "Status"], ...shown.map((product) => [brandName(product), product.name, product.model, product.modelYear, product.productCategory, product.price, product.status])];
     const url = URL.createObjectURL(new Blob(["\uFEFF", rows.map((row) => row.map(cell).join(",")).join("\r\n")], { type: "text/csv;charset=utf-8" }));
     const link = document.createElement("a"); link.href = url; link.download = "competitor-products.csv"; link.click(); URL.revokeObjectURL(url);
   }
@@ -55,8 +57,8 @@ export function CompetitorWorkspace({ products, allProducts, families, selectedF
     <div className="cw-bulk" hidden={!show("Import / Extract")}>{bulkImport}</div>
     <section className="card cw-products" hidden={!show("Overview", "Products", "Archived")}>
       <div className="cw-section-heading"><div><ListFilter size={19}/><h2>{section === "Archived" ? "Archived products" : "Competitor products"} <span>({shown.length})</span></h2></div><span className="field-help">Edit details, pricing, images, and publishing status.</span></div>
-      <div className="cw-filters"><label className="cw-search"><Search size={16}/><input className="input" aria-label="Search competitor products" placeholder="Search by model, brand, or year..." value={query} onChange={(event) => setQuery(event.target.value)}/></label><select className="input" aria-label="Filter by brand" value={brand} onChange={(event) => setBrand(event.target.value)}><option value="">All brands</option>{brands.map((name) => <option key={name}>{name}</option>)}</select><select className="input" aria-label="Filter by category" value={category} onChange={(event) => setCategory(event.target.value)}><option value="">All categories</option>{categories.map((name) => <option key={name}>{name}</option>)}</select><select className="input" aria-label="Filter by status" disabled={section === "Archived"} value={section === "Archived" ? "Archived" : status} onChange={(event) => setStatus(event.target.value)}><option value="">All statuses</option>{["Draft", "Published", "Archived"].map((name) => <option key={name}>{name}</option>)}</select></div>
-      {shown.length ? <AdminProductCategoryList key={JSON.stringify(shown)} categories={groups} allowReorder={false} expanded/> : <div className="cw-empty"><Search size={25}/><h3>No products to display</h3><p>{products.length ? "Try another filter or search." : "Add a competitor model or import a spreadsheet to get started."}</p></div>}
+      <div className="cw-filters"><label className="cw-search"><Search size={16}/><input className="input" aria-label="Search competitor products" placeholder={isGolfCart ? "Search by model, manufacturer, or year…" : "Search by model, brand, or year..."} value={query} onChange={(event) => setQuery(event.target.value)}/></label><select className="input" aria-label={isGolfCart ? "Filter by manufacturer" : "Filter by brand"} value={brand} onChange={(event) => setBrand(event.target.value)}><option value="">{isGolfCart ? "All manufacturers" : "All brands"}</option>{brands.map(([key, name]) => <option value={key} key={key}>{name}</option>)}</select><select className="input" aria-label="Filter by category" value={category} onChange={(event) => setCategory(event.target.value)}><option value="">All categories</option>{categories.map((name) => <option key={name}>{name}</option>)}</select><select className="input" aria-label="Filter by status" disabled={section === "Archived"} value={section === "Archived" ? "Archived" : status} onChange={(event) => setStatus(event.target.value)}><option value="">All statuses</option>{["Draft", "Published", "Archived"].map((name) => <option key={name}>{name}</option>)}</select></div>
+      {shown.length ? <AdminProductCategoryList key={JSON.stringify(shown)} categories={groups} allowReorder={false} expanded isGolfCart={isGolfCart}/> : <div className="cw-empty"><Search size={25}/><h3>No products to display</h3><p>{products.length ? "Try another filter or search." : "Add a competitor model or import a spreadsheet to get started."}</p></div>}
       {(query || brand || category || status) && <button className="btn btn-ghost" onClick={() => {setQuery("");setBrand("");setCategory("");setStatus("");}}>Clear filters</button>}
     </section>
   </div>;

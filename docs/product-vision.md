@@ -26,6 +26,7 @@ A company can organize its approved sales knowledge in one place and make it imm
 - The `golf-cart` template uses golf cart and LSV-focused Home, Business Assistant, Team Performance, Quote & Financing, and Product Library experiences with industry terminology, navigation labels, guided prompts, and approved workspace knowledge.
 - BGC Dealerships uses the `golf-cart` template, so it receives the same maintained experience as future Golf Cart template tenants while all tenant data remains isolated.
 - The Golf Cart bulk upload accepts Excel and CSV files with one row per model or variant. The golf cart comparison uses the same fields in the same order: Product Type, Model Year, Manufacturer, Model, Length, Width, Power, Frame, Body Material, and Features.
+- The Golf Cart admin catalogs group and filter products by saved manufacturer, with brand as a fallback for older records. Manufacturer names are matched without regard to spacing or capitalization.
 
 ## Version 1 success signals
 

@@ -25,7 +25,7 @@ export default async function AdminCompetitorsPage({ searchParams }: { searchPar
   return <AppShell title="Competitor catalog">
     {result.error && <section className="card error-card"><h2>Competitor catalog unavailable</h2><p>{result.error}</p></section>}
     {familyResult.error && <p className="form-error" role="alert">{familyResult.error}</p>}
-    <CompetitorWorkspace products={products} allProducts={allProducts} families={families} selectedFamily={selectedFamily}
+    <CompetitorWorkspace isGolfCart={templateKey === "golf-cart"} products={products} allProducts={allProducts} families={families} selectedFamily={selectedFamily}
       productForm={<AdminProductForm isRv={isRv} key={selectedFamily?.id || "all"} families={families} initialFamilyId={selectedFamily?.id} initialBrand={selectedFamily?.name} competitorOnly/>}
       familyForm={<CompetitorFamilyForm/>}
       familyManager={<ProductFamilyImageManager families={families} organizationId={viewer.organizationId} competitor/>}
