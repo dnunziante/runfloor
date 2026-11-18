@@ -22,6 +22,8 @@ A company can organize its approved sales knowledge in one place and make it imm
 
 ## Industry template experiences
 
+- Compare & Sell appears below the shared comparison table. Reps with Sales AI and Comparisons access can request a pitch, objection response, or demo plan for the selected models using the approved catalog and existing AI credits.
+
 - A tenant inherits its primary workspace experience from its assigned industry template, not from tenant-name checks.
 - The `golf-cart` template uses golf cart and LSV-focused Home, Business Assistant, Team Performance, Quote & Financing, and Product Library experiences with industry terminology, navigation labels, guided prompts, and approved workspace knowledge.
 - BGC Dealerships uses the `golf-cart` template, so it receives the same maintained experience as future Golf Cart template tenants while all tenant data remains isolated.
