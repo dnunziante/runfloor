@@ -1,26 +1,19 @@
 import Link from "next/link";
 import { ArrowRight, Check, ChevronDown } from "lucide-react";
-import { RvPricingLayout } from "./rv-pricing-layout";
 import "./rv-pricing.css";
-
-const features = ["Unlimited Users — No Per-User Fees", "2,000 AI Credits Included Monthly", "AI Sales Assistant", "Operations & Task Management", "Product Knowledge & Comparisons", "Conversations & Messaging", "Reporting & Performance Insights"];
-const faqs = [
-  ["How much does RunFloor cost?", "RunFloor Complete costs $99 per month per dealership location."],
-  ["How many employees can use RunFloor?", "Unlimited employees can access RunFloor at each subscribed location without additional per-user fees."],
-  ["What's included in the free trial?", "The 7-day free trial includes access to RunFloor Complete features, unlimited users, and 100 AI credits shared by your location."],
-  ["Do I need a credit card to start?", "No. You can start your 7-day trial without entering payment information. There are no automatic charges or automatic paid subscriptions."],
-  ["What happens when my trial ends?", "Your trial access ends unless you choose to subscribe. Your dealership information is preserved so you can upgrade without starting over."],
-  ["How many AI credits are included?", "Paid subscriptions include 2,000 AI credits per month per location. Additional credit packs are a separate purchase when available in billing."],
-  ["Can I cancel anytime?", "Yes. RunFloor is billed monthly with no long-term commitment. Cancellation takes effect at the end of the current paid billing period."],
-  ["Do unused monthly credits roll over?", "No. Included monthly credits expire at the end of each billing period. Purchased credit packs are managed separately."],
+const cards=[
+ {key:"free",name:"RunFloor Free",price:0,tag:"Start with the essentials",features:["Your personal sales workspace","Browse models & compare specifications","Preloaded with over 1,500 models"],cta:"Get Started Free",note:"No credit card required. No AI included."},
+ {key:"solo",name:"RunFloor Solo",price:25,tag:"Your personal sales advantage",features:["Your personal sales workspace","500 AI credits monthly","AI Sales Assistant","Product knowledge & comparisons","Email & text assistance","Preloaded with over 1,500 models"],cta:"Get Started with Solo",note:"Starts with Free access. Paid activation required. Live payments disabled."},
+ {key:"complete",name:"RunFloor Complete",price:99,tag:"For your entire dealership",features:["Unlimited users — no per-user fees","2,000 shared AI credits monthly","AI Sales Assistant","Operations & task management","Product knowledge & comparisons","Conversations & messaging","Reporting & performance insights","Preloaded with over 1,500 models"],cta:"Start Your 7-Day Free Trial",note:"No credit card required. 100 trial AI credits."},
 ];
-
-export function RvPricing() {
-  return <section className="rv-pricing" id="pricing" aria-labelledby="pricing-title">
-    <header><p className="lp-kicker">SIMPLE. TRANSPARENT. BUILT TO SCALE.</p><h2 id="pricing-title">One location.<br/><em>Unlimited potential.</em></h2><p>Everything your dealership needs. One predictable monthly price.</p></header>
-    <RvPricingLayout>
-    <article className="rv-price-card"><p className="rv-plan-name">RUNFLOOR COMPLETE</p><p className="rv-price"><strong>$99</strong><span>/ month<br/><small>per location</small></span></p><p className="rv-price-promise">Pay Monthly. Cancel Anytime.</p><ul>{features.map(feature => <li key={feature}><Check aria-hidden="true"/><span>{feature}</span></li>)}</ul><p className="rv-price-extra">Need more AI power? Additional credit packs are available.</p><Link className="lp-button rv-trial-link" href="/signup">Start Your 7-Day Free Trial <ArrowRight aria-hidden="true"/></Link><p className="rv-price-trust">No Credit Card Required • Unlimited Users • Cancel Anytime</p><Link className="rv-price-demo" href="/demo">Explore the platform demo <ArrowRight size={15}/></Link></article>
-    <div className="rv-price-faq" aria-labelledby="pricing-faq-title"><h3 id="pricing-faq-title">A few things you might be wondering.</h3>{faqs.map(([question,answer], index) => <details key={question} name="rv-pricing-faq" open={index === 0}><summary id={`pricing-question-${index}`} aria-controls={`pricing-answer-${index}`}>{question}<ChevronDown aria-hidden="true"/></summary><div className="rv-faq-answer" id={`pricing-answer-${index}`} role="region" aria-labelledby={`pricing-question-${index}`}><p>{answer}</p></div></details>)}</div>
-    </RvPricingLayout>
-  </section>;
-}
+const faqs=[
+ ["Which RunFloor plan is right for me?","Free provides personal model-library browsing and comparisons without AI. Solo adds AI sales assistance with 500 monthly credits when activated. Complete supports your entire dealership with unlimited users, Operations, Executive tools, and 2,000 shared monthly AI credits per location."],
+ ["Is RunFloor Free a trial?","No. RunFloor Free is an ongoing personal model-library and comparison workspace at $0/month. AI, team administration, Operations, and Executive tools are not included."],
+ ["How do I start Solo?","Create a personal account and select Solo. Solo is $25/month with 500 monthly AI credits when activated. Online Solo payments are not available yet. Until payment is available and confirmed, your account has Free catalog and comparison access with no AI and no charge."],
+ ["Are models preloaded on every plan?","Yes. Every plan is preloaded with over 1,500 models in the product library. Model information is a reference; verify specifications and availability with the manufacturer."],
+ ["What's included in the Complete free trial?","The 7-day Complete trial includes unlimited users and 100 AI credits shared by your location. No credit card is required. After the trial, Complete is $99/month per dealership location only if you choose to subscribe. No automatic charges start from signup."],
+ ["How many people can use each plan?","Free and Solo are personal sales workspaces. Complete includes unlimited users at each subscribed dealership location, without per-user fees."],
+ ["Do unused AI credits roll over?","Included credits expire at the end of their active period and do not roll over. Purchased credit packs are separate and used after included credits, when purchasing is available in Billing. Free includes no AI credits."],
+ ["Can I cancel anytime?","Paid subscriptions are monthly with no long-term commitment. Cancellation takes effect at the end of the current paid period. Solo registrations do not create an automatic paid subscription."],
+];
+export function RvPricing(){return <section className="rv-pricing" id="pricing" aria-labelledby="pricing-title"><header><p className="lp-kicker">SIMPLE. TRANSPARENT. BUILT TO SCALE.</p><h2 id="pricing-title">Start free.<br/><em>Grow with RunFloor.</em></h2><p>From your next sale to your entire dealership. Choose the plan that fits.</p></header><div className="rv-pricing-grid">{cards.map(card=><article key={card.key} className={"rv-price-card"+(card.key==="complete"?" rv-price-complete":"")}><p className="rv-plan-name">{card.name}</p><p className="rv-price"><strong>${card.price}</strong><span>/ month{card.key==="complete"&&<><br/><small>per dealership location</small></>}</span></p><p className="rv-price-promise">{card.tag}</p><ul>{card.features.map(feature=><li key={feature}><Check aria-hidden="true"/><span>{feature}</span></li>)}</ul><div className="rv-price-actions"><Link className="rv-trial-link" href={"/signup?plan="+card.key}>{card.cta}<ArrowRight aria-hidden="true" size={18}/></Link><p className="rv-price-trust">{card.note}</p></div></article>)}</div><div className="rv-price-faq" aria-labelledby="pricing-faq-title"><h3 id="pricing-faq-title">A few things you might be wondering.</h3>{faqs.map(([q,a],index)=><details key={q} name="rv-pricing-faq" open={index===0}><summary>{q}<ChevronDown aria-hidden="true"/></summary><p>{a}</p></details>)}</div><p className="rv-pricing-demo"><Link href="/demo">Explore the platform demo <ArrowRight size={16} aria-hidden="true"/></Link></p></section>}

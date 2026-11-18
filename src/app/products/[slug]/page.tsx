@@ -28,7 +28,7 @@ export default async function ProductSalesGuidePage({ params }: { params: Promis
   const { product } = await getTenantProductBySlug(slug);
   if (!product) notFound();
   const viewer = await getViewer();
-  const canManage = Boolean(viewer && !isFreeSolo(viewer.plan) && ["platform_owner", "tenant_admin", "manager"].includes(viewer.role) && hasPagePermission(viewer.role, "/products", viewer.permissions));
+  const canManage = Boolean(viewer && !slug.startsWith("rv-") && !isFreeSolo(viewer.plan) && ["platform_owner", "tenant_admin", "manager"].includes(viewer.role) && hasPagePermission(viewer.role, "/products", viewer.permissions));
   const competitor = product.productType === "competitor_product";
   const guide = product.salesGuide;
   const guideSections = Object.values(guide).filter(value => Array.isArray(value) ? value.length : Boolean(value)).length;

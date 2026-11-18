@@ -23,7 +23,7 @@ function fixture(user = null, freeEnabled = false) {
   };
   const exports = {};
   const compiled = ts.transpileModule(readFileSync("src/app/signup/actions.ts", "utf8"), { compilerOptions: { module: ts.ModuleKind.CommonJS, target: ts.ScriptTarget.ES2022 } }).outputText;
-  vm.runInNewContext(compiled, { exports, require: name => { assert.ok(name in dependencies, name); return dependencies[name]; }, process: { env: { RUNFLOOR_RV_BILLING_ENABLED: "true", RUNFLOOR_SALES_SOLO_FREE_ENABLED: freeEnabled ? "true" : "false", APP_URL: "https://example.invalid" } } });
+  vm.runInNewContext(compiled, { exports, require: name => { assert.ok(name in dependencies, name); return dependencies[name]; }, process: { env: { RUNFLOOR_RV_BILLING_ENABLED: "true", RUNFLOOR_SALES_SOLO_ENABLED: freeEnabled ? "true" : "false", RUNFLOOR_SALES_SOLO_FREE_ENABLED: freeEnabled ? "true" : "false", APP_URL: "https://example.invalid" } } });
   return { actions: exports, calls };
 }
 function form(changes = {}) {
@@ -82,4 +82,13 @@ test("Free signup stays gated and activation uses verified owner identity withou
  const blocked=fixture(null);await blocked.actions.signupTrial({message:''},form({plan:'sales_solo_free'}));assert.equal(blocked.calls.length,0);
  const f=fixture({id:'verified-owner',email_confirmed_at:'2026-11-17'},true);await assert.rejects(f.actions.activateTrial({message:''},form({plan:'sales_solo_free',actor:'forged-user'})),/redirect:\/products/);
  const call=f.calls.find(c=>c[0]==='activate');assert.equal(call[1],'activate_sales_solo_free');assert.equal(call[2].actor,'verified-owner');assert.equal(call[2].company,'Example RV');
+});
+
+test("selected plans survive verification on another device and unknown plans are rejected",async()=>{
+ for(const plan of ['sales_solo_free','sales_solo']) {
+  const f=fixture(null,true);await f.actions.signupTrial({message:''},form({plan}));
+  const input=f.calls.find(c=>c[0]==='signup')[1];assert.ok(input.options.emailRedirectTo.endsWith(encodeURIComponent('/signup/activate?plan='+plan)));
+ }
+ const f=fixture();for(const name of ['signupTrial','activateTrial']) assert.match((await f.actions[name]({message:''},form({plan:'invented'}))).message,/valid RunFloor plan/);
+ assert.equal(f.calls.length,0);
 });

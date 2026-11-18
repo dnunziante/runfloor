@@ -34,6 +34,7 @@ test('Sales Solo migrations enforce paid periods, actual-cost cap and commercial
  for(const name of ['20261117160000_sales_solo.sql','20261117161000_sales_solo_events.sql','20261117162000_sales_solo_hardening.sql']) await db.exec(readFileSync('supabase/migrations/'+name,'utf8'));
  await db.exec(readFileSync("supabase/migrations/20261118022850_sales_solo_free.sql","utf8"));
  await db.exec(readFileSync("supabase/migrations/20261118030001_solo_free_catalog_guards.sql","utf8"));
+ await db.exec(readFileSync("supabase/migrations/20261118165309_shared_rv_reference_catalog.sql","utf8"));
  await q('insert into auth.users values($1,now()),($2,null)',[owner,other]);await q('insert into profiles(id) values($1),($2)',[owner,other]);
  await assert.rejects(q("select activate_sales_solo($1,'QA','QA Owner')",[other]),/Verify your email/);
  const org=(await q("select activate_sales_solo($1,'Solo QA','QA Owner') org",[owner]))[0].org;
@@ -138,6 +139,20 @@ test('Sales Solo migrations enforce paid periods, actual-cost cap and commercial
   await ev('free-cancel',null,'canceled');assert.equal((await q('select private.account_paid($1) p',[orgFree]))[0].p,false);
   await assert.rejects(q("select reserve_ai_usage($1,$2,$3,'background','qa-solo',1,0)",[orgFree,uid,id()]),/requires a paid subscription/);
   await db.exec('set role authenticated');assert.equal((await q('select solo_shared_catalog() c'))[0].c.products.length,48);await db.exec('reset role');
+ });
+ await t.test('the preloaded reference library also authorizes Complete RV members, without exposing tenant records',async()=>{
+  await db.exec('reset role');
+  const orgRv='70000000-0000-4000-8000-000000000001',rvMember='70000000-0000-4000-8000-000000000003';
+  await q('insert into auth.users values($1,now())',[rvMember]);await q('insert into profiles(id) values($1)',[rvMember]);
+  await q("insert into organizations(id,name,slug,industry_template_id) select $1,'Complete reference QA','complete-reference-qa',id from industry_templates where template_key='rv'",[orgRv]);
+  await q("insert into organization_memberships(organization_id,user_id,role,status) values($1,$2,'salesperson','active')",[orgRv,rvMember]);
+  await q("select set_config('request.jwt.claim.sub',$1,false)",[rvMember]);await db.exec('set role authenticated');
+  assert.ok((await q('select solo_shared_catalog() c'))[0].c.products.length>0);
+  await db.exec('reset role');await q('update organizations set industry_template_id=null where id=$1',[orgRv]);await db.exec('set role authenticated');
+  await assert.rejects(q('select solo_shared_catalog()'),/RV catalog membership required/);
+  await q("select set_config('request.jwt.claim.sub',$1,false)",['70000000-0000-4000-8000-000000000002']);
+  await assert.rejects(q('select solo_shared_catalog()'),/RV catalog membership required/);
+  await db.exec('reset role');
  });
  } finally {await db.close();}
 });

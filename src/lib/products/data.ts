@@ -1,7 +1,7 @@
 import "server-only";
 import { unstable_cache } from "next/cache";
 import { cache } from "react";
-import { isFreeSolo, isSoloPlan } from "@/lib/plans/policy";
+import { isFreeSolo } from "@/lib/plans/policy";
 
 import { getViewer } from "@/lib/auth/viewer";
 import { demoProductFamilies as demoFamilies, demoProducts } from "@/lib/demo/catalog";
@@ -238,7 +238,7 @@ export async function getTenantProductFamilyBySlug(slug: string) {
 }
 
 export async function getTenantProductBySlug(slug: string) {
-  const viewer=await getViewer();if(isSoloPlan(viewer?.plan?.plan_key) && slug.startsWith("rv-")){const shared=await getSoloSharedCatalog({selected:[slug.slice(3)]});return {product:shared.products.find(p=>p.slug===slug)||null,error:shared.error};}
+  const viewer=await getViewer();if(viewer && !viewer.demo && slug.startsWith("rv-")){const shared=await getSoloSharedCatalog({selected:[slug.slice(3)]});return {product:shared.products.find(p=>p.slug===slug)||null,error:shared.error};}
   const result = await getTenantProducts();
   return { product: result.products.find((product) => product.slug === slug) || null, error: result.error };
 }
@@ -257,7 +257,7 @@ const cachedCatalog = unstable_cache(async (key: string) => {
 },["solo-authorized-rv-catalog-v1"],{revalidate:60});
 const readSharedCatalog = cache(async (key: string): Promise<SharedCatalog> => {
  const args=JSON.parse(key);const empty:SharedCatalog={products:[],source:"supabase",page:args.page_number,hasMore:false,brands:[],categories:[],years:[]};
- const viewer=await getViewer();if(!viewer || viewer.demo || !isSoloPlan(viewer.plan?.plan_key))return {...empty,error:"Sign in to a Solo account to browse the shared catalog."};
+ const viewer=await getViewer();if(!viewer || viewer.demo || !viewer.organizationId)return {...empty,error:"Sign in to an RV workspace to browse the shared catalog."};
  const db=await createClient();let data;
  if(process.env.SUPABASE_SERVICE_ROLE_KEY){const access=await db.rpc("solo_catalog_access");if(access.error)return {...empty,error:"Catalog access is temporarily unavailable. Please try again shortly."};try{data=await cachedCatalog(key);}catch{return {...empty,error:"The authorized shared catalog is unavailable."};}}
  else {const result=await db.rpc("solo_shared_catalog",args);if(result.error)return {...empty,error:"Catalog access is temporarily unavailable. Please try again shortly."};data=result.data;}

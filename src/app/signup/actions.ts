@@ -5,12 +5,18 @@ import { createAdminClient } from "@/lib/supabase/admin";
 import { isSupabaseConfigured } from "@/lib/supabase/config";
 import { cookies } from "next/headers";
 
+function selectedPlan(form: FormData) {
+ const value = String(form.get("plan") || "complete");
+ return ["sales_solo_free", "sales_solo", "complete"].includes(value) ? value : null;
+}
+function activationUrl(plan: string) { return plan === "complete" ? "/signup/activate" : "/signup/activate?plan=" + plan; }
 function validContactPhone(phone: string) {
   return !phone || (phone.length <= 40 && /^[+\d\s().xet#-]+$/i.test(phone) && (phone.match(/\d/g)?.length ?? 0) >= 7);
 }
 
 export async function signupTrial(_state: { message: string }, form: FormData) {
-  const plan = form.get("plan") === "sales_solo_free" ? "sales_solo_free" : form.get("plan") === "sales_solo" ? "sales_solo" : "complete";
+  const plan = selectedPlan(form);
+  if (!plan) return { message: "Choose a valid RunFloor plan." };
   if ((plan === "sales_solo_free" ? process.env.RUNFLOOR_SALES_SOLO_FREE_ENABLED !== "true" : plan === "sales_solo" ? process.env.RUNFLOOR_SALES_SOLO_ENABLED !== "true" : process.env.RUNFLOOR_RV_BILLING_ENABLED !== "true") || !isSupabaseConfigured()) return { message: "Trial registration is not yet available. You can explore the demo in the meantime." };
   const dealership = String(form.get("dealership") || "").trim();
   const fullName = String(form.get("fullName") || "").trim();
@@ -21,19 +27,20 @@ export async function signupTrial(_state: { message: string }, form: FormData) {
   if (!validContactPhone(phone)) return { message: "Enter a valid phone number or leave the optional field blank." };
   const db = await createClient();
   const { data: { user: existing } } = await db.auth.getUser();
-  if (existing) redirect("/signup/activate");
+  if (existing) redirect(activationUrl(plan));
   const origin = process.env.APP_URL || process.env.RUNFLOOR_BILLING_ORIGIN;
   if (!origin) return { message: "Trial registration is temporarily unavailable." };
-  const { data, error } = await db.auth.signUp({ email, password, options: { data: { full_name: fullName, contact_phone: phone || null }, emailRedirectTo: `${origin}/auth/callback?next=/signup/activate` } });
+  const { data, error } = await db.auth.signUp({ email, password, options: { data: { full_name: fullName, contact_phone: phone || null }, emailRedirectTo: `${origin}/auth/callback?next=${encodeURIComponent(activationUrl(plan))}` } });
   if (error) return { message: "We couldn't register this account. Try again or sign in if you already have an account." };
   // The cookie contains presentation defaults only; activation always verifies auth.getUser.
   (await cookies()).set("rf-trial-draft", JSON.stringify({ dealership, fullName, phone, plan }), { httpOnly: true, sameSite: "lax", secure: process.env.NODE_ENV === "production", path: "/signup", maxAge: 86400 });
-  if (data.session) redirect("/signup/activate");
+  if (data.session) redirect(activationUrl(plan));
   return { message: "Check your inbox for the verification link. Verify your email, then activate your chosen account. Paid access requires verified payment." };
 }
 
 export async function activateTrial(_state: { message: string }, form: FormData) {
-  const plan = form.get("plan") === "sales_solo_free" ? "sales_solo_free" : form.get("plan") === "sales_solo" ? "sales_solo" : "complete";
+  const plan = selectedPlan(form);
+  if (!plan) return { message: "Choose a valid RunFloor plan." };
   if (plan === "sales_solo_free" ? process.env.RUNFLOOR_SALES_SOLO_FREE_ENABLED !== "true" : plan === "sales_solo" ? process.env.RUNFLOOR_SALES_SOLO_ENABLED !== "true" : process.env.RUNFLOOR_RV_BILLING_ENABLED !== "true") return { message: "Trial activation is not yet available." };
   const phone = String(form.get("phone") || "").trim();
   if (!validContactPhone(phone)) return { message: "Enter a valid phone number or leave the optional field blank." };

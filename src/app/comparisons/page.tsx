@@ -1,4 +1,4 @@
-import { isFreeSolo, isSoloPlan } from "@/lib/plans/policy";
+import { isFreeSolo } from "@/lib/plans/policy";
 import { SoloUpgradePrompt } from "@/components/solo-upgrade-prompt";
 import { AppShell } from "@/components/app-shell";
 import { BarChart3, Layers3, Zap } from "lucide-react";
@@ -11,7 +11,7 @@ export default async function Comparisons({ searchParams }: { searchParams: Prom
   const selection = await searchParams;
   const viewer=await getViewer();const free=isFreeSolo(viewer?.plan);
   let result=free ? await getSoloSharedCatalog({comparison:true,q:selection.q,selected:[selection.product||"",selection.competitor||"",selection.third||""]}) : await getTenantProducts();
-  const shared=free || (isSoloPlan(viewer?.plan?.plan_key) && (selection.catalog==="shared" || [selection.product,selection.competitor,selection.third].some(id=>id&&!result.products.some(p=>p.id===id))));
+  const shared=free || (!!viewer && !viewer.demo && (selection.catalog==="shared" || [selection.product,selection.competitor,selection.third].some(id=>id&&!result.products.some(p=>p.id===id))));
   if(shared&&!free)result=await getSoloSharedCatalog({comparison:true,q:selection.q,selected:[selection.product||"",selection.competitor||"",selection.third||""]});
   const defaults={product:selection.product || result.products.find(p=>p.productType==="our_product" && p.modelYear!==null)?.id,competitor:selection.competitor || result.products.find(p=>p.productType==="competitor_product")?.id,third:selection.third};
   const isRv = viewer ? await getViewerIndustryTemplateKey(viewer) === "rv" : false;
