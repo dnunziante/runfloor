@@ -1,3 +1,4 @@
+import { handleSoloEvent } from "@/lib/plans/webhook";
 import { handleRvBillingEvent } from "@/lib/billing/webhook";
 import { NextResponse } from "next/server";
 import type Stripe from "stripe";
@@ -129,6 +130,7 @@ export async function POST(request: Request) {
     }
   };
   try {
+    if (await handleSoloEvent(event, stripe, account, live)) return NextResponse.json({ received: true });
     if (process.env.RUNFLOOR_RV_BILLING_ENABLED === "true" && await handleRvBillingEvent(event, stripe)) return NextResponse.json({ received: true });
     if (event.type.startsWith("checkout.session.")) {
       const changed = event.data.object as Stripe.Checkout.Session;

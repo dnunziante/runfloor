@@ -1,4 +1,5 @@
 import "server-only";
+import { isFreeSolo } from "@/lib/plans/policy";
 
 import type { Viewer } from "@/lib/auth/viewer";
 import { createAdminClient } from "@/lib/supabase/admin";
@@ -6,6 +7,7 @@ import { createClient } from "@/lib/supabase/server";
 
 export async function getViewerIndustryTemplateKey(viewer: Viewer) {
   if (viewer.demo) return viewer.organizationName === "RunFloor RV" ? "rv" : null;
+  if (isFreeSolo(viewer.plan)) return "rv";
   const db = await createClient();
   // First authorize the organization through the signed-in client's existing RLS.
   const { data: organization } = await db.from("organizations").select("industry_template_id").eq("id", viewer.organizationId).maybeSingle();

@@ -35,4 +35,4 @@ test("all current shared billable helpers have distinct accounting feature names
     assert.ok(source.includes(`, "${name}")`), name);
 });
 
-test("platform-help exception cannot reach dealership accounting or business repositories",()=>{const source=readFileSync("src/lib/opal/provider.ts","utf8");assert.doesNotMatch(source,/meteredOpenAI|reserve_ai_usage|finish_ai_usage|workspace-context|operations\/repository|executive\/repository/);assert.match(source,/max_completion_tokens:1600/);assert.match(source,/store:false/);});
+test("platform help cannot retrieve business repositories; Solo calls share its allowance",()=>{const source=readFileSync("src/lib/opal/provider.ts","utf8");assert.doesNotMatch(source,/workspace-context|operations\/repository|executive\/repository/);assert.match(source,/max_completion_tokens:1600/);assert.match(source,/store:false/);assert.match(source,/plan_key==='sales_solo'/);assert.match(source,/meteredOpenAI\("chat\/completions",payload,"help_assistant"\)/);});

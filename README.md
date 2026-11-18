@@ -107,3 +107,7 @@ Platform administrators can change a starter product between My Product and Comp
 ## RV pricing and trial rollout
 
 See [RV release notes](docs/rv-billing-implementation.md) for the location trial, reused AI ledger, configuration and remaining live-billing setup.
+
+## Three-plan landing page
+
+The pricing page presents RunFloor Free ($0, shared model browsing and comparisons, no AI), Solo ($25, 500 monthly AI credits after paid activation), and Complete ($99/location, unlimited users, 2,000 shared monthly AI credits). See [pricing and signup release](docs/three-plan-pricing-release.md) for account entitlements, inactive live-payment status, verification and the production migration plan.

@@ -1,3 +1,4 @@
+import { soloAllowsPath, freeAllowsPath } from "../plans/policy.ts";
 import type { AppRole } from "./viewer";
 
 export const positions = ["tenant_admin", "manager", "salesperson"] as const;
@@ -58,8 +59,17 @@ export function permissionForPath(path: string): PermissionKey | undefined {
   if (["/coach", "/training", "/role-play", "/objections", "/api/coach"].some(p => matches(path, p))) return "coaching";
   return undefined;
 }
-export function hasPagePermission(role: AppRole, path: string, permissions?: RolePermissions) {
+export function hasPagePermission(role: AppRole, path: string, permissions?: RolePermissions, planKey?: string) {
   if (role === "platform_owner") return true;
+  if (planKey === "sales_solo_free") {
+    if (!freeAllowsPath(path)) return false;
+    if (path === "/admin/settings" || matches(path,"/billing")) return true;
+    const key=permissionForPath(path);return !key || Boolean((permissions ?? defaultPermissions(role))[key]);
+  }
+  if (planKey === "sales_solo") {
+    if (!soloAllowsPath(path)) return false;
+    if (path === "/admin/settings" || ["/admin/products", "/admin/competitors", "/admin/content"].some(root => matches(path, root))) return true;
+  }
   const key = permissionForPath(path.split("#")[0]);
   return !key || Boolean((permissions ?? defaultPermissions(role))[key]);
 }

@@ -1,3 +1,4 @@
+import { isFreeSolo } from "@/lib/plans/policy";
 import { ENABLE_SALES_COACHING } from "@/lib/features";
 import { NextResponse } from "next/server";
 import { getViewer } from "@/lib/auth/viewer";
@@ -22,6 +23,7 @@ function safeFilename(filename: string) {
 
 export async function POST(request: Request) {
   const viewer = await getViewer();
+  if (isFreeSolo(viewer?.plan) && viewer?.role !== "platform_owner") return NextResponse.json({error:"Upgrade to Sales Solo to upload documents."},{status:403});
   if (!viewer || !viewer.organizationId) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   if (viewer.demo) return NextResponse.json({ error: "Uploads are disabled in local demo mode." }, { status: 403 });
   if (!["tenant_admin", "platform_owner"].includes(viewer.role)) return NextResponse.json({ error: "Tenant administrator access is required." }, { status: 403 });

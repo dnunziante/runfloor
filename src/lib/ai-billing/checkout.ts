@@ -1,3 +1,4 @@
+import { isSoloPlan } from "@/lib/plans/policy";
 import "server-only";
 import { createHash } from "node:crypto";
 const integrationIdentifier = (id: string) =>
@@ -18,6 +19,7 @@ export async function createCreditCheckout(
     throw new Error("Invalid purchase request.");
   const viewer = await getViewer();
   if (!viewer || viewer.demo) throw new Error("Sign in to manage billing.");
+  if (isSoloPlan(viewer.plan?.plan_key)) throw new Error("Sales Solo has a fixed monthly AI cost allowance. Credit purchases are not available.");
   const userDb = await createClient();
   const { data: summary, error: accessError } = await userDb.rpc(
     "get_ai_credit_summary",

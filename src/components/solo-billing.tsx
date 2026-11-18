@@ -1,0 +1,21 @@
+import Link from "next/link";
+import { AppShell } from "./app-shell";
+import { startSoloCheckout, manageSoloSubscription, upgradeSolo } from "@/app/billing/solo-actions";
+import type { SoloSummary } from "@/lib/plans/data";
+import { planPaid, isFreeSolo } from "@/lib/plans/policy";
+const credits = (units: number) => (units / 1_000_000).toLocaleString("en-US", { maximumFractionDigits: 6 }) + " credits";
+export function SoloBilling({ summary: s, error, checkout }: { summary: SoloSummary; error?: string; checkout?: string }) {
+  const paid = !isFreeSolo(s) && planPaid(s);
+  const paymentsEnabled = process.env.RUNFLOOR_STRIPE_LIVE_ENABLED === "true" || /^(?:sk|rk|rkcs)_test_/.test(process.env.RUNFLOOR_STRIPE_SECRET_KEY || "");
+  return <AppShell title="Subscription & Billing"><div className="rv-billing"><header><p className="lp-kicker">{paid ? "RUNFLOOR SOLO" : "RUNFLOOR FREE"}</p><h1>Your Sales workspace.</h1><p>{paid ? "$25/month · One user · 500 AI credits per paid month" : "$0 browsing and comparisons · One user · Upgrade for $25/month"}</p></header>
+    {error && <p role="alert" className="rv-billing-alert">{error.slice(0, 200)}</p>}
+    {checkout && <p role="status" className="rv-billing-alert">Your payment or plan change is being confirmed. Access changes only after verified payment.</p>}
+    {!paid && <section className="rv-billing-card"><h2>Your free account stays available.</h2><p>Browse the authorized shared catalog and compare specifications without AI, a credit card, or a subscription. Your saved business records are preserved if a paid subscription ends.</p><Link className="btn" href="/products">Browse inventory</Link><Link className="btn" href="/comparisons">Compare models</Link></section>}
+    <section className="rv-billing-card"><div className="rv-billing-heading"><h2>{paid ? "RunFloor Solo" : "RunFloor Free"}</h2><span className="badge">{paid ? "Active" : "Free · $0"}</span></div>
+      <dl className="rv-billing-facts"><div><dt>Subscription</dt><dd>{s.plan_key === "sales_solo_free" ? s.stripe_subscription_id ? "Awaiting verified payment" : "No subscription required" : s.status.replaceAll("_", " ")}</dd></div><div><dt>Users</dt><dd>{s.user_count} / {s.seat_limit}</dd></div><div><dt>Included AI allowance</dt><dd>{paid ? credits(s.ai_limit_units) : "0 credits"}</dd></div><div><dt>AI spent</dt><dd>{credits(s.used_units)}</dd></div><div><dt>Reserved for requests</dt><dd>{credits(s.reserved_units)}</dd></div><div><dt>Available AI allowance</dt><dd>{paid ? credits(s.remaining_units) : "0 credits — available after payment"}</dd></div><div><dt>{s.cancel_at ? "Access ends" : "Paid through / renewal"}</dt><dd>{s.paid_until ? new Date(s.paid_until).toLocaleDateString("en-US", { timeZone: "UTC" }) : "After payment confirmation"}</dd></div></dl>
+      <p>All AI work, including document processing and Help AI, shares this allowance. No rollover, top-ups, or automatic overages. If the allowance is exhausted, your other Sales tools remain available until the paid period ends.</p>
+      {s.access_override_until && <p role="status">Platform Admin access override through {new Date(s.access_override_until).toLocaleDateString("en-US", { timeZone: "UTC" })}.</p>}
+      <div className="rv-billing-actions">{(!s.stripe_subscription_id || ["canceled", "incomplete_expired"].includes(s.status)) && (paymentsEnabled ? <form action={startSoloCheckout}><button className="btn btn-primary">Subscribe — $25/month</button></form> : <p>Online Solo payments are not available yet. Free access remains available; no charge is scheduled.</p>)}{s.stripe_customer_id && <form action={manageSoloSubscription}><button className="btn">Manage subscription</button></form>}<Link className="btn" href="/admin/settings">My account</Link>{paid && <Link className="btn" href="/assistant">Open Sales AI</Link>}</div>
+      {paid && <details><summary>Need the full platform?</summary><p>RunFloor Complete is $99/month per location. A Platform Admin must first set up your location. Access expands only after the upgrade payment is confirmed.</p><form action={upgradeSolo}><button className="btn">Request upgrade to Complete</button></form></details>}
+    </section></div></AppShell>;
+}

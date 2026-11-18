@@ -1,3 +1,6 @@
+import { isSoloPlan } from "@/lib/plans/policy";
+import { getSoloSummary } from "@/lib/plans/data";
+import { SoloBilling } from "@/components/solo-billing";
 import Link from "next/link";
 import { redirect } from "next/navigation";
 import { getViewer } from "@/lib/auth/viewer";
@@ -16,6 +19,7 @@ export default async function Billing({ searchParams }: { searchParams: Promise<
   const viewer = await getViewer();
   if (!viewer) redirect("/login?next=/billing");
   const params = await searchParams;
+  if (isSoloPlan(viewer.plan?.plan_key)) { const summary = await getSoloSummary(viewer.organizationId); if (!summary) throw new Error("Account plan unavailable"); return <SoloBilling summary={summary} error={params.error} checkout={params.checkout}/>; }
   const rows = await getLocationBilling(viewer);
   const db = viewer.demo ? null : await createClient();
   const locations = db ? await db.from("locations").select("id,name").eq("organization_id", viewer.organizationId) : { data: [] };

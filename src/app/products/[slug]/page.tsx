@@ -1,3 +1,5 @@
+import { isFreeSolo } from "@/lib/plans/policy";
+import { SoloUpgradePrompt } from "@/components/solo-upgrade-prompt";
 import { productPrice, productTitle, visibleSpecification, specificationValue } from "@/lib/products/presentation";
 import { ProductTypeSelector } from "@/components/product-type-selector";
 import { getViewer } from "@/lib/auth/viewer";
@@ -26,7 +28,7 @@ export default async function ProductSalesGuidePage({ params }: { params: Promis
   const { product } = await getTenantProductBySlug(slug);
   if (!product) notFound();
   const viewer = await getViewer();
-  const canManage = Boolean(viewer && ["platform_owner", "tenant_admin", "manager"].includes(viewer.role) && hasPagePermission(viewer.role, "/products", viewer.permissions));
+  const canManage = Boolean(viewer && !slug.startsWith("rv-") && !isFreeSolo(viewer.plan) && ["platform_owner", "tenant_admin", "manager"].includes(viewer.role) && hasPagePermission(viewer.role, "/products", viewer.permissions));
   const competitor = product.productType === "competitor_product";
   const guide = product.salesGuide;
   const guideSections = Object.values(guide).filter(value => Array.isArray(value) ? value.length : Boolean(value)).length;
@@ -36,7 +38,8 @@ export default async function ProductSalesGuidePage({ params }: { params: Promis
   ].filter(([, value]) => value !== null && value !== undefined && String(value).trim() !== "").map(([label, value]) => [String(label), String(value)]) as Array<[string, string]>;
 
   return <AppShell title="Product Sales Guide">
-    <PageHeader eyebrow={competitor ? "Competitor model" : "Approved product guidance"} title={`${product.name} sales guide`} description={`${product.model} · Use this guide to prepare and lead a consistent customer conversation.`} action={<Link className="btn btn-ghost" href={competitor ? "/competitors" : "/products"}><ArrowLeft size={16}/> {competitor ? "Competitor Library" : "Product Library"}</Link>}/>
+    <PageHeader eyebrow={competitor ? "Competitor model" : "Approved product guidance"} title={`${product.name} sales guide`} description={`${product.model} · Use this guide to prepare and lead a consistent customer conversation.`} action={<Link className="btn btn-ghost" href={competitor && !isFreeSolo(viewer?.plan) ? "/competitors" : "/products"}><ArrowLeft size={16}/> {competitor ? "Competitor Library" : "Product Library"}</Link>}/>
+    {isFreeSolo(viewer?.plan) && <SoloUpgradePrompt/>}
     {canManage && <ProductTypeSelector key={product.id} productId={product.id} productType={product.productType} readOnly={viewer?.demo}/>}
     <section className="sales-guide-hero card">
       <div className={`sales-guide-image ${product.color} ${product.imageUrl ? "has-image" : ""}`} style={product.imageUrl ? {backgroundImage:`url(${product.imageUrl})`} : undefined} role="img" aria-label={`${product.name} primary product image`}/>

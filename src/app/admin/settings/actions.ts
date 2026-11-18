@@ -1,4 +1,5 @@
 "use server";
+import { isSoloPlan } from "@/lib/plans/policy";
 
 import { revalidatePath } from "next/cache";
 import { getViewer } from "@/lib/auth/viewer";
@@ -10,6 +11,7 @@ export type AddLocationState = { error: string; success: string };
 const option = (value: FormDataEntryValue | null, allowed: string[], fallback: string) => typeof value === "string" && allowed.includes(value) ? value : fallback;
 export async function saveAICommunicationStandards(_previousState: OrganizationSettingsActionState, formData: FormData): Promise<OrganizationSettingsActionState> {
   const viewer = await getViewer();
+  if (isSoloPlan(viewer?.plan?.plan_key) && viewer.role !== "platform_owner") return { error: "Sales Solo includes self-service profile settings only.", success: "" };
   if (!viewer?.organizationId || viewer.demo || !["tenant_admin", "platform_owner"].includes(viewer.role)) return { error: "Tenant administrator access is required.", success: "" };
   const advanced = String(formData.get("advancedInstructions") || "").trim();
   if (advanced.length > 12000) return { error: "Advanced instructions must be 12,000 characters or fewer.", success: "" };
@@ -31,6 +33,7 @@ export async function saveAICommunicationStandards(_previousState: OrganizationS
 
 export async function saveOrganizationSettings(_previousState: OrganizationSettingsActionState, formData: FormData): Promise<OrganizationSettingsActionState> {
   const viewer = await getViewer();
+  if (isSoloPlan(viewer?.plan?.plan_key) && viewer.role !== "platform_owner") return { error: "Sales Solo includes self-service profile settings only.", success: "" };
   if (!viewer?.organizationId || viewer.demo || !["tenant_admin", "platform_owner"].includes(viewer.role)) return { error: "Sign in as a tenant administrator to save shared settings.", success: "" };
   const displayName = String(formData.get("displayName") || "").trim();
   const primaryColor = String(formData.get("primaryColor") || "").trim();
@@ -50,6 +53,7 @@ export async function saveOrganizationSettings(_previousState: OrganizationSetti
 
 export async function saveLocationQuoteFees(formData: FormData) {
   const viewer = await getViewer();
+  if (isSoloPlan(viewer?.plan?.plan_key) && viewer.role !== "platform_owner") throw new Error("Only the Platform Admin manages Sales Solo locations.");
   if (!viewer?.organizationId || !["tenant_admin", "platform_owner"].includes(viewer.role)) throw new Error("Unauthorized");
   const locationId = String(formData.get("locationId") || "");
   const locationName = String(formData.get("locationName") || "").trim();
@@ -68,6 +72,7 @@ export async function saveLocationQuoteFees(formData: FormData) {
 
 export async function addLocation(_previousState: AddLocationState, formData: FormData): Promise<AddLocationState> {
   const viewer = await getViewer();
+  if (isSoloPlan(viewer?.plan?.plan_key) && viewer.role !== "platform_owner") return { error: "Sales Solo includes self-service profile settings only.", success: "" };
   if (!viewer?.organizationId || viewer.demo || !["tenant_admin", "platform_owner"].includes(viewer.role)) {
     return { error: "Only an Admin can add BGC locations.", success: "" };
   }
@@ -97,6 +102,7 @@ export async function addLocation(_previousState: AddLocationState, formData: Fo
 
 export async function reorderLocations(locationIds: string[]): Promise<{ error: string }> {
   const viewer = await getViewer();
+  if (isSoloPlan(viewer?.plan?.plan_key) && viewer.role !== "platform_owner") throw new Error("Only the Platform Admin manages Sales Solo locations.");
   if (!viewer?.organizationId || viewer.demo || !["tenant_admin", "platform_owner"].includes(viewer.role)) {
     return { error: "Only an Admin can reorder BGC locations." };
   }

@@ -41,3 +41,27 @@ html { scroll-behavior: smooth; }
 @media(max-width:899px) { .rv-pricing-layout { grid-template-columns: minmax(0, 1fr); gap: 32px; max-width: 640px; } .rv-pricing-layout > .rv-price-card { position: static; } .rv-price-faq h3 { max-width: none; } }
 @media(max-width:600px) { .rv-pricing { padding: 64px 18px; } .rv-price-card { padding: 30px 22px; } .rv-price strong { font-size: 74px; } .rv-price-card li { font-size: 14px; } .rv-trial-link { font-size: 14px; } }
 @media(prefers-reduced-motion:reduce) { html { scroll-behavior: auto; } .rv-price-card { animation: none; } .rv-price-faq summary,.rv-price-faq summary svg,.rv-price-faq details::details-content { transition: none; } }
+
+/* Three-plan pricing; FAQs follow the comparison on every viewport. */
+.rv-pricing-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:24px;max-width:1280px;margin:auto;align-items:stretch}
+.rv-pricing-grid .rv-price-card{display:flex;flex-direction:column;background:var(--card);color:var(--ink);border-color:var(--line);padding:32px;box-shadow:0 12px 36px #00000008}
+.rv-pricing-grid .rv-price-complete{background:var(--navy);color:white;border-color:var(--navy)}
+.rv-pricing-grid .rv-plan-name{color:var(--muted);text-transform:uppercase;font-size:12px}
+.rv-pricing-grid .rv-price-complete .rv-plan-name{color:#ff774f}
+.rv-pricing-grid .rv-price strong{font-size:68px;white-space:nowrap}
+.rv-pricing-grid .rv-price span,.rv-pricing-grid .rv-price small{color:var(--muted);font-size:14px}
+.rv-pricing-grid .rv-price-complete .rv-price span,.rv-pricing-grid .rv-price-complete .rv-price small{color:#ccc}
+.rv-pricing-grid .rv-price-promise{font-size:17px;border-bottom-color:var(--line);min-height:60px}
+.rv-pricing-grid .rv-price-complete .rv-price-promise{border-bottom-color:#ffffff30}
+.rv-pricing-grid .rv-price-actions{margin-top:auto;padding-top:20px}
+.rv-pricing-grid .rv-trial-link{background:var(--navy);color:white;align-items:center;font-size:14px;text-decoration:none;min-height:54px}
+.rv-pricing-grid .rv-price-complete .rv-trial-link{background:var(--blue)}
+.rv-pricing-grid .rv-price-trust{color:var(--muted);margin-bottom:0;min-height:40px}
+.rv-pricing-grid .rv-price-complete .rv-price-trust{color:#ccc}
+.rv-price-faq{max-width:900px;margin:76px auto 0}
+.rv-price-faq h3{max-width:none;text-align:center;margin-bottom:32px}
+.rv-pricing-demo{text-align:center;margin-top:32px}.rv-pricing-demo a{display:inline-flex;gap:8px;align-items:center}
+@media(max-width:1000px){.rv-pricing-grid{grid-template-columns:1fr;max-width:560px}.rv-pricing-grid .rv-price-card{padding:32px}.rv-pricing-grid .rv-price-promise{min-height:0}.rv-price-faq{margin-top:48px}}
+@media(max-width:600px){.rv-pricing-grid .rv-price-card{padding:28px 22px}.rv-pricing-grid .rv-price strong{font-size:64px}}
+
+.rv-pricing-grid .rv-price-card:first-child .rv-trial-link{background:transparent;color:var(--ink);border:1px solid var(--ink)}

@@ -1,4 +1,5 @@
 "use server";
+import { isFreeSolo } from "@/lib/plans/policy";
 
 import { revalidatePath } from "next/cache";
 import { getViewer } from "@/lib/auth/viewer";
@@ -11,6 +12,7 @@ export type KnowledgeCollectionUpdateResult = { error: string; success: string }
 
 export async function reindexKnowledgeDocument(documentId: string): Promise<KnowledgeCollectionUpdateResult> {
   const viewer = await getViewer();
+  if (isFreeSolo(viewer?.plan) && viewer?.role !== "platform_owner") throw new Error("Upgrade to Sales Solo to edit inventory, documents or templates.");
   if (!viewer?.organizationId || !["tenant_admin", "platform_owner"].includes(viewer.role)) return { error: "Administrator access is required.", success: "" };
   if (!/^[0-9a-f-]{36}$/i.test(documentId)) return { error: "Choose a valid document.", success: "" };
 
@@ -41,6 +43,7 @@ export async function reindexKnowledgeDocument(documentId: string): Promise<Know
 
 export async function updateKnowledgeDocumentCollection(documentId: string, collection: string): Promise<KnowledgeCollectionUpdateResult> {
   const viewer = await getViewer();
+  if (isFreeSolo(viewer?.plan) && viewer?.role !== "platform_owner") throw new Error("Upgrade to Sales Solo to edit inventory, documents or templates.");
   if (!viewer?.organizationId || !["tenant_admin", "platform_owner"].includes(viewer.role)) return { error: "Administrator access is required.", success: "" };
   if (!/^[0-9a-f-]{36}$/i.test(documentId) || !isKnowledgeCollection(collection)) return { error: "Choose a valid collection.", success: "" };
 
@@ -69,6 +72,7 @@ export async function updateKnowledgeDocumentCollection(documentId: string, coll
 
 export async function deleteKnowledgeDocument(formData: FormData) {
   const viewer = await getViewer();
+  if (isFreeSolo(viewer?.plan) && viewer?.role !== "platform_owner") throw new Error("Upgrade to Sales Solo to edit inventory, documents or templates.");
   if (!viewer?.organizationId || !["tenant_admin", "platform_owner"].includes(viewer.role)) throw new Error("Unauthorized");
 
   const documentId = String(formData.get("documentId") || "");

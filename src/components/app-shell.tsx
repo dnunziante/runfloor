@@ -1,4 +1,5 @@
 "use client";
+import { effectivePlanKey } from "@/lib/plans/policy";
 
 import { WorkspaceLocations } from "./workspace-locations";
 import Link from "next/link";
@@ -12,7 +13,7 @@ import { BrandLogo } from "@/components/brand-logo";
 import { activeNavigationItem, activeWorkspace, getWorkspaceNavigation } from "@/lib/navigation";
 import { activeSidebarItem, getSidebarNavigation } from "@/lib/sidebar-navigation";
 import { navigationIcons } from "@/components/navigation-icons";
-import { hasPagePermission } from "@/lib/auth/role-permissions";
+import { hasPagePermission, permissionDefinitions, type RolePermissions } from "@/lib/auth/role-permissions";
 import type { Viewer } from "@/lib/auth/viewer";
 
 export function AppShell({ children, title, industry }: { children: React.ReactNode; title: string; industry?: "rv" | "golf-cart" }) {
@@ -27,13 +28,14 @@ export function AppShell({ children, title, industry }: { children: React.ReactN
   const [open, setOpen] = useState(false);
   const [collapsed, setCollapsed] = useState(false);
   const [workspaces, setWorkspaces] = useState<{ id: string; name: string }[]>([]);
-  const [viewer, setViewer] = useState<Pick<Viewer, "fullName" | "initials" | "organizationId" | "organizationName" | "role" | "demo" | "permissions"> & { industryTemplateKey?: string }>({
+  const [viewer, setViewer] = useState<Pick<Viewer, "fullName" | "initials" | "organizationId" | "organizationName" | "role" | "demo" | "permissions" | "plan"> & { industryTemplateKey?: string }>({
     fullName: "User",
     initials: "U",
     organizationId: "",
     organizationName: "Workspace",
     role: "salesperson",
     demo: false,
+    permissions: Object.fromEntries(permissionDefinitions.map(p=>[p.key,false])) as RolePermissions,
   });
 
   useEffect(() => {
@@ -80,9 +82,9 @@ export function AppShell({ children, title, industry }: { children: React.ReactN
   const roleLabel = viewer.role === "platform_owner" ? "Platform Owner" : viewer.role === "tenant_admin" ? "Tenant Admin" : viewer.role === "manager" ? "Manager" : "Salesperson";
   const isRv = industry === "rv" || viewer.industryTemplateKey === "rv";
   const isGolfCart = industry === "golf-cart" || viewer.industryTemplateKey === "golf-cart";
-  const navigation = getWorkspaceNavigation(viewer.role, industry ?? viewer.industryTemplateKey).map(workspace => ({ ...workspace, groups: workspace.groups.map(group => ({ ...group, items: group.items.filter(item => hasPagePermission(viewer.role, item.href, viewer.permissions)) })).filter(group => group.items.length) })).filter(workspace => workspace.groups.length);
+  const navigation = getWorkspaceNavigation(viewer.role, industry ?? viewer.industryTemplateKey).map(workspace => ({ ...workspace, groups: workspace.groups.map(group => ({ ...group, items: group.items.filter(item => hasPagePermission(viewer.role, item.href, viewer.permissions, effectivePlanKey(viewer.plan))) })).filter(group => group.items.length) })).filter(workspace => workspace.groups.length);
   const activeItem = activeNavigationItem(pathname, navigation);
-  const sidebarGroups = getSidebarNavigation(viewer.role).map(group => ({ ...group, items: group.items.map(item => item.href === "/admin/settings" && !hasPagePermission(viewer.role, item.href, viewer.permissions) ? { ...item, href: "/admin/settings/roles" } : item).filter(item => hasPagePermission(viewer.role, item.href, viewer.permissions)) })).filter(group => group.items.length);
+  const sidebarGroups = getSidebarNavigation(viewer.role).map(group => ({ ...group, items: group.items.map(item => item.href === "/admin/settings" && effectivePlanKey(viewer.plan) !== "sales_solo" && !hasPagePermission(viewer.role, item.href, viewer.permissions, effectivePlanKey(viewer.plan)) ? { ...item, href: "/admin/settings/roles" } : item).filter(item => hasPagePermission(viewer.role, item.href, viewer.permissions, effectivePlanKey(viewer.plan))) })).filter(group => group.items.length);
   const activeFooterItem = activeItem ? undefined : activeSidebarItem(pathname, sidebarGroups);
   const activeFooterGroup = sidebarGroups.find(group => group.items.some(item => item.href === activeFooterItem?.href))?.id;
   const expandedWorkspace = activeWorkspace(pathname) ?? (pathname === "/dashboard" ? "sales" : undefined);
@@ -122,7 +124,7 @@ export function AppShell({ children, title, industry }: { children: React.ReactN
         </nav><div className="profile"><span className="avatar">{viewer.initials}</span><span><strong>{viewer.fullName}</strong><small>{roleLabel}</small></span><form action={logout} onSubmit={() => window.dispatchEvent(new Event("opal:reset"))}><button className="logout-button" type="submit"><LogOut size={17}/><span>{viewer.demo ? "Exit demo" : "Sign out"}</span></button></form></div><div className="sidebar-motto">People <i/> Processes <i/> Profit</div></div>
     </aside>
     <main className="main">
-      <header className="topbar"><div className="topbar-title"><button ref={menuRef} aria-expanded={open} className="icon-btn menu-btn" aria-label="Open menu" onClick={() => setOpen(true)}><Menu size={21}/></button><button className="btn btn-ghost" type="button" onClick={() => router.back()} aria-label="Go back to the previous page"><ArrowLeft size={16}/> Back</button><strong>{title}</strong></div><div className="top-actions"><WorkspaceSearch permissions={viewer.permissions} role={viewer.role} industry={industry ?? viewer.industryTemplateKey}/><span className="status-dot" title={viewer.demo ? "Demo environment" : "Connected"}/><span className="avatar">{viewer.initials}</span></div></header>
+      <header className="topbar"><div className="topbar-title"><button ref={menuRef} aria-expanded={open} className="icon-btn menu-btn" aria-label="Open menu" onClick={() => setOpen(true)}><Menu size={21}/></button><button className="btn btn-ghost" type="button" onClick={() => router.back()} aria-label="Go back to the previous page"><ArrowLeft size={16}/> Back</button><strong>{title}</strong></div><div className="top-actions"><WorkspaceSearch planKey={effectivePlanKey(viewer.plan)} permissions={viewer.permissions} role={viewer.role} industry={industry ?? viewer.industryTemplateKey}/><span className="status-dot" title={viewer.demo ? "Demo environment" : "Connected"}/><span className="avatar">{viewer.initials}</span></div></header>
       <div className="content" onClick={event => { const anchor = (event.target as Element).closest?.('a[href^="#"]'); const id = anchor?.getAttribute("href")?.slice(1); if (id) { const panel = document.getElementById(id)?.closest("details.workspace-create-panel"); if (panel instanceof HTMLDetailsElement) panel.open = true; } }}><WorkspaceLocations.Provider value={locationNames}>{switchingWorkspace && <p role="status">Switching workspace…</p>}{workspaceError && <p className="form-error" role="alert">{workspaceError}</p>}{locationError && <p role="alert" className="form-error">Workspace locations could not be loaded. Refresh before assigning location-specific work.</p>}{children}</WorkspaceLocations.Provider></div>
     </main>
   </div>;

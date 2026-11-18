@@ -1,15 +1,21 @@
+import Link from "next/link";
+import { isFreeSolo } from "@/lib/plans/policy";
+import { SoloUpgradePrompt } from "@/components/solo-upgrade-prompt";
 import { AppShell } from "@/components/app-shell";
 import { BarChart3, Car, FileText, PackageCheck, ShieldCheck, Users } from "lucide-react";
 import { PageHeader } from "@/components/page-header";
 import { ProductFamilyLibrary } from "@/components/product-family-library";
 import { ProductLibrary } from "@/components/product-library";
 import { ProductLibraryActions } from "@/components/product-catalog-management";
-import { getTenantProductFamilies, getTenantProducts } from "@/lib/products/data";
+import { getTenantProductFamilies, getTenantProducts, getSoloSharedCatalog } from "@/lib/products/data";
 import { getViewer } from "@/lib/auth/viewer";
 import { getViewerIndustryTemplateKey } from "@/lib/organizations/industry";
 
-export default async function ProductsPage() {
-  const [result, productResult, viewer] = await Promise.all([getTenantProductFamilies(), getTenantProducts(), getViewer()]);
+export default async function ProductsPage({searchParams}:{searchParams:Promise<{page?:string;q?:string;brand?:string;rvType?:string;year?:string;catalog?:string}>}) {
+  const viewer=await getViewer();
+  const filters=await searchParams;
+  if(isFreeSolo(viewer?.plan) || filters.catalog === "shared"){const catalog=await getSoloSharedCatalog({...filters,page:Number(filters.page)||1});return <AppShell title="Products" industry="rv"><main className="rv-products">{isFreeSolo(viewer?.plan) ? <SoloUpgradePrompt/> : <section className="card"><h1>Preloaded RV reference library</h1><p>Browse shared model specifications. These references are separate from dealership inventory and availability.</p><Link href="/products">Return to dealership inventory</Link></section>}{catalog.error ? <section className="card" role="alert">{catalog.error}</section> : <ProductLibrary products={catalog.products} live={false} isRv remote={catalog}/>}</main></AppShell>;}
+  const [result, productResult] = await Promise.all([getTenantProductFamilies(), getTenantProducts()]);
   const templateKey = viewer ? await getViewerIndustryTemplateKey(viewer) : null;
   const isRv = templateKey === "rv";
   const isGolfCart = templateKey === "golf-cart";
@@ -24,6 +30,7 @@ export default async function ProductsPage() {
   const actions = canManage && viewer?.organizationId ? <div style={{ position: "relative" }}><ProductLibraryActions organizationId={viewer.organizationId}/></div> : undefined;
   return <AppShell title="Products" industry={isRv ? "rv" : isGolfCart ? "golf-cart" : undefined}>
     <main className={isRv ? "rv-products" : isGolfCart ? "golf-cart-products" : undefined}>
+      {isRv && <p><Link className="btn" href="/products?catalog=shared">Browse over 1,500 preloaded reference models</Link></p>}
       {isRv ? <section className="rv-products-hero"><div className="rv-products-actions">{actions}</div><div><span>Product Library</span><h1>Find the Right RV<br/>for <em>Every Customer.</em></h1><p>Browse your organization&apos;s live product positioning, pricing, and key sales details.</p><div className="rv-products-benefits"><b><PackageCheck/> Real inventory<small>Live models &amp; specs</small></b><b><FileText/> Pricing details<small>Verify missing values</small></b><b><Users/> Built for your team<small>Sell smarter, faster</small></b></div></div><blockquote>More Adventures.<br/>Together.</blockquote></section> : isGolfCart ? <section className="golf-cart-products-hero"><div className="golf-cart-products-actions">{actions}</div><div><span>Product Library</span><h1>Find the Perfect Golf Cart<br/>for <em>Every Customer.</em></h1><p>Street legal. Community ready. Built for a better tomorrow.</p><div className="golf-cart-products-benefits"><b><Car/> Street legal<small>Options for every use</small></b><b><Users/> Community focused<small>Fit the customer&apos;s life</small></b><b><ShieldCheck/> Trusted products<small>Approved workspace data</small></b><b><BarChart3/> More opportunities<small>Support revenue growth</small></b></div></div><blockquote>More Freedom.<br/>A Better Way<br/>To Get Around.</blockquote></section> : <PageHeader eyebrow="Product Library" title="Find the right product for every customer" description="Browse your organization’s live product positioning, pricing, and key sales details." action={actions}/>}
       {result.error || ((isRv || isGolfCart) && productResult.error)
         ? <div className="card error-card"><h2>Products are not available</h2><p>{result.error || productResult.error}</p><p>Ask a tenant administrator to confirm the product migration and your workspace membership.</p></div>

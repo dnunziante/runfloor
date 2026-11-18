@@ -1,4 +1,5 @@
 "use server";
+import { isFreeSolo } from "@/lib/plans/policy";
 
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
@@ -35,6 +36,7 @@ const allowedPowertrains = new Set(["", "48V", "72V"]);
 
 async function requireCatalogManager() {
   const viewer = await getViewer();
+  if (isFreeSolo(viewer?.plan) && viewer?.role !== "platform_owner") throw new Error("Upgrade to Sales Solo to edit inventory, documents or templates.");
   if (!viewer || !viewer.organizationId || !["tenant_admin", "manager", "platform_owner"].includes(viewer.role)) {
     throw new Error("Unauthorized");
   }

@@ -1,4 +1,5 @@
 "use server";
+import { isFreeSolo } from "@/lib/plans/policy";
 
 import { revalidatePath } from "next/cache";
 import { getViewer } from "@/lib/auth/viewer";
@@ -17,6 +18,7 @@ export async function saveSalesContent(
   formData: FormData,
 ): Promise<ContentActionState> {
   const viewer = await getViewer();
+  if (isFreeSolo(viewer?.plan) && viewer?.role !== "platform_owner") throw new Error("Upgrade to Sales Solo to edit inventory, documents or templates.");
   if (
     !viewer?.organizationId ||
     viewer.demo ||

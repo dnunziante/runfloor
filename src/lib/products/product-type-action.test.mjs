@@ -1,3 +1,4 @@
+import * as planPolicy from "../plans/policy.ts";
 import assert from 'node:assert/strict';
 import test from 'node:test';
 import vm from 'node:vm';
@@ -10,7 +11,7 @@ function setup(options={}) {
   const calls=[],paths=[];
   const viewer={id:'user-a',organizationId:'org-a',role:'manager',demo:false,...options.viewer};
   const product={id,slug:'jay-flight',family_id:'family-a',product_type:'our_product',...options.product};
-  const deps={
+  const deps={"@/lib/plans/policy":planPolicy,
     'next/cache':{revalidatePath:p=>paths.push(p)},
     '@/lib/auth/viewer':{getViewer:async()=>viewer},
     '@/lib/auth/role-permissions':{hasPagePermission},
@@ -39,3 +40,5 @@ test('matching catalogs are retained and invalid, unauthorized or demo changes n
 test('unavailable or unsaved products report errors without a false success',async()=>{
   for(const options of [{missing:true},{saveFails:true}]){const f=setup(options);const result=await f.save();assert.ok(result.error);assert.equal(result.success,'');assert.equal(f.paths.length,0);}
 });
+
+test('forged Free Admin product actions stop before database access',async()=>{const f=setup({viewer:{role:'tenant_admin',plan:{plan_key:'sales_solo_free',status:'free'}}});await assert.rejects(f.save(),/Upgrade to Sales Solo/);assert.equal(f.calls.length,0);});

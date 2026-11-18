@@ -1,9 +1,11 @@
+import * as planPolicy from "../plans/policy.ts";
 import assert from "node:assert/strict";
 import test from "node:test";
 import { readFileSync } from "node:fs";
 import vm from "node:vm";
 import ts from "typescript";
 function load(file, dependencies, globals = {}) {
+  dependencies={"@/lib/plans/policy":planPolicy,...dependencies};
   const exports = {};
   vm.runInNewContext(ts.transpileModule(readFileSync(file, "utf8"), { compilerOptions: { module: ts.ModuleKind.CommonJS, target: ts.ScriptTarget.ES2022 } }).outputText, { exports, require: (name) => { assert.ok(name in dependencies, name); return dependencies[name]; }, Response, File, crypto, ...globals });
   return exports;
