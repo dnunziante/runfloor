@@ -4,11 +4,12 @@ import Link from "next/link";
 import { useState, useTransition } from "react";
 import { ArrowDown, ArrowUp, ChevronDown, Copy, Eye, EyeOff, GripVertical, Pencil, Trash2 } from "lucide-react";
 import { deleteProduct, duplicateProduct, saveProductOrder, setProductStatus } from "@/app/admin/products/actions";
+import { manufacturerLabel } from "@/lib/products/manufacturer";
 import type { ProductDTO, ProductFamilyDTO } from "@/lib/products/types";
 
 type Category = ProductFamilyDTO & { products: ProductDTO[] };
 
-export function AdminProductCategoryList({ categories, allowReorder = true, expanded = false }: { categories: Category[]; allowReorder?: boolean; expanded?: boolean }) {
+export function AdminProductCategoryList({ categories, allowReorder = true, expanded = false, isGolfCart = false }: { categories: Category[]; allowReorder?: boolean; expanded?: boolean; isGolfCart?: boolean }) {
   const [items, setItems] = useState(categories);
   const [draggedId, setDraggedId] = useState<string | null>(null);
   const [message, setMessage] = useState("");
@@ -49,7 +50,7 @@ export function AdminProductCategoryList({ categories, allowReorder = true, expa
     {message && <p className={message === "Order saved." ? "form-success" : message === "Saving order…" ? "field-help" : "form-error"} role="status">{message}</p>}
     {items.map((family) => <details className="admin-product-category" name={expanded ? undefined : "admin-product-category"} open={expanded || undefined} key={family.id}>
       <summary><span><strong>{family.name}</strong><small>{family.products.length} {family.products.length === 1 ? "item" : "items"}</small></span><ChevronDown className="admin-product-category-chevron" size={18}/></summary>
-      {family.products.length ? <div className="table-wrap"><table className="table"><thead><tr>{allowReorder && <th aria-label="Order"/>}<th>Name</th>{expanded && <><th>Brand</th><th>Year</th><th>Category</th></>}<th>Price</th><th>Status</th><th>Actions</th></tr></thead><tbody>{family.products.map((product, index) => <tr
+      {family.products.length ? <div className="table-wrap"><table className="table"><thead><tr>{allowReorder && <th aria-label="Order"/>}<th>Name</th>{expanded && <><th>{isGolfCart ? "Manufacturer" : "Brand"}</th><th>Year</th><th>Category</th></>}<th>Price</th><th>Status</th><th>Actions</th></tr></thead><tbody>{family.products.map((product, index) => <tr
         className={draggedId === product.id ? "is-dragging" : ""}
         draggable={allowReorder && !isPending}
         key={product.id}
@@ -60,7 +61,7 @@ export function AdminProductCategoryList({ categories, allowReorder = true, expa
       >
         {allowReorder && <td><div className="product-order-controls"><GripVertical className="product-drag-handle" size={18} aria-hidden="true"/><button type="button" onClick={() => move(family.id, product.id, -1)} disabled={index === 0 || isPending} aria-label={`Move ${product.name} up`}><ArrowUp size={14}/></button><button type="button" onClick={() => move(family.id, product.id, 1)} disabled={index === family.products.length - 1 || isPending} aria-label={`Move ${product.name} down`}><ArrowDown size={14}/></button></div></td>}
         <td><div className="admin-product-name">{product.imageUrl ? <span className="admin-product-thumbnail" style={{backgroundImage:`url(${product.imageUrl})`}} role="img" aria-label={`${product.name} thumbnail`}/> : <span className={`admin-product-thumbnail placeholder ${product.color}`} aria-hidden="true"/>}<span><strong>{product.name}</strong><small>{product.model}</small></span></div></td>
-        {expanded && <><td>{product.brand || product.manufacturer || "Not provided"}</td><td>{product.modelYear || "Not provided"}</td><td>{product.productCategory || "Not provided"}</td></>}
+        {expanded && <><td>{isGolfCart ? manufacturerLabel(product) : product.brand || product.manufacturer || "Not provided"}</td><td>{product.modelYear || "Not provided"}</td><td>{product.productCategory || "Not provided"}</td></>}
         <td>{expanded && !product.price ? "Not provided" : `${product.price.toLocaleString()}`}</td>
         <td><span className={`badge ${product.status === "Draft" ? "amber" : ""}`}>{product.status}</span></td>
         <td><div className="product-row-actions">

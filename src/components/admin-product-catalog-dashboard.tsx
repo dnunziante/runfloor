@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { useMemo, useState } from "react";
 import { Boxes, ChevronDown, ChevronRight, FileDown, FileText, Grid2X2, Layers3, List, Package, Plus, Search, Tag, Upload, Users } from "lucide-react";
+import { manufacturerKey, manufacturerLabel, manufacturerOptions } from "@/lib/products/manufacturer";
 import type { ProductDTO, ProductFamilyDTO } from "@/lib/products/types";
 import styles from "./admin-product-catalog-dashboard.module.css";
 
@@ -14,22 +15,25 @@ function productLabel(product: ProductDTO) {
 
 export function AdminProductCatalogDashboard({ products, families, initialFamily = "all", isGolfCart = false }: Props) {
   const [query, setQuery] = useState("");
+  const [manufacturer, setManufacturer] = useState("");
   const [family, setFamily] = useState(initialFamily || "all");
   const [status, setStatus] = useState("all");
   const [category, setCategory] = useState("all");
   const [familyQuery, setFamilyQuery] = useState("");
   const [gridView, setGridView] = useState(true);
 
+  const manufacturers = isGolfCart ? manufacturerOptions(products) : [];
   const brands = new Set(products.map((product) => product.brand || product.manufacturer).filter(Boolean));
   const published = products.filter((product) => product.status === "Published" && product.productType !== "competitor_product").length;
   const categories = Array.from(new Set(products.map((product) => product.productCategory).filter(Boolean))).sort();
   const filtered = useMemo(() => products.filter((product) => {
-    const haystack = `${product.name} ${product.model} ${product.brand || ""} ${product.manufacturer || ""}`.toLowerCase();
+    const haystack = `${isGolfCart ? manufacturerLabel(product) : ""} ${product.name} ${product.model} ${product.brand || ""} ${product.manufacturer || ""}`.toLowerCase();
     return (!query || haystack.includes(query.toLowerCase())) &&
       (family === "all" || product.familyId === family) &&
+      (!manufacturer || manufacturerKey(product) === manufacturer) &&
       (status === "all" || product.status === status) &&
       (category === "all" || product.productCategory === category);
-  }), [products, query, family, status, category]);
+  }), [products, query, family, manufacturer, isGolfCart, status, category]);
   const visibleFamilies = families.filter((item) => !familyQuery || item.name.toLowerCase().includes(familyQuery.toLowerCase()));
 
   return <div className={styles.catalog}>
@@ -85,15 +89,16 @@ export function AdminProductCatalogDashboard({ products, families, initialFamily
 
     <section className={`${styles.panel} ${styles.productsPanel}`} id="all-products">
       <div className={styles.sectionHead}>
-        <div><h2>All products ({filtered.length})</h2><p>Search, filter, and manage individual products across all families.</p></div>
+        <div><h2>All products ({filtered.length})</h2><p>{isGolfCart ? "Search and filter products by manufacturer." : "Search, filter, and manage individual products across all families."}</p></div>
         <div className={styles.productFilters}>
           <label><Search size={16}/><input value={query} onChange={(event) => setQuery(event.target.value)} placeholder="Search products…" aria-label="Search products"/></label>
-          <select value={family} onChange={(event) => setFamily(event.target.value)} aria-label="Filter by family"><option value="all">All families</option>{families.map((item) => <option value={item.id} key={item.id}>{item.name}</option>)}</select>
+          {isGolfCart ? <select value={manufacturer} onChange={(event) => { setManufacturer(event.target.value); setFamily("all"); }} aria-label="Filter by manufacturer"><option value="">All manufacturers</option>{manufacturers.map(([key, label]) => <option value={key} key={key}>{label}</option>)}</select> : <select value={family} onChange={(event) => setFamily(event.target.value)} aria-label="Filter by family"><option value="all">All families</option>{families.map((item) => <option value={item.id} key={item.id}>{item.name}</option>)}</select>}
           <select value={status} onChange={(event) => setStatus(event.target.value)} aria-label="Filter by status"><option value="all">All statuses</option><option>Published</option><option>Draft</option><option>Archived</option></select>
         </div>
       </div>
-      <div className={styles.tableWrap}><table><thead><tr><th>Product name</th><th>Family</th><th>Category</th><th>Model year</th><th>Price</th><th>Status</th><th>Actions</th></tr></thead><tbody>
-        {filtered.map((product) => <tr key={product.id}><td><div className={styles.productName}>{product.imageUrl ? <span style={{backgroundImage:`url(${product.imageUrl})`}} role="img" aria-label={`${product.name} thumbnail`}/> : <span className={styles.placeholder}><Package size={16}/></span>}<strong>{productLabel(product)}</strong></div></td><td>{families.find((item) => item.id === product.familyId)?.name || "Uncategorized"}</td><td>{product.productCategory || "—"}</td><td>{product.modelYear || "—"}</td><td>{product.price ? `$${product.price.toLocaleString()}` : "—"}</td><td><span className={`${styles.status} ${styles[product.status.toLowerCase()]}`}>{product.status}</span></td><td><div className={styles.rowActions}><Link href={`/admin/products/${product.id}/edit`}>Edit</Link><Link href={`/admin/products/${product.id}/guide`}>Sales guide</Link></div></td></tr>)}
+      {isGolfCart && family !== "all" && <button type="button" className="btn btn-ghost" onClick={() => setFamily("all")}>Clear family selection</button>}
+      <div className={styles.tableWrap}><table><thead><tr><th>Product name</th><th>{isGolfCart ? "Manufacturer" : "Family"}</th><th>Category</th><th>Model year</th><th>Price</th><th>Status</th><th>Actions</th></tr></thead><tbody>
+        {filtered.map((product) => <tr key={product.id}><td><div className={styles.productName}>{product.imageUrl ? <span style={{backgroundImage:`url(${product.imageUrl})`}} role="img" aria-label={`${product.name} thumbnail`}/> : <span className={styles.placeholder}><Package size={16}/></span>}<strong>{productLabel(product)}</strong></div></td><td>{isGolfCart ? manufacturerLabel(product) : families.find((item) => item.id === product.familyId)?.name || "Uncategorized"}</td><td>{product.productCategory || "—"}</td><td>{product.modelYear || "—"}</td><td>{product.price ? `$${product.price.toLocaleString()}` : "—"}</td><td><span className={`${styles.status} ${styles[product.status.toLowerCase()]}`}>{product.status}</span></td><td><div className={styles.rowActions}><Link href={`/admin/products/${product.id}/edit`}>Edit</Link><Link href={`/admin/products/${product.id}/guide`}>Sales guide</Link></div></td></tr>)}
         {!filtered.length && <tr><td className={styles.empty} colSpan={7}>No products match these filters.</td></tr>}
       </tbody></table></div>
     </section>
