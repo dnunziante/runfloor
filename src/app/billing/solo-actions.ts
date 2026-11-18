@@ -29,7 +29,7 @@ export async function startSoloCheckout() {
       if (mapped.error) throw new Error("Subscription ownership could not be saved.");
     }
     for await (const sub of stripe.subscriptions.list({ customer, status: "all", limit: 100 })) if (!["canceled", "incomplete_expired"].includes(sub.status)) throw new Error("A subscription already exists. Use Manage subscription.");
-    if (plan.checkout_session_id) {
+    if (plan.checkout_session_id && !["canceled", "incomplete_expired"].includes(plan.status)) {
       const existing = await stripe.checkout.sessions.retrieve(plan.checkout_session_id);
       if (existing.status === "open" && existing.url) redirect(existing.url);
       if (existing.status === "complete") throw new Error("Payment confirmation is pending. Refresh Billing shortly.");

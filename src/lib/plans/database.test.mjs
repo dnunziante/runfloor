@@ -84,8 +84,9 @@ test('Sales Solo migrations enforce paid periods, actual-cost cap and commercial
   await db.exec('reset role');await q('update profiles set is_platform_owner=false where id=$1',[other]);await q("select set_config('request.jwt.claim.sub',$1,false)",[owner]);
  });
  await t.test('cancellation preserves records and denies paid access',async()=>{
+  await q("update account_subscription_plans set checkout_session_id='cs_completed',checkout_attempt=gen_random_uuid(),checkout_expires_at=now()+interval '30 minutes' where organization_id=$1",[org]);
   await event('scheduled-cancel',12,null,now,end,'active',end);assert.equal((await q('select private.account_paid($1) paid',[org]))[0].paid,true);
-  await event('cancel',13,null,now,end,'canceled',new Date().toISOString());assert.equal((await q('select private.account_paid($1) paid',[org]))[0].paid,false);await assert.rejects(reserve(id(),1),/requires a paid subscription/);assert.equal((await q('select count(*)::int n from products'))[0].n,1);
+  await event('cancel',13,null,now,end,'canceled',new Date().toISOString());assert.equal((await q('select private.account_paid($1) paid',[org]))[0].paid,false);await assert.rejects(reserve(id(),1),/requires a paid subscription/);assert.equal((await plan()).checkout_session_id,null);assert.equal((await plan()).checkout_expires_at,null);assert.equal((await q('select count(*)::int n from products'))[0].n,1);
  });
  await t.test('upgrade requires paid invoice; upgraded cancellation reaches location billing',async()=>{
   await q("update runfloor_billing_catalog set active=true,stripe_price_id='price_complete',approved_by=$1",[owner]);
@@ -94,6 +95,17 @@ test('Sales Solo migrations enforce paid periods, actual-cost cap and commercial
   await assert.rejects(upgrade('paid-without-location','in_upgrade'),/set up a location/);
   await q("insert into locations(organization_id,name) values($1,'Platform location')",[org]);await upgrade('paid-upgrade','in_upgrade');assert.equal((await plan()).plan_key,'complete');
   await upgrade('upgraded-cancel',null,'canceled');assert.equal((await q('select status from rv_location_billing where organization_id=$1',[org]))[0].status,'canceled');
+ });
+ await t.test('new paid month gives exactly $5 without rolling over expired grants',async()=>{
+  await q('update auth.users set email_confirmed_at=now() where id=$1',[other]);const fresh=(await q("select activate_sales_solo($1,'Renewal QA','Renewal Owner') org",[other]))[0].org;
+  await q("update account_subscription_plans set stripe_customer_id='cus_renew',stripe_account_id='acct_qa',livemode=false where organization_id=$1",[fresh]);
+  const apply=async(key,invoice,start,end)=>q("select apply_sales_solo_event($1,'invoice.paid',30,$2,'cus_renew','acct_qa',false,'sub_renew','price_qa','active',$3,$4,null,$5)",[key,fresh,start,end,invoice]);
+  await apply('expired-month','in_expired',new Date(Date.now()-86400000*60).toISOString(),new Date(Date.now()-86400000*30).toISOString());
+  await apply('current-month','in_current',now,end);await q("select set_config('request.jwt.claim.sub',$1,false)",[other]);
+  const summary=(await q('select sales_solo_summary($1) s',[fresh]))[0].s;assert.equal(summary.remaining_units,500000000);
+  const key=id();await q("select reserve_ai_usage($1,$2,$3,'renewal','qa-solo',500000,0)",[fresh,other,key]);
+  await assert.rejects(q("select reserve_ai_usage($1,$2,$3,'renewal','qa-solo',1,0)",[fresh,other,id()]),/monthly AI cost limit/);
+  assert.equal(Number((await q('select count(*) n from ai_credit_grants where organization_id=$1',[fresh]))[0].n),2);
  });
  } finally {await db.close();}
 });

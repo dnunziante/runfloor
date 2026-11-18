@@ -16,7 +16,10 @@ declare p public.account_subscription_plans;catalog public.sales_solo_catalog;pe
  insert into public.sales_solo_stripe_events(id) values(event_key);
  if event_created<p.event_created and paid_invoice is null then return;end if;
  if starts is null or ends is null or ends<=starts then raise exception 'Invalid subscription period';end if;
- update public.account_subscription_plans set status=billing_status,event_created=greatest(event_created,p.event_created),stripe_subscription_id=subscription_key,cancel_at=cancels where organization_id=target_org;
+ update public.account_subscription_plans set status=billing_status,event_created=greatest(event_created,p.event_created),stripe_subscription_id=subscription_key,cancel_at=cancels,
+ checkout_session_id=case when billing_status in ('canceled','incomplete_expired') then null else checkout_session_id end,
+ checkout_attempt=case when billing_status in ('canceled','incomplete_expired') then null else checkout_attempt end,
+ checkout_expires_at=case when billing_status in ('canceled','incomplete_expired') then null else checkout_expires_at end where organization_id=target_org;
  -- Upgraded accounts continue using the established location billing lifecycle,
  -- including failed payments and cancellation events that grant no allowance.
  if p.plan_key='complete' and target_plan='complete' then
