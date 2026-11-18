@@ -6,13 +6,13 @@ import { Boxes, ChevronDown, ChevronRight, FileDown, FileText, Grid2X2, Layers3,
 import type { ProductDTO, ProductFamilyDTO } from "@/lib/products/types";
 import styles from "./admin-product-catalog-dashboard.module.css";
 
-type Props = { products: ProductDTO[]; families: ProductFamilyDTO[]; initialFamily?: string };
+type Props = { products: ProductDTO[]; families: ProductFamilyDTO[]; initialFamily?: string; isGolfCart?: boolean };
 
 function productLabel(product: ProductDTO) {
   return [product.name, product.model].filter(Boolean).join(" · ");
 }
 
-export function AdminProductCatalogDashboard({ products, families, initialFamily = "all" }: Props) {
+export function AdminProductCatalogDashboard({ products, families, initialFamily = "all", isGolfCart = false }: Props) {
   const [query, setQuery] = useState("");
   const [family, setFamily] = useState(initialFamily || "all");
   const [status, setStatus] = useState("all");
@@ -45,8 +45,8 @@ export function AdminProductCatalogDashboard({ products, families, initialFamily
           <div>
             <a href="/admin/products?tools=document#document-import"><FileText size={18}/><span><strong>Extract from document</strong><small>PDFs, brochures, and spec sheets</small></span></a>
             <a href="/admin/products?tools=bulk#bulk-import"><Upload size={18}/><span><strong>Upload Excel/CSV</strong><small>Bulk import products</small></span></a>
-            <a href="/api/products/bulk-import?format=xlsx"><FileDown size={18}/><span><strong>Download Excel template</strong><small>Use the formatted workbook</small></span></a>
-            <a href="/api/products/bulk-import?format=csv"><FileDown size={18}/><span><strong>Download CSV template</strong></span></a>
+            <a href={`/api/products/bulk-import?format=xlsx${isGolfCart ? "&template=golf-cart" : ""}`}><FileDown size={18}/><span><strong>Download Excel template</strong><small>{isGolfCart ? "Ten golf cart fields" : "Use the formatted workbook"}</small></span></a>
+            <a href={`/api/products/bulk-import?format=csv${isGolfCart ? "&template=golf-cart" : ""}`}><FileDown size={18}/><span><strong>Download CSV template</strong></span></a>
           </div>
         </details>
         <Link className={styles.primaryButton} href="/admin/products?create=1#add-product"><Plus size={19}/> Add product</Link>

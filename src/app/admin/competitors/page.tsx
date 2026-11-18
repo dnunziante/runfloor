@@ -14,7 +14,8 @@ export default async function AdminCompetitorsPage({ searchParams }: { searchPar
   const viewer = await getViewer();
   if (!viewer?.organizationId || !["tenant_admin", "platform_owner", "manager"].includes(viewer.role)) redirect("/dashboard");
   const [result, familyResult, filters] = await Promise.all([getTenantProducts({ includeDrafts: true }), getTenantProductFamilies(true), searchParams]);
-  const isRv = await getViewerIndustryTemplateKey(viewer) === "rv";
+  const templateKey = await getViewerIndustryTemplateKey(viewer);
+  const isRv = templateKey === "rv";
   const allProducts = result.products.filter((product) => product.productType === "competitor_product");
   const belongs = (product: typeof allProducts[number], family: typeof familyResult.families[number]) => product.familyId === family.id || (!product.familyId && (product.brand || product.manufacturer || "").trim().toLowerCase() === family.name.trim().toLowerCase());
   const families = familyResult.families.map((family) => ({ ...family, productCount: allProducts.filter((product) => belongs(product, family)).length }));
@@ -28,7 +29,7 @@ export default async function AdminCompetitorsPage({ searchParams }: { searchPar
       productForm={<AdminProductForm isRv={isRv} key={selectedFamily?.id || "all"} families={families} initialFamilyId={selectedFamily?.id} initialBrand={selectedFamily?.name} competitorOnly/>}
       familyForm={<CompetitorFamilyForm/>}
       familyManager={<ProductFamilyImageManager families={families} organizationId={viewer.organizationId} competitor/>}
-      bulkImport={<ProductBulkImport competitorOnly/>}
+      bulkImport={<ProductBulkImport competitorOnly isGolfCart={templateKey === "golf-cart"}/>}
       extraction={<section className="card form-stack">
       <div><h2>Extract competitor products</h2><p>Upload brochures, comparison sheets, PDFs, images, or spreadsheets. Detected competitor models are added as drafts for review.</p></div>
       <form action="/api/product-documents" method="post" encType="multipart/form-data" className="grid grid-2">
