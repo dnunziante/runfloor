@@ -131,6 +131,16 @@ function toDTO(row: ProductRow, imageUrls: string[] = [], imagePaths: string[] =
   };
 }
 
+const productColumns = "id, family_id, name, slug, model, brand, manufacturer, model_year, model_variant, product_type, product_category, sale_price_cents, specifications, description, base_price_cents, range_text, seats_text, powertrain_text, dimensions, running_distance, turning_radius, max_load_capacity, sort_order, highlights, visual_theme, image_path, image_paths, sales_guide, status";
+
+export async function getApprovedComparisonProducts(organizationId: string, ids: string[]) {
+  const db = await createClient();
+  const { data, error } = await db.from("products").select(productColumns)
+    .eq("organization_id", organizationId).eq("status", "published").eq("review_status", "approved").in("id", ids);
+  if (error) throw new Error("Approved catalog products could not be loaded.");
+  return ((data ?? []) as ProductRow[]).map(row => toDTO(row));
+}
+
 export async function getTenantProducts(options: { includeDrafts?: boolean; familyId?: string } = {}): Promise<ProductResult> {
   const viewer = await getViewer();
   if (isFreeSolo(viewer?.plan)) return getSoloSharedCatalog();
@@ -153,7 +163,7 @@ export async function getTenantProducts(options: { includeDrafts?: boolean; fami
   for (let from = 0; ; from += pageSize) {
     let query = supabase
       .from("products")
-      .select("id, family_id, name, slug, model, brand, manufacturer, model_year, model_variant, product_type, product_category, sale_price_cents, specifications, description, base_price_cents, range_text, seats_text, powertrain_text, dimensions, running_distance, turning_radius, max_load_capacity, sort_order, highlights, visual_theme, image_path, image_paths, sales_guide, status")
+      .select(productColumns)
       .eq("organization_id", viewer.organizationId)
       .order("sort_order")
       .order("name")
