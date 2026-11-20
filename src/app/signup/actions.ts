@@ -4,6 +4,7 @@ import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { isSupabaseConfigured } from "@/lib/supabase/config";
 import { cookies } from "next/headers";
+import { authOrigin } from "@/lib/auth/redirects";
 
 function selectedPlan(form: FormData) {
  const value = String(form.get("plan") || "complete");
@@ -28,14 +29,20 @@ export async function signupTrial(_state: { message: string }, form: FormData) {
   const db = await createClient();
   const { data: { user: existing } } = await db.auth.getUser();
   if (existing) redirect(activationUrl(plan));
-  const origin = process.env.APP_URL || process.env.RUNFLOOR_BILLING_ORIGIN;
-  if (!origin) return { message: "Trial registration is temporarily unavailable." };
+  let origin: string;
+  try { origin = authOrigin(); } catch { return { message: "Trial registration is temporarily unavailable. Contact support." }; }
   const { data, error } = await db.auth.signUp({ email, password, options: { data: { full_name: fullName, contact_phone: phone || null }, emailRedirectTo: `${origin}/auth/callback?next=${encodeURIComponent(activationUrl(plan))}` } });
-  if (error) return { message: "We couldn't register this account. Try again or sign in if you already have an account." };
+  if (error) {
+    console.error("[auth/signup] registration failed", { code: error.code, status: error.status });
+    if (error.code === "over_email_send_rate_limit" || error.status === 429) return { message: "Too many verification emails were requested. Wait a few minutes, then try again." };
+    if (error.code === "email_address_not_authorized") return { message: "Verification email delivery is not configured for this address. Contact support." };
+    if (error.status && error.status >= 500) return { message: "The registration or verification email service failed. No delivery is confirmed. Try again later or contact support." };
+    return { message: "We couldn't complete registration. No verification email is confirmed. Check your details, try again, or sign in if you already have an account." };
+  }
   // The cookie contains presentation defaults only; activation always verifies auth.getUser.
   (await cookies()).set("rf-trial-draft", JSON.stringify({ dealership, fullName, phone, plan }), { httpOnly: true, sameSite: "lax", secure: process.env.NODE_ENV === "production", path: "/signup", maxAge: 86400 });
   if (data.session) redirect(activationUrl(plan));
-  return { message: "Check your inbox for the verification link. Verify your email, then activate your chosen account. Paid access requires verified payment." };
+  return { message: "If your email is eligible for a new account, a verification email has been requested. Check your inbox and spam folder. If you already registered or were invited, sign in or reset your password; another signup may not send an email. After verification, activate your chosen account. The 7-day Complete trial includes 100 AI credits and requires no payment method." };
 }
 
 export async function activateTrial(_state: { message: string }, form: FormData) {
