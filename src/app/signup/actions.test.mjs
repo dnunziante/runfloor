@@ -4,26 +4,27 @@ import { readFileSync } from "node:fs";
 import vm from "node:vm";
 import ts from "typescript";
 
-function fixture(user = null, freeEnabled = false) {
+function fixture(user = null, freeEnabled = false, signupError = null, activationError = null) {
   const calls = [];
   const dependencies = {
+    "@/lib/auth/redirects": { authOrigin: () => "https://example.invalid" },
     "next/navigation": { redirect: path => { throw new Error(`redirect:${path}`); } },
     "next/headers": { cookies: async () => ({ set: (...args) => calls.push(["cookie", ...args]) }) },
     "@/lib/supabase/config": { isSupabaseConfigured: () => true },
     "@/lib/supabase/server": { createClient: async () => ({
       auth: {
         getUser: async () => { calls.push(["user"]); return { data: { user } }; },
-        signUp: async input => { calls.push(["signup", input]); return { data: { session: null }, error: null }; },
+        signUp: async input => { calls.push(["signup", input]); return { data: { session: null }, error: signupError }; },
       },
       from: table => ({ update: values => ({ eq: async (column, id) => {
         calls.push(["profile", table, values, column, id]); return { error: null };
       } }) }),
     }) },
-    "@/lib/supabase/admin": { createAdminClient: () => ({ rpc: async (name, parameters) => { calls.push(["activate", name, parameters]); return { error: null }; } }) },
+    "@/lib/supabase/admin": { createAdminClient: () => ({ rpc: async (name, parameters) => { calls.push(["activate", name, parameters]); return { error: activationError }; } }) },
   };
   const exports = {};
   const compiled = ts.transpileModule(readFileSync("src/app/signup/actions.ts", "utf8"), { compilerOptions: { module: ts.ModuleKind.CommonJS, target: ts.ScriptTarget.ES2022 } }).outputText;
-  vm.runInNewContext(compiled, { exports, require: name => { assert.ok(name in dependencies, name); return dependencies[name]; }, process: { env: { RUNFLOOR_RV_BILLING_ENABLED: "true", RUNFLOOR_SALES_SOLO_ENABLED: freeEnabled ? "true" : "false", RUNFLOOR_SALES_SOLO_FREE_ENABLED: freeEnabled ? "true" : "false", APP_URL: "https://example.invalid" } } });
+  vm.runInNewContext(compiled, { console: { error() {} }, exports, require: name => { assert.ok(name in dependencies, name); return dependencies[name]; }, process: { env: { RUNFLOOR_RV_BILLING_ENABLED: "true", RUNFLOOR_SALES_SOLO_ENABLED: freeEnabled ? "true" : "false", RUNFLOOR_SALES_SOLO_FREE_ENABLED: freeEnabled ? "true" : "false", APP_URL: "https://example.invalid" } } });
   return { actions: exports, calls };
 }
 function form(changes = {}) {
@@ -91,4 +92,35 @@ test("selected plans survive verification on another device and unknown plans ar
  }
  const f=fixture();for(const name of ['signupTrial','activateTrial']) assert.match((await f.actions[name]({message:''},form({plan:'invented'}))).message,/valid RunFloor plan/);
  assert.equal(f.calls.length,0);
+});
+
+for (const [error, pattern] of [
+  [{ code: 'over_email_send_rate_limit', status: 429 }, /Too many verification emails/],
+  [{ code: 'email_address_not_authorized', status: 422 }, /delivery is not configured/],
+  [{ code: 'unexpected_failure', status: 500 }, /service failed/],
+  [{ code: 'weak_password', status: 422 }, /couldn't complete registration/],
+]) test(`signup surfaces ${error.code} without claiming email delivery`, async () => {
+  const f = fixture(null, false, error);
+  const result = await f.actions.signupTrial({ message: '' }, form());
+  assert.match(result.message, pattern);
+  assert.equal(f.calls.some(c => c[0] === 'cookie'), false);
+});
+test('duplicate or concealed signup response never promises a new email or requires Stripe', async () => {
+  const f = fixture();
+  const result = await f.actions.signupTrial({ message: '' }, form());
+  assert.match(result.message, /another signup may not send an email/);
+  assert.match(result.message, /requires no payment method/);
+  assert.equal(f.calls.some(c => c[0] === 'activate'), false);
+});
+
+test('activation validates workspace details before database writes', async () => {
+  const f=fixture({id:'verified',email_confirmed_at:'2026-11-20'});
+  for(const field of ['dealership','fullName']) assert.match((await f.actions.activateTrial({},form({[field]:''}))).message,/dealership and contact name/);
+  assert.equal(f.calls.length,0);
+});
+test('activation timeout keeps the account verified and reports the actionable cause', async () => {
+  const f=fixture({id:'verified',email_confirmed_at:'2026-11-20'},false,null,{code:'57014',message:'canceling statement due to statement timeout'});
+  const result=await f.actions.activateTrial({},form());
+  assert.match(result.message,/setup timed out/);
+  assert.equal(f.calls.some(c=>c[0]==='cookie'),false);
 });

@@ -18,6 +18,7 @@ function fixture(role, allowAdd = false, membership = null, plan = null) {
     return query;
   }
   const dependencies = {
+    '@/lib/auth/redirects': { authOrigin: () => 'https://example.invalid' },
     'next/headers': { headers: () => { throw Error('No invitation email should be prepared'); } },
     'next/cache': { revalidatePath() {} },
     '@/lib/auth/viewer': { getViewer: async () => viewer },

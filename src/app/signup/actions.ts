@@ -4,6 +4,7 @@ import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { isSupabaseConfigured } from "@/lib/supabase/config";
 import { cookies } from "next/headers";
+import { authOrigin } from "@/lib/auth/redirects";
 
 function selectedPlan(form: FormData) {
  const value = String(form.get("plan") || "complete");
@@ -28,27 +29,40 @@ export async function signupTrial(_state: { message: string }, form: FormData) {
   const db = await createClient();
   const { data: { user: existing } } = await db.auth.getUser();
   if (existing) redirect(activationUrl(plan));
-  const origin = process.env.APP_URL || process.env.RUNFLOOR_BILLING_ORIGIN;
-  if (!origin) return { message: "Trial registration is temporarily unavailable." };
+  let origin: string;
+  try { origin = authOrigin(); } catch { return { message: "Trial registration is temporarily unavailable. Contact support." }; }
   const { data, error } = await db.auth.signUp({ email, password, options: { data: { full_name: fullName, contact_phone: phone || null }, emailRedirectTo: `${origin}/auth/callback?next=${encodeURIComponent(activationUrl(plan))}` } });
-  if (error) return { message: "We couldn't register this account. Try again or sign in if you already have an account." };
+  if (error) {
+    console.error("[auth/signup] registration failed", { code: error.code, status: error.status });
+    if (error.code === "over_email_send_rate_limit" || error.status === 429) return { message: "Too many verification emails were requested. Wait a few minutes, then try again." };
+    if (error.code === "email_address_not_authorized") return { message: "Verification email delivery is not configured for this address. Contact support." };
+    if (error.status && error.status >= 500) return { message: "The registration or verification email service failed. No delivery is confirmed. Try again later or contact support." };
+    return { message: "We couldn't complete registration. No verification email is confirmed. Check your details, try again, or sign in if you already have an account." };
+  }
   // The cookie contains presentation defaults only; activation always verifies auth.getUser.
   (await cookies()).set("rf-trial-draft", JSON.stringify({ dealership, fullName, phone, plan }), { httpOnly: true, sameSite: "lax", secure: process.env.NODE_ENV === "production", path: "/signup", maxAge: 86400 });
   if (data.session) redirect(activationUrl(plan));
-  return { message: "Check your inbox for the verification link. Verify your email, then activate your chosen account. Paid access requires verified payment." };
+  return { message: "If your email is eligible for a new account, a verification email has been requested. Check your inbox and spam folder. If you already registered or were invited, sign in or reset your password; another signup may not send an email. After verification, activate your chosen account. The 7-day Complete trial includes 100 AI credits and requires no payment method." };
 }
 
 export async function activateTrial(_state: { message: string }, form: FormData) {
   const plan = selectedPlan(form);
   if (!plan) return { message: "Choose a valid RunFloor plan." };
   if (plan === "sales_solo_free" ? process.env.RUNFLOOR_SALES_SOLO_FREE_ENABLED !== "true" : plan === "sales_solo" ? process.env.RUNFLOOR_SALES_SOLO_ENABLED !== "true" : process.env.RUNFLOOR_RV_BILLING_ENABLED !== "true") return { message: "Trial activation is not yet available." };
+  const dealership = String(form.get("dealership") || "").trim();
+  const fullName = String(form.get("fullName") || "").trim();
+  if (dealership.length < 2 || dealership.length > 120 || fullName.length < 2 || fullName.length > 120) return { message: "Enter a dealership and contact name of 2–120 characters." };
   const phone = String(form.get("phone") || "").trim();
   if (!validContactPhone(phone)) return { message: "Enter a valid phone number or leave the optional field blank." };
   const db = await createClient();
   const { data: { user } } = await db.auth.getUser();
   if (!user || !user.email_confirmed_at) return { message: "Verify your email and sign in before activating your trial." };
   const { error } = await createAdminClient().rpc(plan === "sales_solo_free" ? "activate_sales_solo_free" : plan === "sales_solo" ? "activate_sales_solo" : "activate_rv_trial", { actor: user.id, [plan !== "complete" ? "company" : "dealership"]: String(form.get("dealership") || "").trim(), contact_name: String(form.get("fullName") || "").trim() });
-  if (error) return { message: error.message.includes("already") ? "This account or dealership already belongs to a workspace. Sign in or ask its administrator for an invitation." : "We couldn't activate this dealership. Try again or contact support if it already exists." };
+  if (error) {
+    console.error("[auth/activate] workspace activation failed", { code: error.code, plan });
+    if (error.code === "57014") return { message: "Workspace setup timed out. Your account is verified. Your details are preserved; please contact support before retrying." };
+    return { message: error.message.includes("already") ? "This account or dealership already belongs to a workspace. Sign in or ask its administrator for an invitation." : "We couldn't activate this dealership. Try again or contact support if it already exists." };
+  }
   if (phone) {
     const { error: profileError } = await db.from("profiles").update({ phone }).eq("id", user.id);
     if (profileError) return { message: "Your trial is activated, but your phone number could not be saved. Please try again." };

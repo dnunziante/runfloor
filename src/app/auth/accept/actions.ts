@@ -1,5 +1,6 @@
 "use server";
 
+import { getPendingInvitation } from "@/lib/auth/pending-invitation";
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 
@@ -12,12 +13,18 @@ export async function setInvitationPassword(
   const password = String(formData.get("password") || "");
   const confirmation = String(formData.get("confirmation") || "");
 
-  if (password.length < 8) return { error: "Use at least 8 characters for your password." };
+  if (password.length < 12 || password.length > 128) return { error: "Use 12–128 characters for your password." };
   if (password !== confirmation) return { error: "The passwords do not match." };
 
   const supabase = await createClient();
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) return { error: "Your invitation session has expired. Ask an administrator to send a new invitation." };
+
+  try {
+    if (!(await getPendingInvitation(user))) return { error: "This invitation has expired, was already accepted, or is no longer available. Ask your administrator for help." };
+  } catch {
+    return { error: "Your invitation could not be checked. Please try again." };
+  }
 
   const { error: passwordError } = await supabase.auth.updateUser({ password });
   if (passwordError) return { error: "Your password could not be saved. Please try again." };

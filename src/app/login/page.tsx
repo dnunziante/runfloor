@@ -13,8 +13,8 @@ const benefits = [
   { icon: MessageCircleMore, title: "Support Every Department", copy: "Bring sales, service, parts, F&I, and leadership together." },
 ];
 
-export default async function Login({ searchParams }: { searchParams?: Promise<{ next?: string; error?: string }> }) {
-  const { next, error } = searchParams ? await searchParams : {};
+export default async function Login({ searchParams }: { searchParams?: Promise<{ next?: string; error?: string; message?: string }> }) {
+  const { next, error, message } = searchParams ? await searchParams : {};
   const demoMode = isLocalDemoMode();
   const configured = isSupabaseConfigured();
   const nextPath = next?.startsWith("/") && !next.startsWith("//") ? next : "/dashboard";
@@ -44,7 +44,7 @@ export default async function Login({ searchParams }: { searchParams?: Promise<{
       <p className="signin-panel-motto">People <span /> Processes <span /> Profit</p>
       <div className="signin-card">
         <MountainSnow className="signin-mountain-mark" aria-hidden="true" />
-        <LoginForm configured={configured} demoMode={demoMode} nextPath={nextPath} initialError={error === "credentials" ? "The email or password is incorrect." : error === "network" ? "Sign-in could not reach the workspace. Please try again." : ""} />
+        <LoginForm configured={configured} demoMode={demoMode} nextPath={nextPath} initialError={error === "invitation-session" || message === "sign-in-to-accept-invite" ? "Your invitation session is missing. Open the latest invitation link, or sign in to finish accepting it." : message === "invite-link-invalid" ? "This email link is invalid or expired. Request a new link." : error === "credentials" ? "The email or password is incorrect." : error === "network" ? "Sign-in could not reach the workspace. Please try again." : ""} />
       </div>
       <p className="signin-script">More Adventures<br />Together.</p>
     </section>

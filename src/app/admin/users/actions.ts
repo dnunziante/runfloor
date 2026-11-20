@@ -1,7 +1,7 @@
 "use server";
 import { isSoloPlan } from "@/lib/plans/policy";
 
-import { headers } from "next/headers";
+import { authOrigin } from "@/lib/auth/redirects";
 import { revalidatePath } from "next/cache";
 import { getViewer } from "@/lib/auth/viewer";
 import { createAdminClient } from "@/lib/supabase/admin";
@@ -77,10 +77,7 @@ export async function inviteUser(_previousState: InviteUserState, formData: Form
       return { error: "", success: `Existing RunFloor user added to ${organization.name}.` };
     }
 
-    const requestHeaders = await headers();
-    const protocol = requestHeaders.get("x-forwarded-proto") || "http";
-    const host = requestHeaders.get("x-forwarded-host") || requestHeaders.get("host");
-    const redirectTo = host ? `${protocol}://${host}/auth/callback?next=/auth/accept` : undefined;
+    const redirectTo = `${authOrigin()}/auth/callback?next=/auth/accept`;
     const { data: invitation, error: authError } = await admin.auth.admin.inviteUserByEmail(email, {
       redirectTo,
       data: { full_name: `${firstName} ${lastName}` },
