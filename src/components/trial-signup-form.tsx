@@ -5,7 +5,7 @@ import { activateTrial, signupTrial } from "@/app/signup/actions";
 export function TrialSignupForm({ activate = false, dealership = "", fullName = "", phone = "", plan = "complete", soloEnabled = false, freeEnabled = false }: { activate?: boolean; dealership?: string; fullName?: string; phone?: string; plan?: string; soloEnabled?: boolean; freeEnabled?:boolean }) {
   const [selectedPlan, setSelectedPlan] = useState(plan);
   const [state, action, pending] = useActionState(activate ? activateTrial : signupTrial, { message: "" });
-  return <form action={action} className="rv-signup-form">
+  return <form action={action} onReset={event => event.preventDefault()} className="rv-signup-form">
     <p><small>* Required fields</small></p>
     <label>Plan<select className="input" name="plan" value={selectedPlan} onChange={e => setSelectedPlan(e.target.value)}><option value="sales_solo_free" disabled={!freeEnabled}>RunFloor Free — $0, inventory and comparisons{!freeEnabled ? " (not yet available)" : ""}</option><option value="complete">RunFloor Complete — 7-day trial, then $99/month per location</option><option value="sales_solo" disabled={!soloEnabled}>RunFloor Solo — $25/month, one user{!soloEnabled ? " (not yet available)" : ""}</option></select></label>
     {selectedPlan === "sales_solo_free" && <p>One user. Browse the shared catalog and compare stored specifications. No AI, card, subscription, or trial expiration.</p>}

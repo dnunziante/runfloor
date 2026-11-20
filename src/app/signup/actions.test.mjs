@@ -4,7 +4,7 @@ import { readFileSync } from "node:fs";
 import vm from "node:vm";
 import ts from "typescript";
 
-function fixture(user = null, freeEnabled = false, signupError = null) {
+function fixture(user = null, freeEnabled = false, signupError = null, activationError = null) {
   const calls = [];
   const dependencies = {
     "@/lib/auth/redirects": { authOrigin: () => "https://example.invalid" },
@@ -20,7 +20,7 @@ function fixture(user = null, freeEnabled = false, signupError = null) {
         calls.push(["profile", table, values, column, id]); return { error: null };
       } }) }),
     }) },
-    "@/lib/supabase/admin": { createAdminClient: () => ({ rpc: async (name, parameters) => { calls.push(["activate", name, parameters]); return { error: null }; } }) },
+    "@/lib/supabase/admin": { createAdminClient: () => ({ rpc: async (name, parameters) => { calls.push(["activate", name, parameters]); return { error: activationError }; } }) },
   };
   const exports = {};
   const compiled = ts.transpileModule(readFileSync("src/app/signup/actions.ts", "utf8"), { compilerOptions: { module: ts.ModuleKind.CommonJS, target: ts.ScriptTarget.ES2022 } }).outputText;
@@ -111,4 +111,16 @@ test('duplicate or concealed signup response never promises a new email or requi
   assert.match(result.message, /another signup may not send an email/);
   assert.match(result.message, /requires no payment method/);
   assert.equal(f.calls.some(c => c[0] === 'activate'), false);
+});
+
+test('activation validates workspace details before database writes', async () => {
+  const f=fixture({id:'verified',email_confirmed_at:'2026-11-20'});
+  for(const field of ['dealership','fullName']) assert.match((await f.actions.activateTrial({},form({[field]:''}))).message,/dealership and contact name/);
+  assert.equal(f.calls.length,0);
+});
+test('activation timeout keeps the account verified and reports the actionable cause', async () => {
+  const f=fixture({id:'verified',email_confirmed_at:'2026-11-20'},false,null,{code:'57014',message:'canceling statement due to statement timeout'});
+  const result=await f.actions.activateTrial({},form());
+  assert.match(result.message,/setup timed out/);
+  assert.equal(f.calls.some(c=>c[0]==='cookie'),false);
 });

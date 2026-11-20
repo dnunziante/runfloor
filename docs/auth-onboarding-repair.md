@@ -54,3 +54,13 @@ Original RunFloor database is documented as cqwcagnrgxokbrswhbfj (Refyntra); pro
 5. Re-test replay and expiry with real links, report all outcomes, then review deployment. Do not merge or deploy production while these checks remain incomplete.
 
 Supabase official reference: https://supabase.com/docs/guides/auth/auth-email-templates (SSR fragment behavior and token-hash verification).
+
+## Follow-up: verified signup blocked during workspace creation
+
+User-confirmed live results: SMTP delivery now works after replacing the Google app password; password reset email, new password and login succeeded. A new signup confirmation also arrived (in spam) and authenticated the user, but workspace activation failed.
+
+Production evidence: `activate_rv_trial` returned HTTP 500 / PostgreSQL `57014`. Database context points to `private.standard_procedure_content` while the organization-insert trigger copies 90 starter procedures. No active membership was committed for the new test account. A timeout rolls back that activation transaction.
+
+Repair: migration `20261120032954_optimize_onboarding_procedure_conversion.sql` replaces repeated growing-JSON concatenation with ordered aggregation; retains invoker security, signature and content shape, without updating existing procedures. The form prevents automatic reset after a failed action, retaining details and matching plan display to React state; activation validates names and surfaces timeout errors without exposing internal SQL.
+
+Pre-application checks: 260 automated tests passed; 21 converter parity cases passed; 90 distinct representative documents (72,090 nodes) converted in 802 ms in isolated PGlite. Existing standard-procedure integration tests passed with and without archive schema, including new-tenant seeding, idempotency, tenant content preservation and authorization. Lint: zero errors, 12 pre-existing warnings. Production build and TypeScript passed. Real Complete workspace creation/100-credit grant and live employee invitation remain to be re-tested; the application PR remains a draft.

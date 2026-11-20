@@ -1,4 +1,4 @@
-import { PGlite } from "../.qa/runtime/node_modules/@electric-sql/pglite/dist/index.js";
+import { PGlite } from "@electric-sql/pglite";
 import { readFileSync } from "node:fs";
 import assert from "node:assert/strict";
 import { procedureDocument } from "../src/lib/procedures/document.ts";
@@ -15,6 +15,7 @@ for (const withManagement of [false, true]) {
     await db.exec("insert into public.operations_procedures(id,organization_id,title,category_id,category,owner,summary,status,content,platform_template_id,created_by) select '93000000-0000-0000-0000-000000000001','91000000-0000-0000-0000-000000000001','Tenant customized title',id,name,'Tenant owner','Tenant custom purpose','draft','{\"custom\":\"tenant edit\"}','92000000-0000-0000-0000-000000000001','90000000-0000-0000-0000-000000000001' from public.operations_procedure_categories where organization_id='91000000-0000-0000-0000-000000000001' and name='Sales Procedures';");
     const before = (await db.query("select to_jsonb(p) as record from public.operations_procedures p where id='93000000-0000-0000-0000-000000000001'")).rows[0].record;
     await db.exec(readFileSync("supabase/migrations/20260907003745_standard_procedures_all_templates.sql", "utf8"));
+    await db.exec(readFileSync("supabase/migrations/20261120032954_optimize_onboarding_procedure_conversion.sql", "utf8"));
     assert.deepEqual((await db.query("select to_jsonb(p) as record from public.operations_procedures p where id='93000000-0000-0000-0000-000000000001'")).rows[0].record, before);
     assert.equal((await db.query("select count(*)::integer n from public.operations_procedures")).rows[0].n, 4);
     const installed = (await db.query("select content from public.operations_procedures where organization_id='91000000-0000-0000-0000-000000000002' and platform_template_id='92000000-0000-0000-0000-000000000001'")).rows[0].content;

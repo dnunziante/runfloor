@@ -49,13 +49,20 @@ export async function activateTrial(_state: { message: string }, form: FormData)
   const plan = selectedPlan(form);
   if (!plan) return { message: "Choose a valid RunFloor plan." };
   if (plan === "sales_solo_free" ? process.env.RUNFLOOR_SALES_SOLO_FREE_ENABLED !== "true" : plan === "sales_solo" ? process.env.RUNFLOOR_SALES_SOLO_ENABLED !== "true" : process.env.RUNFLOOR_RV_BILLING_ENABLED !== "true") return { message: "Trial activation is not yet available." };
+  const dealership = String(form.get("dealership") || "").trim();
+  const fullName = String(form.get("fullName") || "").trim();
+  if (dealership.length < 2 || dealership.length > 120 || fullName.length < 2 || fullName.length > 120) return { message: "Enter a dealership and contact name of 2–120 characters." };
   const phone = String(form.get("phone") || "").trim();
   if (!validContactPhone(phone)) return { message: "Enter a valid phone number or leave the optional field blank." };
   const db = await createClient();
   const { data: { user } } = await db.auth.getUser();
   if (!user || !user.email_confirmed_at) return { message: "Verify your email and sign in before activating your trial." };
   const { error } = await createAdminClient().rpc(plan === "sales_solo_free" ? "activate_sales_solo_free" : plan === "sales_solo" ? "activate_sales_solo" : "activate_rv_trial", { actor: user.id, [plan !== "complete" ? "company" : "dealership"]: String(form.get("dealership") || "").trim(), contact_name: String(form.get("fullName") || "").trim() });
-  if (error) return { message: error.message.includes("already") ? "This account or dealership already belongs to a workspace. Sign in or ask its administrator for an invitation." : "We couldn't activate this dealership. Try again or contact support if it already exists." };
+  if (error) {
+    console.error("[auth/activate] workspace activation failed", { code: error.code, plan });
+    if (error.code === "57014") return { message: "Workspace setup timed out. Your account is verified. Your details are preserved; please contact support before retrying." };
+    return { message: error.message.includes("already") ? "This account or dealership already belongs to a workspace. Sign in or ask its administrator for an invitation." : "We couldn't activate this dealership. Try again or contact support if it already exists." };
+  }
   if (phone) {
     const { error: profileError } = await db.from("profiles").update({ phone }).eq("id", user.id);
     if (profileError) return { message: "Your trial is activated, but your phone number could not be saved. Please try again." };
