@@ -1,6 +1,6 @@
 # Authentication and onboarding repair — pre-production review
 
-Status: code repair prepared on `fix/auth-onboarding`; no production deployment or database/auth configuration changes performed.
+Status: code repair prepared on `fix/auth-onboarding`; application not deployed. The scoped procedure-conversion database migration was subsequently applied; see the follow-up verification below.
 Repository: dnunziante/runfloor. Base main: 574eb1a2ecf131611fac48aabf5ce98f51c9abef, matching commandly-rho.vercel.app at investigation time.
 
 ## Evidence and causes
@@ -64,3 +64,6 @@ Production evidence: `activate_rv_trial` returned HTTP 500 / PostgreSQL `57014`.
 Repair: migration `20261120032954_optimize_onboarding_procedure_conversion.sql` replaces repeated growing-JSON concatenation with ordered aggregation; retains invoker security, signature and content shape, without updating existing procedures. The form prevents automatic reset after a failed action, retaining details and matching plan display to React state; activation validates names and surfaces timeout errors without exposing internal SQL.
 
 Pre-application checks: 260 automated tests passed; 21 converter parity cases passed; 90 distinct representative documents (72,090 nodes) converted in 802 ms in isolated PGlite. Existing standard-procedure integration tests passed with and without archive schema, including new-tenant seeding, idempotency, tenant content preservation and authorization. Lint: zero errors, 12 pre-existing warnings. Production build and TypeScript passed. Real Complete workspace creation/100-credit grant and live employee invitation remain to be re-tested; the application PR remains a draft.
+
+
+Production converter verification: applied `optimize_onboarding_procedure_conversion` successfully to original RunFloor only. Read-only conversion of all 90 actual published standard templates completed in 1294.664 ms. Confirmed SECURITY INVOKER and existing service-role execute access remain intact. No existing procedure rows or memberships were updated. User must retry Complete trial activation to verify end-to-end workspace creation and credits; application PR is still draft/unmerged.
