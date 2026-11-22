@@ -5,7 +5,10 @@ import "./brand.css";
 import "./workspace-ux.css";
 import { brand } from "@/lib/brand";
 
+const socialLogo = `${brand.logoPath}?v=20261121-runfloor`;
+
 export const metadata: Metadata = {
+  metadataBase: new URL("https://runfloorsales.com"),
   title: { default: brand.name, template: `%s | ${brand.name}` },
   description: brand.description,
   applicationName: brand.name,
@@ -18,9 +21,14 @@ export const metadata: Metadata = {
     title: `${brand.name} | ${brand.tagline}`,
     description: brand.description,
     siteName: brand.name,
-    images: ["/opengraph-image.png"],
+    images: [{ url: socialLogo, alt: "RunFloor logo" }],
   },
-  twitter: { card: "summary_large_image", title: `${brand.name} | ${brand.tagline}`, description: brand.description },
+  twitter: {
+    card: "summary_large_image",
+    title: `${brand.name} | ${brand.tagline}`,
+    description: brand.description,
+    images: [socialLogo],
+  },
 };
 
 export default function RootLayout({ children }: Readonly<{ children: React.ReactNode }>) {
