@@ -9,7 +9,10 @@ import { safePage, supportLink } from "@/lib/opal/policy";
 import "./opal.css";
 
 type Turn = { question: string; answer: string; sources: { slug: string; title: string }[]; feedback?: boolean; mode?: string };
-type Context = { id?: string; organizationId: string; demo: boolean };
+type OpalAllowance = { eligible: boolean; period_kind: "trial" | "subscription" | null; limit_units: number; used_units: number; reserved_units: number; remaining_units: number; reset_at: string | null };
+type Context = { id?: string; organizationId: string; demo: boolean; allowance: OpalAllowance | null };
+
+const dollars = (units: number) => (units / 100_000_000).toLocaleString("en-US", { style: "currency", currency: "USD", minimumFractionDigits: 2, maximumFractionDigits: 2 });
 
 
 export function OpalWidget() {
@@ -80,11 +83,18 @@ export function OpalWidget() {
     setBusy(true); setError(""); setQuestion("");
     const key = requestKey.current;
     controller.current = new AbortController();
+    const requestId = crypto.randomUUID();
     try {
-      const response = await fetch("/api/opal", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ question: q, page: page.key, workspace: context?.organizationId }), signal: controller.current.signal });
+      const response = await fetch("/api/opal", { method: "POST", headers: { "Content-Type": "application/json", "X-RunFloor-Opal-Request": requestId }, body: JSON.stringify({ question: q, page: page.key, workspace: context?.organizationId }), signal: controller.current.signal });
       const data = await response.json();
       if (key !== requestKey.current) return;
       if (!response.ok) throw new Error(data.error || "Opal could not answer. Try a guide below.");
+      if (data.allowance) setContext(current => current ? { ...current, allowance: data.allowance } : current);
+      if (data.budgetExhausted) {
+        const resetAt = data.allowance?.reset_at;
+        const resetDate = resetAt ? new Date(resetAt).toLocaleDateString("en-US", { timeZone: "UTC" }) : null;
+        setError(`Opal's AI allowance is used for this period${resetDate ? ` and renews on ${resetDate} UTC` : ""}. The verified guide and Help Center search are still available.`);
+      }
       const next = [...session.current.turns, { question: q, answer: data.answer, sources: data.sources, mode: data.mode }].slice(-8);
       session.current = { key, turns: next }; setTurns(next);
     } catch (e) { if ((e as Error).name !== "AbortError") setError((e as Error).message); }
@@ -110,7 +120,7 @@ export function OpalWidget() {
       </div>
       {support && <div className="opal-support"><strong>Let’s get you some extra help.</strong><p>Your email app opens a draft for you to review and send.</p><label><input type="checkbox" checked={include} onChange={e => setInclude(e.target.checked)}/> Include this conversation</label><a href={supportLink(pathname, include ? turns.map(t => `You: ${t.question}\nOpal: ${t.answer}`).join("\n\n") : "")}>Email support@runfloorai.com</a></div>}
       <form className="opal-compose" onSubmit={e => { e.preventDefault(); ask(question); }}><label className="sr-only" htmlFor="opal-question">Ask Opal</label><textarea ref={input} id="opal-question" maxLength={1200} rows={2} placeholder="What are you trying to do?" value={question} onChange={e => setQuestion(e.target.value)} onKeyDown={e => { if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); ask(question); } }}/><button aria-label="Send question" disabled={busy || question.trim().length < 3}><Send size={18}/></button></form>
-      <footer className="opal-panel-footer"><Link href="/help"><BookOpen size={15}/> Browse guides</Link><button onClick={() => setSupport(!support)}><Mail size={15}/> Contact support</button><small>Included help · No AI credits used</small></footer>
+      <footer className="opal-panel-footer"><Link href="/help"><BookOpen size={15}/> Browse guides</Link><button onClick={() => setSupport(!support)}><Mail size={15}/> Contact support</button>{context.allowance?.eligible ? <small aria-live="polite">Opal AI help: {dollars(context.allowance.used_units)} used of {dollars(context.allowance.limit_units)}; {dollars(context.allowance.remaining_units)} remaining{context.allowance.reserved_units > 0 ? ` (${dollars(context.allowance.reserved_units)} pending)` : ""}{context.allowance.reset_at ? ` · resets ${new Date(context.allowance.reset_at).toLocaleDateString("en-US", { timeZone: "UTC" })} UTC` : ""}</small> : <small>Verified help guides are available without AI usage.</small>}</footer>
     </section>}
   </>;
 }
