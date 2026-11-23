@@ -36,40 +36,40 @@ test("dealership, contact name, and email are required on the server before sign
   for (const name of ["dealership", "fullName", "email"]) {
     const f = fixture();
     const result = await f.actions.signupTrial({ message: "" }, form({ [name]: "  " }));
-    assert.match(result.message, /Enter your dealership/);
+    assert.match(result.message, /RunFloor Solo starts at Stripe Checkout/);
     assert.equal(f.calls.length, 0);
   }
 });
 test("phone is optional and never becomes a payment or authentication phone", async () => {
   const f = fixture();
-  await f.actions.signupTrial({ message: "" }, form());
+  await f.actions.signupTrial({ message: "" }, form({plan:"complete"}));
   const input = f.calls.find(call => call[0] === "signup")[1];
   assert.equal(input.options.data.contact_phone, null);
   assert.equal("phone" in input, false);
 });
 test("international contact phone is retained through email verification", async () => {
   const f = fixture();
-  await f.actions.signupTrial({ message: "" }, form({ phone: " +1 (843) 555-0123 " }));
+  await f.actions.signupTrial({ message: "" }, form({plan:"complete", phone: " +1 (843) 555-0123 " }));
   assert.equal(f.calls.find(call => call[0] === "signup")[1].options.data.contact_phone, "+1 (843) 555-0123");
   assert.equal(JSON.parse(f.calls.find(call => call[0] === "cookie")[2]).phone, "+1 (843) 555-0123");
 });
 test("invalid phone is rejected before authentication or trial activation", async () => {
   const f = fixture();
   for (const action of ["signupTrial", "activateTrial"]) {
-    const result = await f.actions[action]({ message: "" }, form({ phone: "not a number" }));
+    const result = await f.actions[action]({ message: "" }, form({plan:"complete", phone: "not a number" }));
     assert.match(result.message, /valid phone number/);
   }
   assert.equal(f.calls.length, 0);
 });
 test("an unverified user cannot persist a profile phone or activate a trial", async () => {
   const f = fixture({ id: "owner-a", email_confirmed_at: null });
-  const result = await f.actions.activateTrial({ message: "" }, form({ phone: "+1 843 555 0123" }));
+  const result = await f.actions.activateTrial({ message: "" }, form({plan:"complete", phone: "+1 843 555 0123" }));
   assert.match(result.message, /Verify your email/);
   assert.equal(f.calls.some(call => ["profile", "activate"].includes(call[0])), false);
 });
 test("successful activation saves the phone only to the verified user's existing profile", async () => {
   const f = fixture({ id: "owner-a", email_confirmed_at: "2026-11-14T12:00:00Z" });
-  await assert.rejects(() => f.actions.activateTrial({ message: "" }, form({ phone: "+1 843 555 0123" })), /redirect:\/dashboard/);
+  await assert.rejects(() => f.actions.activateTrial({ message: "" }, form({plan:"complete", phone: "+1 843 555 0123" })), /redirect:\/dashboard/);
   const update = f.calls.find(call => call[0] === "profile");
   assert.equal(update[1], "profiles");
   assert.equal(update[2].phone, "+1 843 555 0123");
@@ -77,18 +77,12 @@ test("successful activation saves the phone only to the verified user's existing
   assert.equal(update[4], "owner-a");
   assert.ok(f.calls.findIndex(call => call[0] === "activate") < f.calls.findIndex(call => call[0] === "profile"));
 });
-
 test("Free signup stays gated and activation uses verified owner identity without Stripe",async()=>{
  const blocked=fixture(null);await blocked.actions.signupTrial({message:''},form({plan:'sales_solo_free'}));assert.equal(blocked.calls.length,0);
  const f=fixture({id:'verified-owner',email_confirmed_at:'2026-11-17'},true);await assert.rejects(f.actions.activateTrial({message:''},form({plan:'sales_solo_free',actor:'forged-user'})),/redirect:\/products/);
  const call=f.calls.find(c=>c[0]==='activate');assert.equal(call[1],'activate_sales_solo_free');assert.equal(call[2].actor,'verified-owner');assert.equal(call[2].company,'Example RV');
 });
-
-test("selected plans survive verification on another device and unknown plans are rejected",async()=>{
- for(const plan of ['sales_solo_free','sales_solo']) {
-  const f=fixture(null,true);await f.actions.signupTrial({message:''},form({plan}));
-  const input=f.calls.find(c=>c[0]==='signup')[1];assert.ok(input.options.emailRedirectTo.endsWith(encodeURIComponent('/signup/activate?plan='+plan)));
- }
- const f=fixture();for(const name of ['signupTrial','activateTrial']) assert.match((await f.actions[name]({message:''},form({plan:'invented'}))).message,/valid RunFloor plan/);
- assert.equal(f.calls.length,0);
+test("Solo signup cannot create an account before checkout",async()=>{
+ const f=fixture(null,true);const result=await f.actions.signupTrial({message:''},form({plan:'sales_solo'}));
+ assert.match(result.message,/Stripe Checkout/);assert.equal(f.calls.some(c=>c[0]==='signup'),false);
 });
