@@ -2,12 +2,14 @@ import "server-only";
 import type Stripe from "stripe";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { completePrice } from "./stripe";
+import { handlePaidRvSignupEvent } from "./paid-signup";
 const ref = (value: string | { id: string } | null | undefined) => typeof value === "string" ? value : value?.id;
 const iso = (value: number | null | undefined) => value ? new Date(value * 1000).toISOString() : null;
 
 // Called only after the existing webhook verifies signature, Stripe account, and mode.
 // Return false for legacy customers so their established handler remains authoritative.
 export async function handleRvBillingEvent(event: Stripe.Event, stripe: Stripe): Promise<boolean> {
+  if (await handlePaidRvSignupEvent(event, stripe)) return true;
   const db = createAdminClient();
   if (["charge.dispute.created", "charge.refunded", "radar.early_fraud_warning.created"].includes(event.type)) {
     const object = event.data.object as Stripe.Charge | Stripe.Dispute | Stripe.Radar.EarlyFraudWarning;
