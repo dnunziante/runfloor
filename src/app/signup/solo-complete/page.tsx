@@ -38,15 +38,17 @@ export default async function SoloSignupComplete({ searchParams }: { searchParam
     } catch { /* Stripe webhook remains the authority for workspace creation. */ }
   }
   const next = `/signup/solo-complete?intent=${encodeURIComponent(intent.id)}${params.session_id ? `&session_id=${encodeURIComponent(params.session_id)}` : ""}`;
+  const signIn = "/login?next=" + encodeURIComponent(next);
 
   return <main className="rv-signup"><section>
     <p className="lp-kicker">RUNFLOOR SOLO</p>
     <h1>{params.cancelled ? "Checkout canceled" : paid ? "Payment received" : "Checkout status"}</h1>
     <p>{params.cancelled ? "No account or workspace was created. You can return to RunFloor Solo and try checkout again." : paid ? "Stripe confirmed your $25 payment. Create your account with the same email you used at checkout. We’ll open your Sales workspace after you verify your email and RunFloor confirms the payment." : "Your Solo workspace is created only after Stripe confirms the $25 payment. If you just completed checkout, refresh this page in a moment."}</p>
 
-    {paid && intent.owner_user_id && !matchingUser && <><p>This paid checkout is linked to the account for {intent.signup_email}. Sign in with that email to finish setup.</p><Link className="btn btn-primary" href={"/login?next=" + encodeURIComponent(next)}>Sign in to finish setup</Link></>}
+    {paid && intent.owner_user_id && !matchingUser && <><p>This checkout is linked to the account for {intent.signup_email}. Check that email for the verification link, or sign in with it to finish setup.</p><Link className="btn btn-primary" href={signIn}>Sign in to finish setup</Link></>}
     {paid && intent.owner_user_id && matchingUser && !user?.email_confirmed_at && <p role="status">Your account is created. Check {intent.signup_email} for the verification link. Verify it to activate the workspace.</p>}
     {paid && (!intent.owner_user_id || (matchingUser && user?.email_confirmed_at)) && <PaidSoloAccountForm intent={intent.id} sessionId={verifiedSessionId} email={intent.signup_email} fullName={intent.contact_name} phone={intent.phone || ""} requirePassword={!matchingUser}/>}
+    {paid && !intent.owner_user_id && <p>Already have an account with this email? <Link href={signIn}>Sign in to link your paid checkout.</Link></p>}
     {paid && matchingUser && user?.email_confirmed_at && <p role="status">Account verified. RunFloor is waiting for Stripe’s payment webhook to finish creating your workspace.</p>}
     {!paid && !params.cancelled && <p role="status">Setup status: {intent.status === "provisioned" ? "complete" : "waiting for a completed payment"}</p>}
     <div className="hero-actions"><Link className="btn btn-ghost" href="/signup?plan=solo">{params.cancelled ? "Return to Solo checkout" : "Return to signup"}</Link>{!params.cancelled && <Link className="btn btn-ghost" href={`/signup/solo-complete?intent=${intent.id}${params.session_id ? `&session_id=${encodeURIComponent(params.session_id)}` : ""}`}>Refresh setup status</Link>}</div>
