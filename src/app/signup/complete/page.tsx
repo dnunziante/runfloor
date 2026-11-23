@@ -20,7 +20,8 @@ export default async function PaidSignupComplete({ searchParams }: { searchParam
   if (params.session_id && params.session_id === intent.checkout_session_id) {
     try {
       const session = await (await stripeClient()).checkout.sessions.retrieve(params.session_id);
-      paid = session.status === "complete" && session.payment_status === "paid" && session.metadata?.signup_intent_id === intent.id && session.customer === intent.stripe_customer_id;
+      const customerId = typeof session.customer === "string" ? session.customer : session.customer?.id;
+      paid = session.status === "complete" && session.payment_status === "paid" && session.metadata?.signup_intent_id === intent.id && customerId === intent.stripe_customer_id;
     } catch { /* The signed webhook remains the authority for workspace creation. */ }
   }
 
