@@ -1,5 +1,4 @@
 "use server";
-import { randomUUID } from "node:crypto";
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
@@ -14,7 +13,6 @@ export async function startPaidSignupCheckout(form: FormData) {
     const auth = await createClient();
     const { data: { user } } = await auth.auth.getUser();
     if (!user || !user.email_confirmed_at || !user.email) throw new Error("Verify your email and sign in before checkout.");
-
     const dealership = String(form.get("dealership") || "").trim();
     const contact = String(form.get("fullName") || "").trim();
     const phone = String(form.get("phone") || "").trim();
@@ -29,7 +27,6 @@ export async function startPaidSignupCheckout(form: FormData) {
     const admin = createAdminClient();
     let { data: intent, error: intentError } = await admin.from("rv_paid_signup_intents").select("id,stripe_customer_id,checkout_session_id,status").eq("owner_user_id", user.id).eq("status", "pending").maybeSingle();
     if (intentError) throw new Error("Paid signup could not be loaded.");
-
     if (intent?.checkout_session_id) {
       const previous = await stripe.checkout.sessions.retrieve(intent.checkout_session_id);
       if (previous.status === "open" && previous.url) redirect(previous.url);
@@ -44,7 +41,6 @@ export async function startPaidSignupCheckout(form: FormData) {
       { email: user.email, name: contact, metadata: { application: "runfloor", paid_signup_user: user.id } },
       { idempotencyKey: `rv-paid-signup-customer:${user.id}` },
     )).id;
-
     if (!intent) {
       const { data, error } = await admin.from("rv_paid_signup_intents").insert({
         owner_user_id: user.id, dealership_name: dealership, contact_name: contact, phone: phone || null, stripe_customer_id: customer,
@@ -52,9 +48,7 @@ export async function startPaidSignupCheckout(form: FormData) {
       if (error || !data) throw new Error("Paid signup could not be started. Refresh and try again.");
       intent = { ...data, checkout_session_id: null, status: "pending" };
     } else {
-      const { error } = await admin.from("rv_paid_signup_intents").update({
-        dealership_name: dealership, contact_name: contact, phone: phone || null,
-      }).eq("id", intent.id).eq("status", "pending");
+      const { error } = await admin.from("rv_paid_signup_intents").update({ dealership_name: dealership, contact_name: contact, phone: phone || null }).eq("id", intent.id).eq("status", "pending");
       if (error) throw new Error("Paid signup details could not be saved.");
     }
 
