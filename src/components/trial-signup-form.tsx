@@ -1,6 +1,7 @@
 "use client";
 import { useActionState, useState } from "react";
 import { activateTrial, signupTrial } from "@/app/signup/actions";
+import { startPaidSignupCheckout } from "@/app/signup/paid-actions";
 
 export function TrialSignupForm({ activate = false, dealership = "", fullName = "", phone = "", plan = "complete", soloEnabled = false, freeEnabled = false }: { activate?: boolean; dealership?: string; fullName?: string; phone?: string; plan?: string; soloEnabled?: boolean; freeEnabled?:boolean }) {
   const [selectedPlan, setSelectedPlan] = useState(plan);
@@ -17,6 +18,7 @@ export function TrialSignupForm({ activate = false, dealership = "", fullName = 
     {!activate && <label><span>Password <span aria-hidden="true">*</span></span><input name="password" type="password" autoComplete="new-password" minLength={12} maxLength={128} required/><small>At least 12 characters.</small></label>}
     {state.message && <p role="status">{state.message}</p>}
     <button className="btn btn-primary" disabled={pending || (selectedPlan === "sales_solo_free" && !freeEnabled) || (selectedPlan === "sales_solo" && !soloEnabled)} type="submit">{pending ? "Please wait…" : selectedPlan === "sales_solo_free" ? "Create My Free RunFloor Account" : selectedPlan === "sales_solo" ? activate ? "Create My RunFloor Solo Account" : "Create My RunFloor Solo Login" : activate ? "Activate My 7-Day Free Trial" : "Start Your 7-Day Free Trial"}</button>
-    <p>{selectedPlan === "sales_solo_free" ? "Free forever. No credit card required. No AI included." : selectedPlan === "sales_solo" ? "Paid Solo access starts only after confirmed payment. Live payments remain disabled." : "No credit card required. No automatic charges."}</p>
+    {activate && selectedPlan === "complete" && <><button className="btn" type="submit" formAction={startPaidSignupCheckout}>Pay $99 now and create my workspace</button><p>Stripe charges $99 today. After payment is confirmed, RunFloor creates your dealership workspace and makes you its administrator.</p></>}
+    <p>{selectedPlan === "sales_solo_free" ? "Free forever. No credit card required. No AI included." : selectedPlan === "sales_solo" ? "Paid Solo access starts only after confirmed payment. Live payments remain disabled." : "No credit card required for the 7-day trial. No automatic charges."}</p>
   </form>;
 }
