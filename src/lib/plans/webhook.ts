@@ -13,16 +13,60 @@ export async function handleSoloEvent(event: Stripe.Event, stripe: Stripe, accou
     const source = event.data.object as Stripe.Invoice;
     subscription = ref(source.parent?.subscription_details?.subscription);
     if (event.type === "invoice.paid") invoice = await stripe.invoices.retrieve(source.id);
-  } else if (event.type.startsWith("checkout.session.")) subscription = ref((event.data.object as Stripe.Checkout.Session).subscription);
+  } else if (event.type.startsWith("checkout.session.")) {
+    const session = event.data.object as Stripe.Checkout.Session;
+    if (session.metadata?.sales_solo_signup_intent_id && !session.subscription) return true;
+    subscription = ref(session.subscription);
+  }
   if (!subscription) return false;
   const sub = await stripe.subscriptions.retrieve(subscription);
   if (sub.livemode !== live) throw new Error("Wrong subscription mode");
   const customer = ref(sub.customer);
   if (!customer) return false;
   const db = createAdminClient();
+
+  // New Solo signups are held in an intent until a verified first invoice is paid.
+  const intentId = sub.metadata.sales_solo_signup_intent_id;
+  if (intentId) {
+    const { data: intent, error: intentError } = await db.from("sales_solo_signup_intents").select("id,status,stripe_customer_id,stripe_account_id,livemode").eq("id", intentId).maybeSingle();
+    if (intentError) throw intentError;
+    if (!intent || intent.stripe_customer_id !== customer || intent.stripe_account_id !== account || intent.livemode !== live || sub.metadata.application !== "runfloor" || sub.metadata.billing_scope !== "sales_solo") throw new Error("Unknown Solo signup subscription");
+    if (intent.status === "pending") {
+      if (event.type !== "invoice.paid" || !invoice) return true;
+      const { data: catalog, error: catalogError } = await db.from("sales_solo_catalog").select("stripe_price_id,active").eq("id", true).single();
+      if (catalogError || !catalog?.active) throw new Error("Solo price is not active");
+      const price = await soloPrice(stripe, account, live);
+      const item = sub.items.data.length === 1 ? sub.items.data[0] : null;
+      const paid = item !== null && item.quantity === 1 && item.price.id === price.id && sub.status === "active" &&
+        invoice.status === "paid" && invoice.id === ref(sub.latest_invoice) && invoice.billing_reason === "subscription_create" &&
+        invoice.currency === "usd" && ref(invoice.customer) === customer &&
+        ref(invoice.parent?.subscription_details?.subscription) === sub.id &&
+        invoice.amount_paid >= (price.unit_amount ?? Number.MAX_SAFE_INTEGER) &&
+        invoice.lines.data.some(line => line.pricing?.price_details?.price === price.id && line.period.start === item.current_period_start && line.period.end === item.current_period_end && line.amount >= (price.unit_amount ?? Number.MAX_SAFE_INTEGER));
+      if (!paid) throw new Error("Solo initial payment could not be verified");
+      const result = await db.rpc("provision_sales_solo_signup", {
+        intent_key: intent.id,
+        customer_key: customer,
+        account_key: account,
+        live,
+        subscription_key: sub.id,
+        price_key: price.id,
+        event_key: event.id,
+        event_created: event.created,
+        billing_status: sub.status,
+        starts: iso(item.current_period_start),
+        ends: iso(item.current_period_end),
+        invoice_id: invoice.id,
+      });
+      if (result.error) throw result.error;
+      return true;
+    }
+    if (intent.status === "expired") return true;
+  }
+
   const { data: plan, error } = await db.from("account_subscription_plans").select("*").eq("stripe_customer_id", customer).maybeSingle();
   if (error) throw error;
-  if (!plan) return false;
+  if (!plan) return Boolean(intentId);
   if (plan.stripe_account_id !== account || plan.livemode !== live) throw new Error("Wrong Solo billing environment");
   const item = sub.items.data[0];
   if (!item || sub.items.data.length !== 1 || item.quantity !== 1) throw new Error("Sales Solo requires one subscription item and one licensed account");
@@ -31,7 +75,6 @@ export async function handleSoloEvent(event: Stripe.Event, stripe: Stripe, accou
   try { price = await soloPrice(stripe, account, live); } catch (e) { if (plan.plan_key === "sales_solo") throw e; price = await completePrice(stripe); targetPlan = "complete"; }
   if (item.price.id !== price.id) { price = await completePrice(stripe); targetPlan = "complete"; }
   if (item.price.id !== price.id) throw new Error("Unapproved subscription price");
-  // Only an independently retrieved paid latest invoice can grant a period.
   const paid = invoice?.status === "paid" && invoice.id === ref(sub.latest_invoice) &&
     ["subscription_create", "subscription_cycle", "subscription_update"].includes(invoice.billing_reason || "") &&
     invoice.currency === "usd" && ref(invoice.customer) === customer &&
