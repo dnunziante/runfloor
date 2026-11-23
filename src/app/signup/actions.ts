@@ -17,7 +17,8 @@ function validContactPhone(phone: string) {
 export async function signupTrial(_state: { message: string }, form: FormData) {
   const plan = selectedPlan(form);
   if (!plan) return { message: "Choose a valid RunFloor plan." };
-  if ((plan === "sales_solo_free" ? process.env.RUNFLOOR_SALES_SOLO_FREE_ENABLED !== "true" : plan === "sales_solo" ? process.env.RUNFLOOR_SALES_SOLO_ENABLED !== "true" : process.env.RUNFLOOR_RV_BILLING_ENABLED !== "true") || !isSupabaseConfigured()) return { message: "Signup is not yet available. You can explore the demo in the meantime." };
+  if (plan === "sales_solo") return { message: "RunFloor Solo starts at Stripe Checkout. Select Continue to secure checkout to pay first, then create your account." };
+  if ((plan === "sales_solo_free" ? process.env.RUNFLOOR_SALES_SOLO_FREE_ENABLED !== "true" : process.env.RUNFLOOR_RV_BILLING_ENABLED !== "true") || !isSupabaseConfigured()) return { message: "Signup is not yet available. You can explore the demo in the meantime." };
   const dealership = String(form.get("dealership") || "").trim();
   const fullName = String(form.get("fullName") || "").trim();
   const email = String(form.get("email") || "").trim();
@@ -34,13 +35,13 @@ export async function signupTrial(_state: { message: string }, form: FormData) {
   if (error) return { message: "We couldn't register this account. Try again or sign in if you already have an account." };
   (await cookies()).set("rf-trial-draft", JSON.stringify({ dealership, fullName, phone, plan }), { httpOnly: true, sameSite: "lax", secure: process.env.NODE_ENV === "production", path: "/signup", maxAge: 86400 });
   if (data.session) redirect(activationUrl(plan));
-  return { message: plan === "sales_solo" ? "Check your inbox to verify your email. After verification, you’ll go to secure checkout for RunFloor Solo at $25/month. Your workspace is created after payment is confirmed." : "Check your inbox for the verification link. Verify your email, then continue with your selected plan." };
+  return { message: "Check your inbox for the verification link. Verify your email, then continue with your selected plan." };
 }
 
 export async function activateTrial(_state: { message: string }, form: FormData) {
   const plan = selectedPlan(form);
   if (!plan) return { message: "Choose a valid RunFloor plan." };
-  if (plan === "sales_solo") return { message: "RunFloor Solo requires checkout. Use the $25/month checkout button to create your Sales workspace after payment." };
+  if (plan === "sales_solo") return { message: "RunFloor Solo requires payment first. Start from the Solo signup page to continue to Stripe Checkout." };
   if (plan === "sales_solo_free" ? process.env.RUNFLOOR_SALES_SOLO_FREE_ENABLED !== "true" : process.env.RUNFLOOR_RV_BILLING_ENABLED !== "true") return { message: "Plan activation is not yet available." };
   const phone = String(form.get("phone") || "").trim();
   if (!validContactPhone(phone)) return { message: "Enter a valid phone number or leave the optional field blank." };
