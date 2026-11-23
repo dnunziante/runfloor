@@ -3,7 +3,7 @@
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
-import { billingOrigin, billingStripe } from "@/lib/ai-billing/stripe";
+import { billingStripe } from "@/lib/ai-billing/stripe";
 import { soloPrice } from "@/lib/plans/stripe";
 
 const validIntent = (value: string) => /^[0-9a-f-]{36}$/i.test(value);
@@ -14,17 +14,13 @@ export async function completePaidSoloSignup(_state: { message: string }, form: 
   const sessionId = String(form.get("session_id") || "");
   const email = String(form.get("email") || "").trim().toLowerCase();
   const password = String(form.get("password") || "");
-  if (!validIntent(intentId) || !/^cs_(test|live)_[A-Za-z0-9]+$/.test(sessionId) || password.length < 12 || password.length > 128) {
-    return { message: "Enter a password with at least 12 characters to create your RunFloor account." };
-  }
+  if (!validIntent(intentId) || !/^cs_(test|live)_[A-Za-z0-9]+$/.test(sessionId)) return { message: safeMessage };
 
   const admin = createAdminClient();
   const { data: intent, error: intentError } = await admin.from("sales_solo_signup_intents")
     .select("id,status,signup_email,owner_user_id,stripe_customer_id,stripe_account_id,livemode,checkout_session_id")
     .eq("id", intentId).maybeSingle();
-  if (intentError || !intent || intent.status !== "pending" || intent.checkout_session_id !== sessionId || intent.signup_email !== email) {
-    return { message: safeMessage };
-  }
+  if (intentError || !intent || intent.status !== "pending" || intent.checkout_session_id !== sessionId || intent.signup_email !== email) return { message: safeMessage };
 
   try {
     const { stripe, account, live } = await billingStripe();
@@ -58,7 +54,8 @@ export async function completePaidSoloSignup(_state: { message: string }, form: 
         return { message: "Sign in with the verified email address used at Stripe Checkout." };
       }
     } else {
-      if (!email || email !== intent.signup_email) return { message: "Use the same email address you entered at checkout." };
+      if (email !== intent.signup_email) return { message: "Use the same email address you entered at checkout." };
+      if (password.length < 12 || password.length > 128) return { message: "Create a password with at least 12 characters." };
       const origin = process.env.RUNFLOOR_BILLING_ORIGIN;
       if (!origin) return { message: "Account setup is temporarily unavailable." };
       const next = `/signup/solo-complete?intent=${encodeURIComponent(intent.id)}&session_id=${encodeURIComponent(sessionId)}`;
@@ -70,7 +67,7 @@ export async function completePaidSoloSignup(_state: { message: string }, form: 
           emailRedirectTo: `${origin}/auth/callback?next=${encodeURIComponent(next)}`,
         },
       });
-      if (error || !data.user) {
+      if (error || !data.user || data.user.identities?.length === 0) {
         return { message: "That email may already have a RunFloor account. Sign in with the checkout email to link your payment and finish setup." };
       }
       owner = data.user;
