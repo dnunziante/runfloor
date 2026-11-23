@@ -3,9 +3,10 @@ create table public.rv_paid_signup_intents (
   id uuid primary key default gen_random_uuid(),
   owner_user_id uuid not null references public.profiles(id),
   dealership_name text not null check (length(trim(dealership_name)) between 2 and 120),
+  dealership_identity text not null,
   contact_name text not null check (length(trim(contact_name)) between 2 and 120),
   phone text,
-  stripe_customer_id text not null unique,
+  stripe_customer_id text not null,
   checkout_session_id text unique,
   status text not null default 'pending' check (status in ('pending','provisioned','expired')),
   organization_id uuid references public.organizations(id),
@@ -14,6 +15,8 @@ create table public.rv_paid_signup_intents (
 );
 create unique index rv_paid_signup_one_pending_per_owner
   on public.rv_paid_signup_intents(owner_user_id) where status='pending';
+create unique index rv_paid_signup_unique_pending_name
+  on public.rv_paid_signup_intents(dealership_identity) where status='pending';
 alter table public.rv_paid_signup_intents enable row level security;
 revoke all on public.rv_paid_signup_intents from public, anon, authenticated;
 grant select, insert, update on public.rv_paid_signup_intents to service_role;
@@ -35,7 +38,6 @@ declare
   org uuid;
   loc uuid;
   template uuid;
-  identity_key text;
 begin
   select * into intent from public.rv_paid_signup_intents where id=intent_key for update;
   if not found or intent.stripe_customer_id<>customer_key then raise exception 'Unknown paid signup'; end if;
@@ -45,11 +47,9 @@ begin
   if period_starts is null or period_ends is null or period_ends<=period_starts or period_ends<=now() then raise exception 'Invalid paid billing period'; end if;
   if not exists(select 1 from public.runfloor_billing_catalog where id=true and active and stripe_price_id=price_key) then raise exception 'Price is not approved'; end if;
   if exists(select 1 from public.organization_memberships where user_id=intent.owner_user_id and status in ('active','invited')) then raise exception 'Account already belongs to a workspace'; end if;
-
-  identity_key := regexp_replace(lower(trim(intent.dealership_name)),'[^a-z0-9]','','g');
-  if length(identity_key)<2 then raise exception 'Enter a valid dealership name'; end if;
-  if exists(select 1 from public.rv_trial_claims where dealership_identity=identity_key)
-     or exists(select 1 from public.organizations where regexp_replace(lower(name),'[^a-z0-9]','','g')=identity_key) then
+  if length(intent.dealership_identity)<2 then raise exception 'Enter a valid dealership name'; end if;
+  if exists(select 1 from public.rv_trial_claims where dealership_identity=intent.dealership_identity)
+     or exists(select 1 from public.organizations where regexp_replace(lower(name),'[^a-z0-9]','','g')=intent.dealership_identity) then
     raise exception 'This dealership already exists. Ask its administrator for an invitation.';
   end if;
   select id into template from public.industry_templates where template_key='rv' and is_enabled and is_available_during_signup;
@@ -58,7 +58,7 @@ begin
   insert into public.organizations(name,slug,industry_template_id)
     values(trim(intent.dealership_name),'rv-'||replace(gen_random_uuid()::text,'-',''),template) returning id into org;
   insert into public.rv_trial_claims(organization_id,owner_user_id,dealership_identity)
-    values(org,intent.owner_user_id,identity_key);
+    values(org,intent.owner_user_id,intent.dealership_identity);
   update public.profiles set full_name=trim(intent.contact_name) where id=intent.owner_user_id;
   insert into public.locations(organization_id,name) values(org,trim(intent.dealership_name)) returning id into loc;
   insert into public.organization_memberships(organization_id,user_id,role,status,location_id)
