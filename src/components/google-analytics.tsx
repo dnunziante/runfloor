@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useRef, useSyncExternalStore } from "react";
 import { usePathname, useSearchParams } from "next/navigation";
 
 type ConsentChoice = "accepted" | "declined" | null;
@@ -140,24 +140,37 @@ function ConsentNotice({ onChoose }: { onChoose: (choice: Exclude<ConsentChoice,
   </aside>;
 }
 
+function subscribeClientReady() { return () => {}; }
+function getClientReady() { return true; }
+
+function subscribeConsent(listener: () => void) {
+  if (typeof window === "undefined") return () => {};
+  window.addEventListener("storage", listener);
+  window.addEventListener("runfloor:analytics-consent", listener);
+  return () => {
+    window.removeEventListener("storage", listener);
+    window.removeEventListener("runfloor:analytics-consent", listener);
+  };
+}
+
+function getConsentChoice(): ConsentChoice {
+  if (typeof window === "undefined") return null;
+  try {
+    const saved = localStorage.getItem(CONSENT_KEY);
+    return saved === "accepted" || saved === "declined" ? saved : null;
+  } catch { return null; }
+}
+
 export function GoogleAnalytics() {
+  const clientReady = useSyncExternalStore(subscribeClientReady, getClientReady, () => false);
+  const savedConsent = useSyncExternalStore(subscribeConsent, getConsentChoice, () => null);
   const pathname = usePathname() || "/";
   const searchParams = useSearchParams();
   const search = searchParams.toString();
   const lastPath = useRef("");
-  const [measurementId, setMeasurementId] = useState<string | null>(null);
-  const [consent, setConsent] = useState<ConsentChoice>(null);
-  const [privacyBlocked, setPrivacyBlocked] = useState(false);
-
-  useEffect(() => {
-    const id = googleAnalyticsMeasurementIdForHostname(window.location.hostname);
-    setMeasurementId(id);
-    if (privacySignalIsSet()) { setPrivacyBlocked(true); setConsent("declined"); return; }
-    try {
-      const saved = localStorage.getItem(CONSENT_KEY);
-      if (saved === "accepted" || saved === "declined") setConsent(saved);
-    } catch { setConsent(null); }
-  }, []);
+  const measurementId = clientReady ? googleAnalyticsMeasurementIdForHostname(window.location.hostname) : null;
+  const privacyBlocked = clientReady && privacySignalIsSet();
+  const consent: ConsentChoice = privacyBlocked ? "declined" : savedConsent;
 
   useEffect(() => {
     if (!measurementId || consent !== "accepted" || privacyBlocked) return;
@@ -167,7 +180,7 @@ export function GoogleAnalytics() {
       lastPath.current = path;
       const location = `${window.location.origin}${path}`;
       sendEvent("page_view", measurementId, { page_path: path, page_location: location });
-      if (/^\/pricing(?:\/|$)/.test(path)) sendEvent("pricing_view", measurementId);
+      if (/^\\/pricing(?:\\/|$)/.test(path)) sendEvent("pricing_view", measurementId);
       const industrySegment = path.toLowerCase().split("/").map((part) => industryAliases[part]).find(Boolean);
       if (industrySegment) sendEvent("industry_landing_view", measurementId, { industry: industrySegment });
     }
@@ -206,8 +219,8 @@ export function GoogleAnalytics() {
   }, [consent, measurementId, privacyBlocked]);
 
   const chooseConsent = (choice: Exclude<ConsentChoice, null>) => {
-    setConsent(choice);
     try { localStorage.setItem(CONSENT_KEY, choice); } catch { /* The choice still applies for this page view. */ }
+    window.dispatchEvent(new Event("runfloor:analytics-consent"));
   };
 
   return measurementId && !privacyBlocked && consent === null
