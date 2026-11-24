@@ -47,7 +47,7 @@ export async function login(
   console.info("[auth/login] sign-in accepted", { nextPath });
   (await cookies()).delete(publicDemoCookieName);
 
-  redirect(nextPath);
+  const destination = new URL(nextPath, "https://runfloorsales.com");\n  destination.searchParams.set("rf_ga_event", "login");\n  redirect(`${destination.pathname}${destination.search}${destination.hash}`);
 }
 
 export async function logout() {
