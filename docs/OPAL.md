@@ -29,9 +29,11 @@ The lower sidebar reuses the module accordion with Help & Support, Billing & Usa
 
 ## Production configuration — not applied
 
-Review and test the additive migration 20261116003658_opal_help_center.sql before deployment. No production migration or deployment was run.
+The Help Center migration was already present in production. The allowance migration `20261123193000_opal_workspace_help_allowance.sql` has now been applied to the RunFloor production Supabase project. The application deployment is pending.
 
-Optional dedicated OPAL_OPENAI_API_KEY, otherwise existing OPENAI_API_KEY, is called through Opal's own bounded provider module, never the dealership credit wrapper. OPAL_MODEL defaults to the app's existing gpt-5-mini family. Configure a provider-side budget on the selected account before rollout. Separate token usage is recorded in opal_platform_usage; no currency estimate is presented as an actual charge.
+Optional dedicated OPAL_OPENAI_API_KEY, otherwise existing OPENAI_API_KEY, is called through Opal's own bounded provider module, never the dealership credit wrapper. Opal is pinned to `gpt-5-mini`. The additive workspace ledger reserves against `ai_model_rates`, then settles using provider-reported token usage and the selected model's active rate. It caps actual cost at $2 per eligible period, shared by all workspace users. Trials receive $2 for the trial period; the first paid billing period starts a fresh $2 allowance; each paid period resets independently with no rollover. Free workspaces do not receive Opal AI, but retain verified guide and Help Center search. Configure a provider-side budget on the selected account as a separate safeguard. Separate token usage continues to be recorded in `opal_platform_usage`.
+
+The Opal widget shows the workspace's used amount, remaining allowance, and next reset date. Pending request reservations are included in the remaining calculation so concurrent requests cannot overspend. Once the allowance is exhausted, the server skips provider calls and serves verified guide content and Help Center search with the next reset date.
 
 Without a provider key, or on provider failure, Opal returns the closest authorized verified guide. It labels that response as guide-based. Search and support work without AI. A live AI provider call was not exercised in the local preview; mocked tests cover the request contract.
 
