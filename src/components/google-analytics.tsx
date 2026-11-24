@@ -44,7 +44,7 @@ function privacySignalIsSet() {
 
 function safePath(pathname: string) {
   return pathname.split("/").map((segment) => (
-    /^[0-9a-f]{8}-[0-9a-f-]{27,}$/i.test(segment) || /^\d{10,}$/.test(segment) || /^[A-Za-z0-9_-]{32,}$/.test(segment) || /^[^/]+@[^/]+\\.[^/]+$/.test(segment)
+    /^[0-9a-f]{8}-[0-9a-f-]{27,}$/i.test(segment) || /^\d{10,}$/.test(segment) || /^[A-Za-z0-9_-]{32,}$/.test(segment) || /^[^/]+@[^/]+\.[^/]+$/.test(segment)
       ? ":id"
       : segment
   )).join("/") || "/";
@@ -68,7 +68,7 @@ function safeReferrer() {
   if (typeof document === "undefined" || !document.referrer) return "";
   try {
     const referrer = new URL(document.referrer);
-    return `${referrer.origin}${safePath(referrer.pathname)}`;
+    return referrer.origin;
   } catch { return ""; }
 }
 
