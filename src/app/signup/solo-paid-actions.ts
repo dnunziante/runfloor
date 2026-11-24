@@ -41,10 +41,11 @@ export async function startPaidSoloSignupCheckout(form: FormData) {
 
     const { stripe, account, live } = await billingStripe();
     const price = await soloPrice(stripe, account, live);
-    const { data: intent, error: intentError } = await admin.from("sales_solo_signup_intents")
+    const { data: loadedIntent, error: intentError } = await admin.from("sales_solo_signup_intents")
       .select("id,owner_user_id,signup_email,stripe_customer_id,checkout_session_id,status")
       .eq("signup_email", email).eq("status", "pending").maybeSingle();
     if (intentError) throw new Error("Solo checkout could not be loaded.");
+    let intent = loadedIntent;
     if (intent && intent.owner_user_id && user && intent.owner_user_id !== user.id) throw new Error("This Solo checkout is already linked to another account.");
     if (intent?.checkout_session_id) {
       const previous = await stripe.checkout.sessions.retrieve(intent.checkout_session_id);
