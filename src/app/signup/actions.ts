@@ -9,12 +9,12 @@ function selectedPlan(form: FormData) {
  const value = String(form.get("plan") || "sales_solo");
  return ["sales_solo_free", "sales_solo", "complete"].includes(value) ? value : null;
 }
-function activationUrl(plan: string) { return "/signup/activate?plan=" + encodeURIComponent(plan); }
+function activationUrl(plan: string, analyticsEvent?: string) { return "/signup/activate?plan=" + encodeURIComponent(plan) + (analyticsEvent ? "&rf_ga_event=" + encodeURIComponent(analyticsEvent) : ""); }\ntype SignupActionState = { message: string; analyticsEvent?: "sign_up" };
 function validContactPhone(phone: string) {
   return !phone || (phone.length <= 40 && /^[+\d\s().xet#-]+$/i.test(phone) && (phone.match(/\d/g)?.length ?? 0) >= 7);
 }
 
-export async function signupTrial(_state: { message: string }, form: FormData) {
+export async function signupTrial(_state: SignupActionState, form: FormData): Promise<SignupActionState> {
   const plan = selectedPlan(form);
   if (!plan) return { message: "Choose a valid RunFloor plan." };
   if (plan === "sales_solo") return { message: "RunFloor Solo starts at Stripe Checkout. Select Continue to secure checkout to pay first, then create your account." };
@@ -38,7 +38,7 @@ export async function signupTrial(_state: { message: string }, form: FormData) {
   return { message: "Check your inbox for the verification link. Verify your email, then continue with your selected plan." };
 }
 
-export async function activateTrial(_state: { message: string }, form: FormData) {
+export async function activateTrial(_state: SignupActionState, form: FormData) {
   const plan = selectedPlan(form);
   if (!plan) return { message: "Choose a valid RunFloor plan." };
   if (plan === "sales_solo") return { message: "RunFloor Solo requires payment first. Start from the Solo signup page to continue to Stripe Checkout." };
@@ -55,5 +55,5 @@ export async function activateTrial(_state: { message: string }, form: FormData)
     if (profileError) return { message: "Your account is activated, but your phone number could not be saved. Please try again." };
   }
   (await cookies()).set("rf-trial-draft", "", { path: "/signup", maxAge: 0, httpOnly: true, sameSite: "lax", secure: process.env.NODE_ENV === "production" });
-  redirect(plan === "sales_solo_free" ? "/products" : "/dashboard");
+  redirect(plan === "sales_solo_free" ? "/products" : "/dashboard?rf_ga_event=trial_start");
 }
