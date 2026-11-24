@@ -32,8 +32,9 @@ export async function startPaidSignupCheckout(form: FormData) {
 
     const stripe = await stripeClient();
     const price = await completePrice(stripe);
-    const { data: intent, error: intentError } = await admin.from("rv_paid_signup_intents").select("id,stripe_customer_id,checkout_session_id,status").eq("owner_user_id", user.id).eq("status", "pending").maybeSingle();
+    const { data: loadedIntent, error: intentError } = await admin.from("rv_paid_signup_intents").select("id,stripe_customer_id,checkout_session_id,status").eq("owner_user_id", user.id).eq("status", "pending").maybeSingle();
     if (intentError) throw new Error("Paid signup could not be loaded.");
+    let intent = loadedIntent;
     if (intent?.checkout_session_id) {
       const previous = await stripe.checkout.sessions.retrieve(intent.checkout_session_id);
       if (previous.status === "open" && previous.url) redirect(previous.url);
