@@ -6,7 +6,8 @@ import { startPaidSoloSignupCheckout } from "@/app/signup/solo-paid-actions";
 
 export function TrialSignupForm({ activate = false, dealership = "", fullName = "", phone = "", plan = "sales_solo", soloEnabled = false, freeEnabled = false }: { activate?: boolean; dealership?: string; fullName?: string; phone?: string; plan?: string; soloEnabled?: boolean; freeEnabled?: boolean }) {
   const [selectedPlan, setSelectedPlan] = useState(plan);
-  const [state, action, pending] = useActionState(activate ? activateTrial : signupTrial, { message: "" });\n  useEffect(() => { if (state.analyticsEvent) window.dispatchEvent(new CustomEvent("runfloor:analytics", { detail: { name: state.analyticsEvent } })); }, [state.analyticsEvent]);
+  const [state, action, pending] = useActionState(activate ? activateTrial : signupTrial, { message: "" });
+  useEffect(() => { if (state.analyticsEvent) window.dispatchEvent(new CustomEvent("runfloor:analytics", { detail: { name: state.analyticsEvent } })); }, [state.analyticsEvent]);
   return <form action={action} className="rv-signup-form">
     <p><small>* Required fields</small></p>
     <label>Plan<select className="input" name="plan" value={selectedPlan} onChange={e => setSelectedPlan(e.target.value)}>
