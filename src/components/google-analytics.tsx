@@ -64,7 +64,15 @@ function eventOnce(name: GaEventName, measurementId: string, path: string, key =
   sendEvent(name, measurementId);
 }
 
-function safeReferrer() {\n  if (typeof document === "undefined" || !document.referrer) return "";\n  try {\n    const referrer = new URL(document.referrer);\n    return `${referrer.origin}${safePath(referrer.pathname)}`;\n  } catch { return ""; }\n}\n\nfunction initializeGoogleTag(measurementId: string, path: string) {
+function safeReferrer() {
+  if (typeof document === "undefined" || !document.referrer) return "";
+  try {
+    const referrer = new URL(document.referrer);
+    return `${referrer.origin}${safePath(referrer.pathname)}`;
+  } catch { return ""; }
+}
+
+function initializeGoogleTag(measurementId: string, path: string) {
   if (window.__runFloorGaReady === measurementId) return;
   window.dataLayer = window.dataLayer || [];
   window.gtag = window.gtag || function gtag(...args: unknown[]) { window.dataLayer?.push(args); };
