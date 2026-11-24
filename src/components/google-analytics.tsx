@@ -182,8 +182,8 @@ export function GoogleAnalytics() {
 
   useEffect(() => {
     if (!measurementId || consent !== "accepted" || privacyBlocked) return;
-    initializeGoogleTag(measurementId);
     const path = safePath(pathname);
+    initializeGoogleTag(measurementId, path);
     if (lastPath.current !== path) {
       lastPath.current = path;
       const location = `${window.location.origin}${path}`;
