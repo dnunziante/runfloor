@@ -117,7 +117,7 @@ function eventForClick(element: HTMLElement, measurementId: string) {
   if (!event && /upgrade/.test(label)) event = "upgrade_click";
   if (!event && /free trial|start.*trial|trial/.test(label)) event = "trial_start_click";
   if (!event && /sign up|signup|create account|get started/.test(label)) event = "signup_cta_click";
-  if (!event && element.closest("form") && /^\\/pricing(?:\\/|$)/.test(window.location.pathname)) event = "begin_checkout";
+  if (!event && element.closest("form") && window.location.pathname.startsWith("/pricing")) event = "begin_checkout";
   if (event) sendEvent(event, measurementId, params);
 }
 
