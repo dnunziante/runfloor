@@ -44,7 +44,7 @@ function privacySignalIsSet() {
 
 function safePath(pathname: string) {
   return pathname.split("/").map((segment) => (
-    /^[0-9a-f]{8}-[0-9a-f-]{27,}$/i.test(segment) || /^\d{10,}$/.test(segment) || /^[A-Za-z0-9_-]{32,}$/.test(segment)
+    /^[0-9a-f]{8}-[0-9a-f-]{27,}$/i.test(segment) || /^\d{10,}$/.test(segment) || /^[A-Za-z0-9_-]{32,}$/.test(segment) || /^[^/]+@[^/]+\\.[^/]+$/.test(segment)
       ? ":id"
       : segment
   )).join("/") || "/";
@@ -64,7 +64,7 @@ function eventOnce(name: GaEventName, measurementId: string, path: string, key =
   sendEvent(name, measurementId);
 }
 
-function initializeGoogleTag(measurementId: string) {
+function safeReferrer() {\n  if (typeof document === "undefined" || !document.referrer) return "";\n  try {\n    const referrer = new URL(document.referrer);\n    return `${referrer.origin}${safePath(referrer.pathname)}`;\n  } catch { return ""; }\n}\n\nfunction initializeGoogleTag(measurementId: string, path: string) {
   if (window.__runFloorGaReady === measurementId) return;
   window.dataLayer = window.dataLayer || [];
   window.gtag = window.gtag || function gtag(...args: unknown[]) { window.dataLayer?.push(args); };
@@ -75,7 +75,7 @@ function initializeGoogleTag(measurementId: string) {
     ad_personalization: "denied",
   });
   window.gtag("js", new Date());
-  window.gtag("config", measurementId, { send_page_view: false, anonymize_ip: true });
+  window.gtag("config", measurementId, { send_page_view: false, page_path: path, page_location: `${window.location.origin}${path}`, page_referrer: safeReferrer(), anonymize_ip: true });
   window.gtag("consent", "update", { analytics_storage: "granted" });
   window.__runFloorGaReady = measurementId;
 
