@@ -1,0 +1,32 @@
+name: RunFloor analytics quality checks
+
+on:
+  pull_request:
+    paths:
+      - "src/components/google-analytics.tsx"
+      - "src/app/layout.tsx"
+      - "src/app/auth/actions.ts"
+      - "src/app/billing/page.tsx"
+      - "src/app/signup/actions.ts"
+      - "src/app/signup/complete/page.tsx"
+      - "src/app/signup/solo-complete/page.tsx"
+      - "src/components/solo-billing.tsx"
+      - "src/components/trial-signup-form.tsx"
+      - "docs/GA4.md"
+      - ".github/workflows/ga4-quality.yml"
+
+jobs:
+  quality:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 10
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      - run: pnpm lint
+      - run: pnpm typecheck

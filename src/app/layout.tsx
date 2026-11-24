@@ -1,3 +1,5 @@
+import { Suspense } from "react";
+import { GoogleAnalytics } from "@/components/google-analytics";
 import { OpalWidget } from "@/components/opal-widget";
 import type { Metadata } from "next";
 import "./globals.css";
@@ -32,5 +34,5 @@ export const metadata: Metadata = {
 };
 
 export default function RootLayout({ children }: Readonly<{ children: React.ReactNode }>) {
-  return <html lang="en"><body>{children}<OpalWidget/></body></html>;
+  return <html lang="en"><body>{children}<OpalWidget/><Suspense fallback={null}><GoogleAnalytics /></Suspense></body></html>;
 }

@@ -14,7 +14,7 @@ export default async function PaidSignupComplete({ searchParams }: { searchParam
   if (!/^[0-9a-f-]{36}$/i.test(intentId)) return <main className="rv-signup"><section><h1>We couldn’t find this checkout.</h1><Link href="/signup/activate?plan=complete">Return to RunFloor signup</Link></section></main>;
   const { data: intent } = await createAdminClient().from("rv_paid_signup_intents").select("id,status,organization_id,owner_user_id,stripe_customer_id,checkout_session_id").eq("id", intentId).eq("owner_user_id", user.id).maybeSingle();
   if (!intent) return <main className="rv-signup"><section><h1>We couldn’t find this checkout.</h1><Link href="/signup/activate?plan=complete">Return to RunFloor signup</Link></section></main>;
-  if (intent.status === "provisioned") redirect("/dashboard");
+  if (intent.status === "provisioned") redirect("/dashboard?rf_ga_event=purchase");
 
   let paid = false;
   if (params.session_id && params.session_id === intent.checkout_session_id) {
