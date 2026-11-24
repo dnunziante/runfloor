@@ -41,7 +41,7 @@ export async function startPaidSoloSignupCheckout(form: FormData) {
 
     const { stripe, account, live } = await billingStripe();
     const price = await soloPrice(stripe, account, live);
-    let { data: intent, error: intentError } = await admin.from("sales_solo_signup_intents")
+    const { data: intent, error: intentError } = await admin.from("sales_solo_signup_intents")
       .select("id,owner_user_id,signup_email,stripe_customer_id,checkout_session_id,status")
       .eq("signup_email", email).eq("status", "pending").maybeSingle();
     if (intentError) throw new Error("Solo checkout could not be loaded.");
