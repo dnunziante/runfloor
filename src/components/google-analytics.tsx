@@ -226,12 +226,19 @@ export function GoogleAnalytics() {
     };
   }, [consent, measurementId, privacyBlocked]);
 
-  const chooseConsent = (choice: Exclude<ConsentChoice, null>) => {
-    try { localStorage.setItem(CONSENT_KEY, choice); } catch { /* The choice still applies for this page view. */ }
+  const updateConsent = (choice: Exclude<ConsentChoice, null> | null) => {
+    try {
+      if (choice) localStorage.setItem(CONSENT_KEY, choice);
+      else localStorage.removeItem(CONSENT_KEY);
+    } catch { /* The choice still applies for this page view. */ }
     window.dispatchEvent(new Event("runfloor:analytics-consent"));
   };
 
-  return measurementId && !privacyBlocked && consent === null
-    ? <ConsentNotice onChoose={chooseConsent} />
-    : null;
+  if (!measurementId || privacyBlocked) return null;
+  return consent === null
+    ? <ConsentNotice onChoose={(choice) => updateConsent(choice)} />
+    : <button type="button" aria-label="Change Google Analytics consent settings" onClick={() => updateConsent(null)}
+        style={{ position: "fixed", zIndex: 9998, left: 14, bottom: 14, padding: "7px 10px", border: "1px solid rgba(94,184,255,.55)", borderRadius: 20, background: "#071529", color: "#dce8f5", font: "11px Arial,sans-serif", cursor: "pointer" }}>
+        Analytics choices
+      </button>;
 }
