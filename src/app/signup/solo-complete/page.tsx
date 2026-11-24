@@ -14,7 +14,7 @@ export default async function SoloSignupComplete({ searchParams }: { searchParam
     .select("id,status,organization_id,owner_user_id,signup_email,workspace_name,contact_name,phone,stripe_customer_id,stripe_account_id,livemode,checkout_session_id")
     .eq("id", intentId).maybeSingle();
   if (!intent) return <main className="rv-signup"><section><h1>We couldn’t find this checkout.</h1><Link href="/signup?plan=solo">Return to RunFloor Solo</Link></section></main>;
-  if (intent.status === "provisioned") return <main className="rv-signup"><section><h1>Your Sales workspace is ready.</h1><p>RunFloor has confirmed your subscription and created your workspace.</p><Link className="btn btn-primary" href="/dashboard">Open RunFloor</Link></section></main>;
+  if (intent.status === "provisioned") return <main className="rv-signup" data-rf-analytics-events="purchase,sign_up" data-rf-analytics-id={intent.id}><section><h1>Your Sales workspace is ready.</h1><p>RunFloor has confirmed your subscription and created your workspace.</p><Link className="btn btn-primary" href="/dashboard">Open RunFloor</Link></section></main>;
 
   const auth = await createClient();
   const { data: { user } } = await auth.auth.getUser();
