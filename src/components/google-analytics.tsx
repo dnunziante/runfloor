@@ -180,7 +180,7 @@ export function GoogleAnalytics() {
       lastPath.current = path;
       const location = `${window.location.origin}${path}`;
       sendEvent("page_view", measurementId, { page_path: path, page_location: location });
-      if (/^\\/pricing(?:\\/|$)/.test(path)) sendEvent("pricing_view", measurementId);
+      if (path.startsWith("/pricing")) sendEvent("pricing_view", measurementId);
       const industrySegment = path.toLowerCase().split("/").map((part) => industryAliases[part]).find(Boolean);
       if (industrySegment) sendEvent("industry_landing_view", measurementId, { industry: industrySegment });
     }
