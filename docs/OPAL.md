@@ -29,7 +29,7 @@ The lower sidebar reuses the module accordion with Help & Support, Billing & Usa
 
 ## Production configuration — not applied
 
-Review and test the additive migrations `20261116003658_opal_help_center.sql` and `20261123193000_opal_workspace_help_allowance.sql` before deployment. Neither migration has been applied to production, and no production deployment was run.
+The Help Center migration was already present in production. The allowance migration `20261123193000_opal_workspace_help_allowance.sql` has now been applied to the RunFloor production Supabase project. The application deployment is pending.
 
 Optional dedicated OPAL_OPENAI_API_KEY, otherwise existing OPENAI_API_KEY, is called through Opal's own bounded provider module, never the dealership credit wrapper. Opal is pinned to `gpt-5-mini`. The additive workspace ledger reserves against `ai_model_rates`, then settles using provider-reported token usage and the selected model's active rate. It caps actual cost at $2 per eligible period, shared by all workspace users. Trials receive $2 for the trial period; the first paid billing period starts a fresh $2 allowance; each paid period resets independently with no rollover. Free workspaces do not receive Opal AI, but retain verified guide and Help Center search. Configure a provider-side budget on the selected account as a separate safeguard. Separate token usage continues to be recorded in `opal_platform_usage`.
 
