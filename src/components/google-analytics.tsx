@@ -38,7 +38,8 @@ export function googleAnalyticsMeasurementIdForHostname(hostname: string) {
 }
 
 function privacySignalIsSet() {
-  return navigator.globalPrivacyControl === true || navigator.doNotTrack === "1";
+  const nav = navigator as Navigator & { globalPrivacyControl?: boolean };
+  return nav.globalPrivacyControl === true || nav.doNotTrack === "1";
 }
 
 function safePath(pathname: string) {
@@ -173,8 +174,9 @@ export function GoogleAnalytics() {
 
     const params = new URLSearchParams(search);
     const marker = params.get("rf_ga_event");
-    if (marker && allowedEvents.has(marker as GaEventName)) {
-      eventOnce(marker as GaEventName, measurementId, path);
+    if (marker) {
+      marker.split(",").map((name) => name.trim()).filter((name): name is GaEventName => allowedEvents.has(name as GaEventName))
+        .forEach((name) => eventOnce(name, measurementId, path));
       params.delete("rf_ga_event");
       const cleanUrl = new URL(window.location.href);
       cleanUrl.search = params.toString();
