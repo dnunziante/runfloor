@@ -161,6 +161,7 @@ export async function createCreditCheckout(
     const session = await stripe.checkout.sessions.create(
       {
         mode: "subscription",
+        allow_promotion_codes: true,
         integration_identifier: integrationIdentifier(slot.request_id),
         customer: customer.stripe_customer_id,
         line_items: [{ price: price.id, quantity: 1 }],
