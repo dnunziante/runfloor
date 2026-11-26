@@ -83,7 +83,7 @@ function initializeGoogleTag(measurementId: string, path: string) {
     ad_personalization: "denied",
   });
   window.gtag("js", new Date());
-  window.gtag("config", measurementId, { send_page_view: false, page_path: path, page_location: `${window.location.origin}${path}`, page_referrer: safeReferrer(), anonymize_ip: true });
+  window.gtag("config", measurementId, { send_page_view: false, page_path: path, page_location: `${window.location.origin}${path}`, page_referrer: safeReferrer(), anonymize_ip: true, linker: { domains: ["runfloorai.com", "www.runfloorai.com", "runfloormarketing.com", "www.runfloormarketing.com", "runfloorsales.com", "www.runfloorsales.com"] } });
   window.gtag("consent", "update", { analytics_storage: "granted" });
   window.__runFloorGaReady = measurementId;
 
