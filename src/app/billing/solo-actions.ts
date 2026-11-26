@@ -40,7 +40,7 @@ export async function startSoloCheckout() {
     const { data, error } = await db.from("account_subscription_plans").update({ checkout_attempt: attempt, checkout_expires_at: new Date(expires * 1000).toISOString() }).eq("organization_id", viewer.organizationId).or(`checkout_expires_at.is.null,checkout_expires_at.lt.${new Date().toISOString()}`).select("organization_id").maybeSingle();
     if (error || !data) throw new Error("Checkout is already being prepared. Try again shortly.");
     const suffix = Array.from(randomBytes(8), byte => String.fromCharCode(97 + byte % 26)).join("");
-    const session = await stripe.checkout.sessions.create({ mode: "subscription", customer, line_items: [{ price: price.id, quantity: 1 }], expires_at: expires, success_url: `${billingOrigin()}/billing?checkout=returned`, cancel_url: `${billingOrigin()}/billing`, integration_identifier: `runfloor_solo_${suffix}` }, { idempotencyKey: `sales-solo-checkout:${viewer.organizationId}:${attempt}` });
+    const session = await stripe.checkout.sessions.create({ mode: "subscription", allow_promotion_codes: true, customer, line_items: [{ price: price.id, quantity: 1 }], expires_at: expires, success_url: `${billingOrigin()}/billing?checkout=returned`, cancel_url: `${billingOrigin()}/billing`, integration_identifier: `runfloor_solo_${suffix}` }, { idempotencyKey: `sales-solo-checkout:${viewer.organizationId}:${attempt}` });
     const saved = await db.from("account_subscription_plans").update({ checkout_session_id: session.id }).eq("organization_id", viewer.organizationId).eq("checkout_attempt", attempt);
     if (saved.error || !session.url) throw new Error("Checkout could not be saved.");
     destination = session.url;

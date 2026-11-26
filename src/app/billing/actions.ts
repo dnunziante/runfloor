@@ -54,7 +54,7 @@ export async function startCheckout(form: FormData) {
     if (error || !claim) throw new Error("Checkout is already being prepared. Refresh Billing shortly.");
     const origin = billingOrigin();
     const label = `runfloor_rv_${Array.from(randomBytes(8), byte => String.fromCharCode(97 + byte % 26)).join("")}`;
-    const session = await stripe.checkout.sessions.create({ mode: "subscription", customer, line_items: [{ price: price.id, quantity: 1 }], expires_at: expires, success_url: `${origin}/billing?checkout=returned`, cancel_url: `${origin}/billing`, metadata: { application: "runfloor", billing_scope: "location" }, subscription_data: { metadata: { application: "runfloor", billing_scope: "location" } }, integration_identifier: label }, { idempotencyKey: `rv-checkout:${row.location_id}:${attempt}` });
+    const session = await stripe.checkout.sessions.create({ mode: "subscription", allow_promotion_codes: true, customer, line_items: [{ price: price.id, quantity: 1 }], expires_at: expires, success_url: `${origin}/billing?checkout=returned`, cancel_url: `${origin}/billing`, metadata: { application: "runfloor", billing_scope: "location" }, subscription_data: { metadata: { application: "runfloor", billing_scope: "location" } }, integration_identifier: label }, { idempotencyKey: `rv-checkout:${row.location_id}:${attempt}` });
     const saved = await admin.from("rv_location_billing").update({ checkout_session_id: session.id }).eq("location_id", row.location_id).eq("checkout_attempt", attempt);
     if (saved.error || !session.url) throw new Error("Checkout could not be saved. Please contact support.");
     destination = session.url;
