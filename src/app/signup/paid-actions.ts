@@ -63,6 +63,7 @@ export async function startPaidSignupCheckout(form: FormData) {
     const origin = billingOrigin();
     const session = await stripe.checkout.sessions.create({
       mode: "subscription",
+      allow_promotion_codes: true,
       customer,
       line_items: [{ price: price.id, quantity: 1 }],
       success_url: `${origin}/signup/complete?intent=${intent.id}&session_id={CHECKOUT_SESSION_ID}`,
